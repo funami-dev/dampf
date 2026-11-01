@@ -1,0 +1,23 @@
+# Specs – Arbeitsweise
+
+Dieses Repo wird **spec-driven** entwickelt:
+
+1. **Spec schreiben/ändern** (`specs/*.md`) – Ziel, Umfang, nummerierte Akzeptanzkriterien (AK).
+2. **Spec abnehmen** – Status von `Entwurf` auf `Abgenommen` setzen.
+3. **Tests aus den AK ableiten** – jeder Test referenziert seine AK-ID im Namen (z. B. `PORTAL-AK-03`).
+4. **Implementieren**, bis alle Tests grün sind.
+5. Änderungen am Verhalten → zuerst die Spec anpassen, dann Tests, dann Code.
+
+## Status-Werte
+
+`Entwurf` → `Abgenommen` → `Umgesetzt` (alle AK durch Tests abgedeckt und grün)
+
+## Index
+
+| Datei                                          | Thema                                       | Status    |
+| ---------------------------------------------- | ------------------------------------------- | --------- |
+| [000-vision.md](000-vision.md)                 | Vision, Ziele, Nicht-Ziele                  | Umgesetzt |
+| [001-repo-und-build.md](001-repo-und-build.md) | Monorepo, Build, Deployment (Vercel)        | Umgesetzt |
+| [002-game-manifest.md](002-game-manifest.md)   | `game.json`-Format & Pflichten eines Spiels | Umgesetzt |
+| [003-portal.md](003-portal.md)                 | Startseite / Spieleliste (Astro)            | Umgesetzt |
+| [games/snake.md](games/snake.md)               | Spiel 1: Snake (Referenz-Template)          | Umgesetzt |

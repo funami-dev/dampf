@@ -1,0 +1,50 @@
+@import "@fontsource/press-start-2p/400.css";
+
+:root {
+  --bg: #121a26;
+  --bg2: #1b2838;
+  --panel: #213246;
+  --text: #dfe7ee;
+  --muted: #8fa3b5;
+  --accent: #66c0f4;
+  --warm: #f4b266;
+  --pixel: "Press Start 2P", ui-monospace, monospace;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  color: var(--text);
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 1rem;
+  background:
+    repeating-linear-gradient(0deg, rgb(0 0 0 / 0.12) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, var(--bg2), var(--bg) 60%);
+}
+
+a {
+  color: var(--accent);
+}
+
+.wrap {
+  width: min(1100px, 100% - 2rem);
+  margin-inline: auto;
+}

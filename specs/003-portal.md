@@ -1,0 +1,47 @@
+# 003 – Portal / Startseite
+
+**Status:** Umgesetzt
+
+## Zweck
+
+Die Startseite (`/`) zeigt alle veröffentlichten Spiele als Karten. Ein Klick auf eine Karte
+öffnet das Spiel als Vollbild-Seite (`/games/<slug>/`), im selben Tab.
+
+## Inhalt & Layout
+
+- Kopfbereich: Logo/Name „Dampf“ + Kurzbeschreibung (ein Satz).
+- Optik: Retro-Pixel-Stil nach 000-vision (dunkles Blau-Grau, Cyan-Akzente, Pixel-Schrift
+  für Überschriften, gut lesbare Schrift für Fließtext).
+- Raster aus Spielkarten. Je Karte: Thumbnail, Titel, Beschreibung, Steuerungs-Icons
+  (Tastatur / Touch).
+- Sortierung: `order` aufsteigend, danach `title` alphabetisch.
+- Leerer Zustand: Gibt es keine veröffentlichten Spiele, wird ein Hinweistext angezeigt.
+- Fußbereich: Link zum GitHub-Repo.
+
+## Nicht-funktionale Anforderungen
+
+- Statisch generiert, kein Client-JavaScript nötig, um die Liste zu sehen.
+- Responsive: 1 Spalte < 600 px, sonst automatisch so viele Spalten wie passen.
+- Barrierearm: Karten sind Links mit sinnvollem Text, Bilder haben `alt`, sichtbarer Fokus,
+  ausreichende Kontraste.
+- Lighthouse (Mobile): Performance ≥ 90, Accessibility ≥ 95. (Zielwert, wird nicht automatisch geprüft.)
+
+## Akzeptanzkriterien
+
+- **PORTAL-AK-01** `/` listet genau die Spiele mit `status: "published"`.
+- **PORTAL-AK-02** Jede Karte zeigt Thumbnail (mit `alt` = Titel), Titel und Beschreibung aus
+  `game.json`.
+- **PORTAL-AK-03** Jede Karte verlinkt auf `/games/<slug>/`; der Link lädt das Spiel
+  (Canvas sichtbar) ohne Konsolenfehler.
+- **PORTAL-AK-04** Sortierung nach `order`, dann `title`.
+- **PORTAL-AK-05** Ohne veröffentlichte Spiele erscheint der Leer-Hinweis.
+- **PORTAL-AK-06** Bei 375×667 (Mobile) gibt es kein horizontales Scrollen und die Karten
+  stehen einspaltig.
+- **PORTAL-AK-07** Die Seite funktioniert bei deaktiviertem JavaScript (Liste sichtbar, Links
+  funktionieren).
+- **PORTAL-AK-08** Ein neues Spiel unter `games/` erscheint nach erneutem Build ohne Änderung am
+  Portal-Code.
+
+## Entscheidungen
+
+- Kein „Neu“-Badge. `addedAt` wird nur gespeichert, nicht angezeigt.
