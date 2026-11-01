@@ -1,6 +1,6 @@
 # 002 – Game-Manifest (`game.json`) & Pflichten eines Spiels
 
-**Status:** Abgenommen
+**Status:** Umgesetzt
 
 ## Zweck
 
@@ -11,17 +11,18 @@ zur Build-Zeit; es gibt keine zentrale Liste, die man pflegen muss.
 
 ```jsonc
 {
-  "slug": "snake",                     // Pflicht, [a-z0-9-]+, == Ordnername
-  "title": "Snake",                    // Pflicht, 1–40 Zeichen
-  "description": "Friss, wachse, …",   // Pflicht, 1–160 Zeichen
-  "thumbnail": "thumbnail.png",        // Pflicht, relativ zu public/, 16:9, ≥ 640×360
-  "controls": {                        // Pflicht, mindestens eins true
+  "slug": "snake", // Pflicht, [a-z0-9-]+, == Ordnername
+  "title": "Snake", // Pflicht, 1–40 Zeichen
+  "description": "Friss, wachse, …", // Pflicht, 1–160 Zeichen
+  "thumbnail": "thumbnail.png", // Pflicht, relativ zu public/, 16:9, ≥ 640×360
+  "controls": {
+    // Pflicht, mindestens eins true
     "keyboard": true,
-    "touch": true
+    "touch": true,
   },
-  "status": "published",               // Pflicht: "published" | "draft"
-  "order": 10,                         // optional, Sortierung auf der Startseite (aufsteigend)
-  "addedAt": "2026-11-01"              // Pflicht, ISO-Datum
+  "status": "published", // Pflicht: "published" | "draft"
+  "order": 10, // optional, Sortierung auf der Startseite (aufsteigend)
+  "addedAt": "2026-11-01", // Pflicht, ISO-Datum
 }
 ```
 

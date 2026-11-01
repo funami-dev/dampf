@@ -1,0 +1,40 @@
+---
+import type { GameManifest } from "@dampf/game-kit";
+import GameCard from "./GameCard.astro";
+
+interface Props {
+  games: GameManifest[];
+}
+const { games } = Astro.props;
+---
+
+{games.length === 0 ? (
+  <p class="empty" data-testid="empty">
+    Noch keine Spiele hier. Der Kessel heizt gerade auf …
+  </p>
+) : (
+  <ul class="grid" data-testid="games">
+    {games.map((game) => (
+      <GameCard game={game} />
+    ))}
+  </ul>
+)}
+
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+    gap: 2rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .empty {
+    font-family: var(--pixel);
+    font-size: 0.8rem;
+    line-height: 2;
+    text-align: center;
+    padding: 3rem 1rem;
+    border: 3px dashed var(--muted);
+  }
+</style>

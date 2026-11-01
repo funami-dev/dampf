@@ -1,0 +1,61 @@
+:root {
+  --dampf-bg: #121a26;
+  --dampf-panel: #1b2838;
+  --dampf-text: #c7d5e0;
+  --dampf-accent: #66c0f4;
+}
+
+html,
+body.dampf-game {
+  margin: 0;
+  height: 100%;
+  background: var(--dampf-bg);
+  color: var(--dampf-text);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body.dampf-game {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  font-family: system-ui, sans-serif;
+}
+
+.dampf-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  height: 44px;
+  padding: 0 0.75rem;
+  background: var(--dampf-panel);
+  border-bottom: 2px solid #000;
+}
+
+.dampf-back {
+  color: var(--dampf-accent);
+  text-decoration: none;
+  font-weight: 700;
+  padding: 0.4rem 0.6rem;
+  border: 2px solid var(--dampf-accent);
+}
+
+.dampf-back:hover,
+.dampf-back:focus-visible {
+  background: var(--dampf-accent);
+  color: var(--dampf-bg);
+  outline: none;
+}
+
+.dampf-title {
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.dampf-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+  touch-action: none;
+}

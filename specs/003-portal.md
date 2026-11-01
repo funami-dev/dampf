@@ -1,6 +1,6 @@
 # 003 – Portal / Startseite
 
-**Status:** Abgenommen
+**Status:** Umgesetzt
 
 ## Zweck
 
@@ -24,7 +24,7 @@ Die Startseite (`/`) zeigt alle veröffentlichten Spiele als Karten. Ein Klick a
 - Responsive: 1 Spalte < 600 px, sonst automatisch so viele Spalten wie passen.
 - Barrierearm: Karten sind Links mit sinnvollem Text, Bilder haben `alt`, sichtbarer Fokus,
   ausreichende Kontraste.
-- Lighthouse (Mobile): Performance ≥ 90, Accessibility ≥ 95.
+- Lighthouse (Mobile): Performance ≥ 90, Accessibility ≥ 95. (Zielwert, wird nicht automatisch geprüft.)
 
 ## Akzeptanzkriterien
 

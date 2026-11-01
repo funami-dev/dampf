@@ -1,0 +1,10 @@
+{
+  "slug": "snake",
+  "title": "Snake",
+  "description": "Friss Pixel, werde länger und beiß dir bloß nicht in den eigenen Schwanz. Am Rand geht's auf der anderen Seite weiter.",
+  "thumbnail": "thumbnail.png",
+  "controls": { "keyboard": true, "touch": true },
+  "status": "published",
+  "order": 10,
+  "addedAt": "2026-11-01"
+}

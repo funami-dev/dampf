@@ -1,6 +1,6 @@
 # Spiel: Snake
 
-**Status:** Abgenommen
+**Status:** Umgesetzt
 **Slug:** `snake`
 
 ## Zweck
@@ -32,12 +32,12 @@ Klassisches Snake. Dient gleichzeitig als **Referenz-Template** für weitere Spi
 
 ## Steuerung
 
-| Eingabe | Aktion |
-|---|---|
-| Pfeiltasten / WASD | Richtung |
-| Swipe (≥ 30 px) | Richtung (Touch) |
-| Leertaste / Tippen | Starten / Nochmal |
-| P / Esc / Pause-Button | Pause |
+| Eingabe                | Aktion            |
+| ---------------------- | ----------------- |
+| Pfeiltasten / WASD     | Richtung          |
+| Swipe (≥ 30 px)        | Richtung (Touch)  |
+| Leertaste / Tippen     | Starten / Nochmal |
+| P / Esc / Pause-Button | Pause             |
 
 ## Architektur
 

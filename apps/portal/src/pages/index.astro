@@ -1,0 +1,76 @@
+---
+import "../styles/global.css";
+import Logo from "../components/Logo.astro";
+import GameList from "../components/GameList.astro";
+import { getGames } from "../lib/games.ts";
+
+const games = getGames();
+---
+
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#121a26" />
+    <meta
+      name="description"
+      content="Dampf – kleine Retro-Browsergames, direkt im Browser spielbar."
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Dampf – Browsergames</title>
+  </head>
+  <body>
+    <header class="wrap hero">
+      <Logo />
+      <div>
+        <h1>Dampf</h1>
+        <p>
+          Kleine Retro-Spiele, frisch aus dem Kessel. Direkt im Browser, auf dem Handy und am
+          Rechner.
+        </p>
+      </div>
+    </header>
+    <main class="wrap">
+      <GameList games={games} />
+    </main>
+    <footer class="wrap">
+      <a href="https://github.com/funami-dev/dampf">Quellcode auf GitHub</a>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .hero {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 3rem 0 2.5rem;
+  }
+  .hero :global(.logo) {
+    flex: 0 0 auto;
+    width: clamp(48px, 12vw, 80px);
+    height: auto;
+  }
+  h1 {
+    font-family: var(--pixel);
+    font-size: clamp(1.75rem, 7vw, 3rem);
+    color: var(--accent);
+    text-shadow: 4px 4px 0 #000;
+    margin: 0 0 0.75rem;
+  }
+  .hero p {
+    margin: 0;
+    max-width: 50ch;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+  main {
+    flex: 1;
+  }
+  footer {
+    padding: 3rem 0 2rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+</style>

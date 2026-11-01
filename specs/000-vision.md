@@ -1,6 +1,6 @@
 # 000 – Vision
 
-**Status:** Abgenommen
+**Status:** Umgesetzt
 
 ## Idee
 
@@ -19,14 +19,14 @@ eigenständige Vollbild-Seite.
 
 ## Tech-Stack (Entscheidungen)
 
-| Bereich | Wahl |
-|---|---|
-| Sprache | TypeScript |
-| Spiele | Phaser 4 + Vite |
-| Portal | Astro (statischer Output) |
-| Repo | npm Workspaces |
-| Tests | Vitest (Logik, Manifest), Playwright (E2E, inkl. Mobile-Viewport) |
-| Hosting | Vercel (ein Projekt, statisches `dist/`) |
+| Bereich | Wahl                                                              |
+| ------- | ----------------------------------------------------------------- |
+| Sprache | TypeScript                                                        |
+| Spiele  | Phaser 4 + Vite                                                   |
+| Portal  | Astro (statischer Output)                                         |
+| Repo    | npm Workspaces                                                    |
+| Tests   | Vitest (Logik, Manifest), Playwright (E2E, inkl. Mobile-Viewport) |
+| Hosting | Vercel (ein Projekt, statisches `dist/`)                          |
 
 ## Nicht-Ziele (MVP)
 
