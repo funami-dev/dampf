@@ -1,0 +1,10 @@
+{
+  "slug": "juist-faehre",
+  "title": "Juist-Fähre",
+  "description": "Sei Kapitän einer Frisia-Fähre: pünktlich von Norddeich nach Juist und zurück, mit zufriedenen Passagieren und sanftem Anlegen.",
+  "thumbnail": "thumbnail.png",
+  "controls": { "keyboard": true, "touch": true },
+  "status": "published",
+  "order": 60,
+  "addedAt": "2026-11-01"
+}

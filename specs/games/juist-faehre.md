@@ -1,6 +1,6 @@
 # Spiel: Juist-Fähre
 
-**Status:** Entwurf
+**Status:** Umgesetzt
 **Slug:** `juist-faehre`
 **Name:** „Juist-Fähre“ (Arbeitstitel)
 
