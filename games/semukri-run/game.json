@@ -1,0 +1,10 @@
+{
+  "slug": "semukri-run",
+  "title": "SemUkri Run",
+  "description": "100-Meter-Sprint mit Ukri, Semlaki oder Billy: Tippe abwechselnd links und rechts, schlag deinen Geist und lauf in die Top 10.",
+  "thumbnail": "thumbnail.png",
+  "controls": { "keyboard": true, "touch": true },
+  "status": "published",
+  "order": 30,
+  "addedAt": "2026-11-01"
+}
