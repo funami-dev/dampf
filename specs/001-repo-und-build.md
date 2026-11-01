@@ -37,6 +37,22 @@
       ```
 2. Vercel: `buildCommand: npm run build`, `outputDirectory: dist`, kein Framework-Preset nötig.
 
+## Browser-Unterstützung
+
+Ziel sind auch **ältere iPads und iPhones**. Mindestens **iOS/iPadOS 15** (Safari 15), das läuft
+z. B. noch auf iPad Air 2, iPad mini 4 und iPad 5. Generation.
+
+- **Build-Ziel:** Alle Spiele werden mit dem Vite-Ziel `es2020`/`safari15` gebaut, damit neue
+  JavaScript-Syntax (z. B. `static { … }`-Blöcke in Three.js) in ältere Syntax übersetzt wird.
+  Vorher galt das Vite-Standardziel (Safari 16.4); auf älteren Geräten blieb die Seite weiß.
+- **Fehlende Funktionen:** `Array/String/TypedArray.prototype.at` (erst ab Safari 15.4) wird
+  im `game-kit` nachgerüstet, falls es fehlt.
+- **Zu alte Geräte:** Kann ein Gerät ein Spiel nicht ausführen (kein WebGL 2 bei 3D-Spielen,
+  zu alter Browser), erscheint statt einer weißen Seite ein Hinweis auf Deutsch:
+  „Dein Gerät ist leider zu alt für dieses Spiel. Es braucht mindestens iOS 15 bzw. einen
+  aktuellen Browser.“ – mit dem Zurück-Button zur Startseite. Die Prüfung läuft als kleines
+  klassisches Skript vor dem eigentlichen Spiel, damit sie auch auf sehr alten Geräten greift.
+
 ## Akzeptanzkriterien
 
 - **BUILD-AK-01** `npm ci && npm run build` läuft auf einer frischen Kopie mit Node 22 ohne Fehler durch.
@@ -55,6 +71,15 @@
 - **BUILD-AK-09** Jeder Push/PR wird von Vercel als Preview deployed; `master` geht auf Production.
 - **BUILD-AK-10** Der Vercel-Build führt vor dem Bauen `npm run lint` und `npm test` aus. Schlägt
   einer davon fehl, schlägt das Deployment fehl (Quality Gate ohne separates CI).
+- **BUILD-AK-11** Jedes gebaute Spiel-Bundle in `dist/games/*/assets/*.js` lässt sich als
+  ES2020 parsen (keine neuere Syntax; erlaubt ist nur `await` auf oberster Ebene, das Safari 15
+  bereits kann).
+- **BUILD-AK-12** Fehlt `.at()`, rüstet das `game-kit` es für Arrays, Strings und TypedArrays nach
+  (gleiches Verhalten inkl. negativer Indizes).
+- **BUILD-AK-13** (E2E) Ist WebGL 2 nicht verfügbar, zeigen die 3D-Spiele (Pilot Pro, Mein Hilden,
+  Juist-Fähre, Kassen-Held) den Hinweis „zu alt“ und den Zurück-Button statt einer weißen Seite;
+  es gibt keinen unbehandelten Fehler.
+- **BUILD-AK-14** (E2E) Auf aktuellen Browsern erscheint der Hinweis nicht.
 
 ## CI-Entscheidung
 

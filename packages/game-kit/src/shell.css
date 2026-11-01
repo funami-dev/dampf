@@ -10,8 +10,16 @@
   --dampf-safe-right: env(safe-area-inset-right, 0px);
 }
 
-/* Nur Spielseiten sperren das Scrollen, nie die Startseite (PORTAL-AK-09). */
-html:has(> body.dampf-game),
+/* Nur Spielseiten sperren das Scrollen, nie die Startseite (PORTAL-AK-09).
+   Zwei getrennte Regeln: Ältere Safari-Versionen kennen :has() nicht und würden sonst die ganze
+   Regel verwerfen. */
+html:has(> body.dampf-game) {
+  margin: 0;
+  height: 100%;
+  background: var(--dampf-bg);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
 body.dampf-game {
   margin: 0;
   height: 100%;
@@ -24,6 +32,7 @@ body.dampf-game {
 body.dampf-game {
   display: flex;
   flex-direction: column;
+  height: 100vh;
   height: 100dvh;
   font-family: system-ui, sans-serif;
 }

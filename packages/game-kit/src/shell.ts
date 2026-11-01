@@ -1,4 +1,5 @@
 // Nur über @dampf/game-kit/shell importieren: bringt das Spielseiten-CSS mit.
+import "./compat.ts";
 import "./shell.css";
 
 export interface ShellOptions {
