@@ -1,6 +1,6 @@
 # 001 – Repo-Struktur, Build & Deployment
 
-**Status:** Entwurf (Änderung: Browser-Unterstützung, BUILD-AK-11 bis 14)
+**Status:** Umgesetzt
 
 ## Struktur
 
@@ -72,7 +72,8 @@ z. B. noch auf iPad Air 2, iPad mini 4 und iPad 5. Generation.
 - **BUILD-AK-10** Der Vercel-Build führt vor dem Bauen `npm run lint` und `npm test` aus. Schlägt
   einer davon fehl, schlägt das Deployment fehl (Quality Gate ohne separates CI).
 - **BUILD-AK-11** Jedes gebaute Spiel-Bundle in `dist/games/*/assets/*.js` lässt sich als
-  ES2020 parsen (keine neuere Syntax).
+  ES2020 parsen (keine neuere Syntax; erlaubt ist nur `await` auf oberster Ebene, das Safari 15
+  bereits kann).
 - **BUILD-AK-12** Fehlt `.at()`, rüstet das `game-kit` es für Arrays, Strings und TypedArrays nach
   (gleiches Verhalten inkl. negativer Indizes).
 - **BUILD-AK-13** (E2E) Ist WebGL 2 nicht verfügbar, zeigen die 3D-Spiele (Pilot Pro, Mein Hilden,
