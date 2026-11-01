@@ -1,6 +1,6 @@
 # 002 – Game-Manifest (`game.json`) & Pflichten eines Spiels
 
-**Status:** Umgesetzt
+**Status:** Entwurf (Änderung: MANIFEST-AK-08)
 
 ## Zweck
 
@@ -38,6 +38,8 @@ gemeinsam genutzt.
   Größen-/Orientierungswechsel.
 - Wenn `controls.touch: true`: vollständig per Touch spielbar.
 - Setzt `<title>` auf „<title> – Dampf“.
+- Hält den sicheren Bereich frei (`env(safe-area-inset-*)`): Auf dem iPhone liegt kein Teil des
+  Spielfelds und kein Bedienelement unter der Safari-Leiste, der Notch oder dem Home-Indikator.
 
 ## Akzeptanzkriterien
 
@@ -50,3 +52,6 @@ gemeinsam genutzt.
 - **MANIFEST-AK-06** Spiele mit `status: "draft"` werden gebaut, aber **nicht** auf der
   Startseite gelistet (direkt per URL erreichbar, für Tests/Previews).
 - **MANIFEST-AK-07** Auf jeder Spielseite führt der Zurück-Button zu `/` (E2E).
+- **MANIFEST-AK-08** Der Spielbereich berücksichtigt `env(safe-area-inset-bottom)` und
+  `env(safe-area-inset-top)` (umgesetzt im gemeinsamen Spiel-Rahmen von `game-kit`), sodass
+  Spielfeld und Buttons vollständig im sichtbaren Bereich liegen (E2E mit simuliertem Inset).
