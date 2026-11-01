@@ -1,6 +1,6 @@
 # Spiel: SemUkri Run
 
-**Status:** Entwurf
+**Status:** Umgesetzt
 **Slug:** `semukri-run`
 
 ## Zweck
@@ -97,7 +97,8 @@ Module (`ghost.ts`, `records.ts`) mit einer austauschbaren Speicher-Schnittstell
 - **SR-AK-01** Gültige Eingabe (Seitenwechsel) erhöht das Tempo um 1 m/s, höchstens 12 m/s;
   dieselbe Seite zweimal hat keine Wirkung.
 - **SR-AK-02** Ohne Eingabe sinkt das Tempo exponentiell mit 1,0/s.
-- **SR-AK-03** 8 Eingaben/s abwechselnd ergeben nach 5 s ein Tempo von 8 ± 0,5 m/s.
+- **SR-AK-03** 8 Eingaben/s abwechselnd ergeben in der 5. Sekunde ein Durchschnittstempo von
+  8 ± 0,5 m/s (das Tempo pendelt zwischen den Eingaben).
 - **SR-AK-04** Eingaben vor „Los!“ werden ignoriert; die Zeit startet bei „Los!“.
 - **SR-AK-05** Die Zielzeit wird interpoliert und stimmt bei konstantem Tempo auf 0,01 s.
 - **SR-AK-06** Geist: Aufzeichnung alle 50 ms; Wiedergabe interpoliert zwischen Messpunkten
