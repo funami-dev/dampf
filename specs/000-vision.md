@@ -22,7 +22,7 @@ eigenständige Vollbild-Seite.
 | Bereich | Wahl                                                              |
 | ------- | ----------------------------------------------------------------- |
 | Sprache | TypeScript                                                        |
-| Spiele  | Phaser 4 + Vite                                                   |
+| Spiele  | Phaser 4 + Vite (3D-Spiele: Three.js + Vite, z. B. Pilot Pro)     |
 | Portal  | Astro (statischer Output)                                         |
 | Repo    | npm Workspaces                                                    |
 | Tests   | Vitest (Logik, Manifest), Playwright (E2E, inkl. Mobile-Viewport) |
