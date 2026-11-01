@@ -1,0 +1,10 @@
+{
+  "slug": "himmelhuepfer",
+  "title": "Himmelhüpfer",
+  "description": "Hüpf mit Mauli, Schweini oder Matti von Plattform zu Plattform immer höher in den Himmel und sammle Sterne.",
+  "thumbnail": "thumbnail.png",
+  "controls": { "keyboard": true, "touch": true },
+  "status": "published",
+  "order": 20,
+  "addedAt": "2026-11-01"
+}

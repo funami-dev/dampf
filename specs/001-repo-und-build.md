@@ -1,6 +1,6 @@
 # 001 – Repo-Struktur, Build & Deployment
 
-**Status:** Umgesetzt (außer BUILD-AK-09: wartet auf Einrichtung des Vercel-Projekts)
+**Status:** Umgesetzt
 
 ## Struktur
 
@@ -64,13 +64,13 @@ nachgerüstet werden.
 
 ## Vercel-Einrichtung (einmalig, manuell)
 
-Es gibt noch kein Vercel-Projekt. Einrichtung, sobald der erste baubare Stand auf `master` liegt:
+Das Vercel-Projekt ist eingerichtet (Node.js 24.x). Zum Nachvollziehen bzw. für ein neues Projekt:
 
 1. Auf vercel.com mit GitHub anmelden → **Add New… → Project**.
 2. Repository `funami-dev/dampf` importieren (ggf. die Vercel-GitHub-App für das Repo freigeben).
 3. **Framework Preset:** „Other“. Build-Command, Output-Verzeichnis und Install-Command kommen
    aus `vercel.json` und müssen nicht im UI gesetzt werden.
-4. **Root Directory:** leer lassen (Repo-Root). **Node.js-Version:** 22.x (Project Settings → General).
+4. **Root Directory:** leer lassen (Repo-Root). **Node.js-Version:** 24.x (Project Settings → Build and Deployment).
 5. **Deploy** klicken. Die Seite ist danach unter `<projektname>.vercel.app` erreichbar.
 6. **Production Branch:** `master` (Settings → Git). Alle anderen Branches erzeugen Preview-Deployments.
 7. Optional: eigene Domain unter Settings → Domains hinzufügen.

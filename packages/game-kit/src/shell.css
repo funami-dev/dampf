@@ -3,6 +3,11 @@
   --dampf-panel: #1b2838;
   --dampf-text: #c7d5e0;
   --dampf-accent: #66c0f4;
+  /* Sicherer Bereich (iPhone: Notch, Safari-Leiste, Home-Indikator), MANIFEST-AK-08. */
+  --dampf-safe-top: env(safe-area-inset-top, 0px);
+  --dampf-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --dampf-safe-left: env(safe-area-inset-left, 0px);
+  --dampf-safe-right: env(safe-area-inset-right, 0px);
 }
 
 html,
@@ -23,12 +28,14 @@ body.dampf-game {
 }
 
 .dampf-bar {
+  box-sizing: border-box;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 1rem;
-  height: 44px;
-  padding: 0 0.75rem;
+  height: calc(44px + var(--dampf-safe-top));
+  padding: var(--dampf-safe-top) calc(0.75rem + var(--dampf-safe-right)) 0
+    calc(0.75rem + var(--dampf-safe-left));
   background: var(--dampf-panel);
   border-bottom: 2px solid #000;
 }
@@ -58,4 +65,8 @@ body.dampf-game {
   min-height: 0;
   position: relative;
   touch-action: none;
+  margin: 0 var(--dampf-safe-right) var(--dampf-safe-bottom) var(--dampf-safe-left);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
