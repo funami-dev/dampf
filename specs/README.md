@@ -22,3 +22,4 @@ Dieses Repo wird **spec-driven** entwickelt:
 | [003-portal.md](003-portal.md)                   | Startseite / Spieleliste (Astro)            | Umgesetzt |
 | [games/snake.md](games/snake.md)                 | Spiel 1: Snake (Referenz-Template)          | Umgesetzt |
 | [games/himmelhuepfer.md](games/himmelhuepfer.md) | Spiel 2: Himmelhüpfer (Endlos-Hüpfspiel)    | Umgesetzt |
+| [games/semukri-run.md](games/semukri-run.md)     | Spiel 3: SemUkri Run (100-m-Sprint)         | Entwurf   |

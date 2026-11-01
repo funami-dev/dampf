@@ -32,7 +32,8 @@ eigenständige Vollbild-Seite.
 
 - Keine Benutzerkonten, kein Backend, keine Online-Highscores.
 - Keine Tags/Filter/Suche auf der Startseite (kommt ggf. später).
-- Keine lokalen Highscores (kommt ggf. später).
+- Keine plattformweiten Highscores. Einzelne Spiele dürfen lokal (im Browser) Bestzeiten und
+  Rekorde speichern, wenn ihre Spec das festlegt (z. B. SemUkri Run).
 - Kein Einbetten der Spiele in einen Portal-Rahmen (Spiele laufen als Vollbild-Seite).
 
 ## Branding & Sprache
