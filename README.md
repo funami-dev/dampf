@@ -1,29 +1,6 @@
 # dampf
 
-## Project setup
-```
-npm install
-```
+Eine Sammlung von Browsergames (Phaser 4) mit einer Startseite, die alle Spiele auflistet.
+Gehostet auf Vercel.
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
-
-### Compiles and minifies for production
-```
-npm run build
-```
-
-### Run your tests
-```
-npm run test
-```
-
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+Das Projekt wird spec-driven entwickelt: siehe [`specs/`](specs/README.md).
