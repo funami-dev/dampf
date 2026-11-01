@@ -26,3 +26,4 @@ Dieses Repo wird **spec-driven** entwickelt:
 | [games/pilot-pro.md](games/pilot-pro.md)         | Spiel 4: Pilot Pro (3D-Flugsimulator)       | Umgesetzt |
 | [games/hilden.md](games/hilden.md)               | Spiel 5: Mein Hilden (3D-Stadt, Berufe)     | Umgesetzt |
 | [games/juist-faehre.md](games/juist-faehre.md)   | Spiel 6: Juist-Fähre (3D-Schiffssimulator)  | Umgesetzt |
+| [games/kasse.md](games/kasse.md)                 | Spiel 7: Kassen-Held (3D-Supermarktkasse)   | Entwurf   |
