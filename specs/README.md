@@ -25,3 +25,4 @@ Dieses Repo wird **spec-driven** entwickelt:
 | [games/semukri-run.md](games/semukri-run.md)     | Spiel 3: SemUkri Run (100-m-Sprint)         | Umgesetzt |
 | [games/pilot-pro.md](games/pilot-pro.md)         | Spiel 4: Pilot Pro (3D-Flugsimulator)       | Umgesetzt |
 | [games/hilden.md](games/hilden.md)               | Spiel 5: Mein Hilden (3D-Stadt, Berufe)     | Umgesetzt |
+| [games/juist-faehre.md](games/juist-faehre.md)   | Spiel 6: Juist-Fähre (3D-Schiffssimulator)  | Umgesetzt |

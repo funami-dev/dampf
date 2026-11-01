@@ -1,0 +1,219 @@
+.jf-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  color: #fff;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.jf-layer button,
+.jf-panel,
+.jf-lever,
+.jf-rudder {
+  pointer-events: auto;
+}
+.jf-btn {
+  font:
+    700 15px/1 system-ui,
+    sans-serif;
+  color: #12324f;
+  background: #fff;
+  border: 0;
+  border-radius: 12px;
+  padding: 11px 14px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.jf-btn.primary {
+  background: #ffcc00;
+}
+.jf-btn[aria-pressed="true"] {
+  background: #ffcc00;
+}
+.jf-btn:disabled {
+  opacity: 0.5;
+}
+.jf-top {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  right: 6px;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+.jf-hud {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px 6px;
+  background: rgba(18, 50, 79, 0.8);
+  border-radius: 12px;
+  padding: 6px 8px;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+.jf-hud b {
+  font-size: 16px;
+}
+.jf-side {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.jf-arrow {
+  position: absolute;
+  top: 92px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  margin-left: -14px;
+  border-left: 14px solid transparent;
+  border-right: 14px solid transparent;
+  border-bottom: 30px solid #ffcc00;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
+  transform-origin: 14px 20px;
+}
+.jf-toast {
+  position: absolute;
+  top: 132px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(18, 50, 79, 0.9);
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.jf-toast:empty {
+  display: none;
+}
+.jf-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+}
+.jf-rudder {
+  flex: 1;
+  max-width: 230px;
+  height: 64px;
+  position: relative;
+  background: rgba(18, 50, 79, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.75);
+  border-radius: 14px;
+  touch-action: none;
+}
+.jf-rudder-knob {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  width: 30px;
+  margin-left: -15px;
+  left: 50%;
+  border-radius: 8px;
+  background: #fff;
+}
+.jf-rudder::before {
+  content: "Ruder";
+  position: absolute;
+  top: -18px;
+  left: 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+.jf-mid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+.jf-action {
+  font-size: 18px;
+  padding: 16px 18px;
+}
+.jf-action[hidden] {
+  display: none;
+}
+.jf-lever {
+  width: 66px;
+  height: 170px;
+  position: relative;
+  background: rgba(18, 50, 79, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.75);
+  border-radius: 14px;
+  touch-action: none;
+}
+.jf-lever::before {
+  content: "Voraus";
+  position: absolute;
+  top: -18px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+.jf-lever-mid {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 50%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.6);
+}
+.jf-lever-knob {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  height: 26px;
+  margin-top: -13px;
+  top: 50%;
+  border-radius: 8px;
+  background: #ffcc00;
+}
+.jf-panel {
+  position: absolute;
+  inset: 0;
+  background: rgba(18, 50, 79, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  text-align: center;
+  overflow-y: auto;
+}
+.jf-panel h2 {
+  margin: 0 0 4px;
+  font-size: 24px;
+}
+.jf-panel p {
+  margin: 0;
+  max-width: 36ch;
+  line-height: 1.4;
+}
+.jf-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  width: min(360px, 100%);
+}
+.jf-stars {
+  font-size: 40px;
+  color: #ffcc00;
+  letter-spacing: 4px;
+}
