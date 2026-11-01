@@ -1,6 +1,6 @@
 # Spiel: Himmelhüpfer
 
-**Status:** Abgenommen
+**Status:** Umgesetzt
 **Slug:** `himmelhuepfer`
 
 ## Zweck

@@ -1,6 +1,6 @@
 # 002 – Game-Manifest (`game.json`) & Pflichten eines Spiels
 
-**Status:** Abgenommen (MANIFEST-AK-08 neu)
+**Status:** Umgesetzt
 
 ## Zweck
 
