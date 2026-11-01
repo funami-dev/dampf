@@ -1,6 +1,6 @@
 # Spiel: Kassen-Held
 
-**Status:** Entwurf
+**Status:** Umgesetzt
 **Slug:** `kasse`
 **Name:** „Kassen-Held“ (Arbeitstitel)
 
