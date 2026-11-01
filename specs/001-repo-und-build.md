@@ -1,6 +1,6 @@
 # 001 – Repo-Struktur, Build & Deployment
 
-**Status:** Entwurf
+**Status:** Abgenommen
 
 ## Struktur
 

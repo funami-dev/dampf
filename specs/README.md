@@ -16,8 +16,8 @@ Dieses Repo wird **spec-driven** entwickelt:
 
 | Datei | Thema | Status |
 |---|---|---|
-| [000-vision.md](000-vision.md) | Vision, Ziele, Nicht-Ziele | Entwurf |
-| [001-repo-und-build.md](001-repo-und-build.md) | Monorepo, Build, Deployment (Vercel) | Entwurf |
-| [002-game-manifest.md](002-game-manifest.md) | `game.json`-Format & Pflichten eines Spiels | Entwurf |
-| [003-portal.md](003-portal.md) | Startseite / Spieleliste (Astro) | Entwurf |
-| [games/snake.md](games/snake.md) | Spiel 1: Snake (Referenz-Template) | Entwurf |
+| [000-vision.md](000-vision.md) | Vision, Ziele, Nicht-Ziele | Abgenommen |
+| [001-repo-und-build.md](001-repo-und-build.md) | Monorepo, Build, Deployment (Vercel) | Abgenommen |
+| [002-game-manifest.md](002-game-manifest.md) | `game.json`-Format & Pflichten eines Spiels | Abgenommen |
+| [003-portal.md](003-portal.md) | Startseite / Spieleliste (Astro) | Abgenommen |
+| [games/snake.md](games/snake.md) | Spiel 1: Snake (Referenz-Template) | Abgenommen |

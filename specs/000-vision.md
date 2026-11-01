@@ -1,6 +1,6 @@
 # 000 – Vision
 
-**Status:** Entwurf
+**Status:** Abgenommen
 
 ## Idee
 

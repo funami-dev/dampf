@@ -1,6 +1,6 @@
 # 003 – Portal / Startseite
 
-**Status:** Entwurf
+**Status:** Abgenommen
 
 ## Zweck
 
@@ -42,6 +42,6 @@ Die Startseite (`/`) zeigt alle veröffentlichten Spiele als Karten. Ein Klick a
 - **PORTAL-AK-08** Ein neues Spiel unter `games/` erscheint nach erneutem Build ohne Änderung am
   Portal-Code.
 
-## Offene Fragen
+## Entscheidungen
 
-- Soll die Startseite einen „Neu“-Badge für kürzlich hinzugefügte Spiele zeigen (`addedAt`)?
+- Kein „Neu“-Badge. `addedAt` wird nur gespeichert, nicht angezeigt.

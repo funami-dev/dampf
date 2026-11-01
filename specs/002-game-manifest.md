@@ -1,6 +1,6 @@
 # 002 – Game-Manifest (`game.json`) & Pflichten eines Spiels
 
-**Status:** Entwurf
+**Status:** Abgenommen
 
 ## Zweck
 

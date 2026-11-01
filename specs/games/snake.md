@@ -1,6 +1,6 @@
 # Spiel: Snake
 
-**Status:** Entwurf
+**Status:** Abgenommen
 **Slug:** `snake`
 
 ## Zweck
