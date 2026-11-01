@@ -1,4 +1,4 @@
-# dampf
+# Dampf
 
 Eine Sammlung von Browsergames (Phaser 4) mit einer Startseite, die alle Spiele auflistet.
 Gehostet auf Vercel.

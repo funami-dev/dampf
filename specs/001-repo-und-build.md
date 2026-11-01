@@ -53,8 +53,24 @@
   Playwright gegen `dist/` aus (Desktop- und Mobile-Viewport).
 - **BUILD-AK-08** `npm run lint` (ESLint + Prettier-Check + `tsc --noEmit`) läuft fehlerfrei.
 - **BUILD-AK-09** Jeder Push/PR wird von Vercel als Preview deployed; `master` geht auf Production.
+- **BUILD-AK-10** Der Vercel-Build führt vor dem Bauen `npm run lint` und `npm test` aus. Schlägt
+  einer davon fehl, schlägt das Deployment fehl (Quality Gate ohne separates CI).
 
-## Offene Fragen
+## CI-Entscheidung
 
-- CI zusätzlich über GitHub Actions (Tests vor dem Deploy), oder reicht Vercel-Build + lokale Tests?
-- Vercel-Projekt: existiert schon eins / welche Domain?
+Kein GitHub-Actions-CI im MVP. Lint und Unit-Tests laufen im Vercel-Build (BUILD-AK-10).
+Die E2E-Tests (Playwright) laufen lokal mit `npm run test:e2e`. GitHub Actions kann später
+nachgerüstet werden.
+
+## Vercel-Einrichtung (einmalig, manuell)
+
+Es gibt noch kein Vercel-Projekt. Einrichtung, sobald der erste baubare Stand auf `master` liegt:
+
+1. Auf vercel.com mit GitHub anmelden → **Add New… → Project**.
+2. Repository `funami-dev/dampf` importieren (ggf. die Vercel-GitHub-App für das Repo freigeben).
+3. **Framework Preset:** „Other“. Build-Command, Output-Verzeichnis und Install-Command kommen
+  aus `vercel.json` und müssen nicht im UI gesetzt werden.
+4. **Root Directory:** leer lassen (Repo-Root). **Node.js-Version:** 22.x (Project Settings → General).
+5. **Deploy** klicken. Die Seite ist danach unter `<projektname>.vercel.app` erreichbar.
+6. **Production Branch:** `master` (Settings → Git). Alle anderen Branches erzeugen Preview-Deployments.
+7. Optional: eigene Domain unter Settings → Domains hinzufügen.

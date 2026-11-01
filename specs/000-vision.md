@@ -4,7 +4,7 @@
 
 ## Idee
 
-`dampf` ist eine Webseite, die eine Sammlung kleiner Browsergames präsentiert. Alle Spiele leben
+**Dampf** ist eine Webseite, die eine Sammlung kleiner Browsergames präsentiert. Alle Spiele leben
 im selben Repository. Die Startseite listet die Spiele auf; ein Klick startet das Spiel als
 eigenständige Vollbild-Seite.
 
@@ -35,7 +35,10 @@ eigenständige Vollbild-Seite.
 - Keine lokalen Highscores (kommt ggf. später).
 - Kein Einbetten der Spiele in einen Portal-Rahmen (Spiele laufen als Vollbild-Seite).
 
-## Offene Fragen
+## Branding & Sprache
 
-- Name/Branding: Bleibt es bei „dampf“? Gibt es ein Farbschema/Logo-Idee?
-- Sprache der Seite: nur Deutsch, oder DE/EN?
+- **Name:** „Dampf“, ein augenzwinkernder Bezug auf Steam (Dampf = Steam).
+- **Stil:** Retro-Arcade mit Pixel-Optik, angelehnt an die Stimmung von Steam: dunkles Blau-Grau,
+  helle Akzente in Cyan/Blau, Dampfwolken als Motiv. Logo und Farben sind **eigene** Entwürfe.
+  Es werden keine Steam- oder Valve-Logos, -Schriften oder -Markennamen verwendet.
+- **Sprache:** nur Deutsch (`<html lang="de">`). Alle Texte in Portal und Spielen sind deutsch.

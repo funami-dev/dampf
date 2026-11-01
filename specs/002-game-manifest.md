@@ -36,7 +36,7 @@ gemeinsam genutzt.
 - Skaliert auf die Fenstergröße (Phaser `Scale.FIT`, zentriert) und reagiert auf
   Größen-/Orientierungswechsel.
 - Wenn `controls.touch: true`: vollständig per Touch spielbar.
-- Setzt `<title>` auf „<title> – dampf“.
+- Setzt `<title>` auf „<title> – Dampf“.
 
 ## Akzeptanzkriterien
 

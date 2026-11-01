@@ -9,7 +9,9 @@ Die Startseite (`/`) zeigt alle veröffentlichten Spiele als Karten. Ein Klick a
 
 ## Inhalt & Layout
 
-- Kopfbereich: Name „dampf“ + Kurzbeschreibung (ein Satz).
+- Kopfbereich: Logo/Name „Dampf“ + Kurzbeschreibung (ein Satz).
+- Optik: Retro-Pixel-Stil nach 000-vision (dunkles Blau-Grau, Cyan-Akzente, Pixel-Schrift
+  für Überschriften, gut lesbare Schrift für Fließtext).
 - Raster aus Spielkarten. Je Karte: Thumbnail, Titel, Beschreibung, Steuerungs-Icons
   (Tastatur / Touch).
 - Sortierung: `order` aufsteigend, danach `title` alphabetisch.
@@ -42,5 +44,4 @@ Die Startseite (`/`) zeigt alle veröffentlichten Spiele als Karten. Ein Klick a
 
 ## Offene Fragen
 
-- Optik: eher Retro/Pixel-Arcade, oder clean/modern?
 - Soll die Startseite einen „Neu“-Badge für kürzlich hinzugefügte Spiele zeigen (`addedAt`)?

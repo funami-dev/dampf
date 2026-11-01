@@ -16,14 +16,16 @@ Klassisches Snake. Dient gleichzeitig als **Referenz-Template** für weitere Spi
 - Die Schlange bewegt sich in festen Ticks (Start: 8 Felder/s).
 - Futter fressen: Länge +1, Punkte +1, neues Futter auf freier Zelle; alle 5 Punkte
   +1 Feld/s Tempo (max. 15 Felder/s).
-- Game Over bei Kollision mit Wand oder eigenem Körper.
+- **Wrap-around:** Wer über einen Rand hinausläuft, kommt auf der gegenüberliegenden Seite wieder
+  heraus. Es gibt keine tödlichen Wände.
+- Game Over nur bei Kollision mit dem eigenen Körper.
 - Eine 180°-Umkehr (z. B. rechts → links) ist nicht möglich und wird ignoriert.
 - Mehrere Eingaben innerhalb eines Ticks werden gepuffert (max. 2), damit schnelle
   Richtungswechsel nicht verloren gehen.
 
 ## Szenen
 
-1. **Start:** Titel, „Tippen oder Leertaste zum Starten“, Steuerungshinweis.
+1. **Start:** Titel, „Tippen oder Leertaste zum Starten“, Steuerungshinweis (alle Texte deutsch).
 2. **Spiel:** Spielfeld + Punktestand. Pause per `P`/`Esc` oder Pause-Button (Touch).
    Pausiert automatisch, wenn der Tab den Fokus verliert.
 3. **Game Over:** Punktestand, „Nochmal“ (Tippen / Leertaste).
@@ -50,7 +52,8 @@ Klassisches Snake. Dient gleichzeitig als **Referenz-Template** für weitere Spi
 - **SNAKE-AK-02** `step` bewegt die Schlange um genau eine Zelle in Laufrichtung.
 - **SNAKE-AK-03** Futter fressen erhöht Länge und Punkte um 1 und platziert neues Futter auf
   einer freien Zelle.
-- **SNAKE-AK-04** Wand-Kollision → Game Over.
+- **SNAKE-AK-04** Über den Rand laufen → Kopf erscheint auf der gegenüberliegenden Seite
+  (in alle vier Richtungen), kein Game Over.
 - **SNAKE-AK-05** Selbst-Kollision → Game Over (Bewegung in die gerade frei werdende
   Schwanzzelle ist **keine** Kollision).
 - **SNAKE-AK-06** 180°-Umkehr wird ignoriert; zwei schnelle Eingaben im selben Tick
@@ -62,7 +65,7 @@ Klassisches Snake. Dient gleichzeitig als **Referenz-Template** für weitere Spi
   Spielfeld ist vollständig sichtbar ohne Scrollen.
 - **SNAKE-AK-10** Verlust des Tab-Fokus pausiert das Spiel.
 
-## Offene Fragen
+## Entscheidungen
 
-- Wände tödlich (wie spezifiziert) oder „Wrap-around“ durch den Rand?
-- Sound-Effekte im MVP? (Wenn ja: stumm schaltbar, standardmäßig an/aus?)
+- Kein Sound im MVP.
+- Optik im Retro-Pixel-Stil passend zum Portal (siehe 000-vision).
