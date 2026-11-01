@@ -1,0 +1,145 @@
+.ka-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  color: #fff;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ka-layer button,
+.ka-panel {
+  pointer-events: auto;
+}
+.ka-btn {
+  font:
+    700 16px/1 system-ui,
+    sans-serif;
+  color: #1c4e9c;
+  background: #fff;
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.ka-btn.primary {
+  background: #ffd200;
+}
+.ka-btn[hidden] {
+  display: none;
+}
+.ka-top {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  right: 6px;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.ka-hud {
+  background: rgba(28, 78, 156, 0.88);
+  border-radius: 12px;
+  padding: 6px 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+.ka-hud b {
+  color: #ffd200;
+}
+.ka-toast {
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(28, 78, 156, 0.92);
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  max-width: calc(100% - 20px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ka-toast:empty {
+  display: none;
+}
+.ka-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ka-total {
+  background: rgba(28, 78, 156, 0.88);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ka-total b {
+  font-size: 18px;
+  color: #ffd200;
+}
+.ka-panel {
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 78, 156, 0.94);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  text-align: center;
+  overflow-y: auto;
+}
+.ka-panel h2 {
+  margin: 0 0 4px;
+  font-size: 26px;
+}
+.ka-panel p {
+  margin: 0;
+  max-width: 38ch;
+  line-height: 1.4;
+}
+.ka-brand {
+  font:
+    800 30px/1 "Helvetica Neue",
+    Arial,
+    sans-serif;
+  color: #ffd200;
+  letter-spacing: 1px;
+}
+.ka-stats {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 6px 18px;
+  margin: 4px 0 8px;
+  font-size: 18px;
+}
+.ka-stats dt {
+  text-align: left;
+}
+.ka-stats dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 700;
+  color: #ffd200;
+  font-variant-numeric: tabular-nums;
+}

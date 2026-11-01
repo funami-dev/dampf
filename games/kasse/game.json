@@ -1,0 +1,10 @@
+{
+  "slug": "kasse",
+  "title": "Kassen-Held",
+  "description": "Sitz an der Kasse im EDEKA-Markt: Waren greifen, über den Scanner ziehen, Piep! Ganz ohne Zeitdruck, Kunde für Kunde.",
+  "thumbnail": "thumbnail.png",
+  "controls": { "keyboard": true, "touch": true },
+  "status": "published",
+  "order": 70,
+  "addedAt": "2026-11-01"
+}
