@@ -23,11 +23,11 @@ const board = (t: Trip) => {
 };
 
 describe("Fahrplan (JF-AK-06/07)", () => {
-  it("Spieluhr läuft 18-fach; Soll-Ankunft = Abfahrt + 90 min", () => {
-    expect(CLOCK_SCALE).toBe(18);
+  it("Spieluhr läuft 30-fach; Soll-Ankunft = Abfahrt + 90 min", () => {
+    expect(CLOCK_SCALE).toBe(30);
     const t = createTrip("frisia-i", "to-juist", 1);
     expect(t.due - t.departure).toBe(TRIP_MINUTES * 60);
-    expect(tick(t, 10, {}).clock - t.clock).toBeCloseTo(180);
+    expect(tick(t, 10, {}).clock - t.clock).toBeCloseTo(300);
   });
 
   it("Ablegen erst, wenn alle an Bord sind und die Abfahrtszeit erreicht ist", () => {
@@ -39,6 +39,18 @@ describe("Fahrplan (JF-AK-06/07)", () => {
     expect(ready.boarded).toBe(ready.passengers);
     expect(ready.clock).toBeGreaterThanOrEqual(ready.departure);
     expect(castOff(ready).phase).toBe("sailing");
+  });
+
+  it("Einsteigen dauert höchstens etwa 4 Sekunden, Abfahrt 2 Spielminuten nach Beginn", () => {
+    const t = createTrip("frisia-i", "to-juist", 9);
+    expect(t.departure - t.clock).toBe(120);
+    let x = t;
+    let real = 0;
+    while (!canCastOff(x)) {
+      x = tick(x, 0.1, {});
+      real += 0.1;
+    }
+    expect(real).toBeLessThanOrEqual(4.2);
   });
 
   it("Passagierzahl 100–300", () => {

@@ -1,8 +1,8 @@
 import { isHarbor, isNavigable } from "./world.ts";
 
-export const MAX_AHEAD = 12;
+export const MAX_AHEAD = 16;
 export const MAX_ASTERN = 4;
-export const ACCEL_RATE = 0.08;
+export const ACCEL_RATE = 0.15;
 export const MAX_RUDDER = 35;
 const RUDDER_RATE = 30;
 const TURN_PER_SPEED = 0.9;

@@ -1,6 +1,6 @@
 /**
  * Vereinfachtes Wattenmeer zwischen Norddeich (Süden) und Juist (Norden). Meter, x = Osten, z = Norden.
- * Abstände stark verkürzt (eine Fahrt ≈ 5 Minuten). Spec: specs/games/juist-faehre.md
+ * Abstände stark verkürzt (eine Fahrt ≈ 2–3 Minuten, Strecke ≈ 2,4 km). Spec: specs/games/juist-faehre.md
  */
 
 export type Pt = [number, number];
@@ -27,22 +27,22 @@ export const SHIPS: readonly ShipType[] = [
 ];
 export const shipById = (id: string) => SHIPS.find((s) => s.id === id) ?? SHIPS[0]!;
 
-export const BOUNDS = { minX: -2500, maxX: 2500, minZ: -2400, maxZ: 2500 } as const;
+export const BOUNDS = { minX: -2500, maxX: 2500, minZ: -1600, maxZ: 1700 } as const;
 
 /** Festland Norddeich: alles südlich der Küstenlinie, außer dem Hafenbecken. */
-export const COAST_Z = -1800;
-export const NORDDEICH_BASIN: [number, number, number, number] = [-100, -2150, 100, COAST_Z];
+export const COAST_Z = -1000;
+export const NORDDEICH_BASIN: [number, number, number, number] = [-100, -1350, 100, COAST_Z];
 export const NORDDEICH_MOLES: [number, number, number, number][] = [
-  [-115, -1800, -100, -1550],
-  [100, -1800, 115, -1550],
+  [-115, -1000, -100, -800],
+  [100, -1000, 115, -800],
 ];
 
 /** Juist: lange, schmale Insel (Ellipse) mit Hafenbecken auf der Südseite. */
-export const JUIST = { x: 0, z: 1950, rx: 4000, rz: 400 } as const;
-export const JUIST_BASIN: [number, number, number, number] = [-90, 1500, 90, 1800];
+export const JUIST = { x: 0, z: 1100, rx: 4000, rz: 400 } as const;
+export const JUIST_BASIN: [number, number, number, number] = [-90, 650, 90, 950];
 export const JUIST_MOLES: [number, number, number, number][] = [
-  [-105, 1400, -90, 1600],
-  [90, 1400, 105, 1600],
+  [-105, 550, -90, 750],
+  [90, 550, 105, 750],
 ];
 
 export interface Berth {
@@ -59,26 +59,26 @@ export const BERTHS: Record<Berth["id"], Berth> = {
   norddeich: {
     id: "norddeich",
     name: "Norddeich Mole",
-    start: [0, -2080],
+    start: [0, -1280],
     heading: 0,
-    rect: [-40, -2120, 40, -2040],
+    rect: [-40, -1320, 40, -1240],
   },
   juist: {
     id: "juist",
     name: "Juist Hafen",
-    start: [0, 1730],
+    start: [0, 880],
     heading: 180,
-    rect: [-40, 1690, 40, 1770],
+    rect: [-40, 840, 40, 920],
   },
 };
 
 /** Wegpunkte des Fahrwassers (Norddeich → Juist), ohne die Liegeplätze. */
 export const FAIRWAY: readonly Pt[] = [
-  [0, -1600],
-  [300, -900],
-  [-250, -100],
-  [250, 700],
-  [0, 1400],
+  [0, -850],
+  [180, -450],
+  [-120, 0],
+  [120, 350],
+  [0, 550],
 ];
 
 export interface Sandbank {
@@ -89,10 +89,10 @@ export interface Sandbank {
 }
 
 export const SANDBANKS: readonly Sandbank[] = [
-  { x: -1200, z: -700, rx: 500, rz: 220 },
-  { x: 1100, z: 200, rx: 450, rz: 250 },
-  { x: -1100, z: 900, rx: 420, rz: 200 },
-  { x: 1200, z: -1300, rx: 400, rz: 150 },
+  { x: -900, z: -400, rx: 400, rz: 160 },
+  { x: 850, z: 100, rx: 380, rz: 200 },
+  { x: -850, z: 450, rx: 350, rz: 150 },
+  { x: 900, z: -650, rx: 330, rz: 110 },
 ];
 
 const inRect = (x: number, z: number, [x0, z0, x1, z1]: readonly number[]) =>
@@ -118,7 +118,7 @@ export function isNavigable(x: number, z: number): boolean {
 
 /** Innerhalb eines Hafens (Becken + Zufahrt zwischen den Molen). */
 export const isHarbor = (x: number, z: number) =>
-  inRect(x, z, [-130, -2160, 130, -1540]) || inRect(x, z, [-120, 1390, 120, 1810]);
+  inRect(x, z, [-130, -1360, 130, -790]) || inRect(x, z, [-120, 540, 120, 960]);
 
 export const inBerth = (b: Berth, x: number, z: number) => inRect(x, z, b.rect);
 
@@ -131,14 +131,14 @@ export interface Buoy {
 /** Tonnen paarweise entlang des Fahrwassers: rot im Westen (links Richtung Juist), grün im Osten. */
 export const BUOYS: readonly Buoy[] = (() => {
   const out: Buoy[] = [];
-  const pts: Pt[] = [[0, -1500], ...FAIRWAY.slice(1)];
+  const pts: Pt[] = [...FAIRWAY];
   for (let i = 1; i < pts.length; i++) {
     const [ax, az] = pts[i - 1]!;
     const [bx, bz] = pts[i]!;
     const len = Math.hypot(bx - ax, bz - az);
     const nx = -(bz - az) / len; // links (Westen bei Fahrt nach Norden)
     const nz = (bx - ax) / len;
-    for (let d = 150; d < len; d += 350) {
+    for (let d = 120; d < len; d += 260) {
       const x = ax + ((bx - ax) * d) / len;
       const z = az + ((bz - az) * d) / len;
       out.push(

@@ -1,12 +1,12 @@
 import type { ShipState } from "./ship.ts";
 import { BERTHS, inBerth } from "./world.ts";
 
-export const CLOCK_SCALE = 18;
+export const CLOCK_SCALE = 30;
 export const TRIP_MINUTES = 90;
 export const ARRIVAL_PUNCTUAL_MIN = 5;
 export const HEEL_LIMIT = 4;
-export const BOARD_RATE = 40;
-const BOARD_LEAD_MINUTES = 4;
+export const BOARD_RATE = 80;
+const BOARD_LEAD_MINUTES = 2;
 
 export type Direction = "to-juist" | "to-norddeich";
 

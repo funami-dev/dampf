@@ -63,13 +63,13 @@ describe("Welt (JF-AK-05)", () => {
     expect(isNavigable(0, 0)).toBe(true);
   });
 
-  it("Strecke ist so lang, dass eine Fahrt etwa 5 Minuten dauert", () => {
+  it("Strecke ist so lang, dass eine Fahrt etwa 2–3 Minuten dauert", () => {
     const pts = [BERTHS.norddeich.start, ...FAIRWAY, BERTHS.juist.start];
     let len = 0;
     for (let i = 1; i < pts.length; i++)
       len += Math.hypot(pts[i]![0] - pts[i - 1]![0], pts[i]![1] - pts[i - 1]![1]);
-    // bei Reisetempo 12 m/s: 4–6 Minuten
-    expect(len / 12).toBeGreaterThan(200);
-    expect(len / 12).toBeLessThan(360);
+    // bei Reisetempo 16 m/s reine Fahrzeit ≈ 2,5 min; mit Beschleunigen und Anlegen 2–3 Minuten
+    expect(len / 16).toBeGreaterThan(120);
+    expect(len / 16).toBeLessThan(170);
   });
 });

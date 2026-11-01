@@ -25,21 +25,23 @@ const run = (s: ShipState, sec: number, c: { throttle: number; rudder: number })
 };
 
 describe("Fahrmodell", () => {
-  it("JF-AK-02: Fahrhebel → Hebel × 12 m/s, rückwärts max. 4 m/s", () => {
-    expect(MAX_AHEAD).toBe(12);
+  it("JF-AK-02: Fahrhebel → Hebel × 16 m/s, rückwärts max. 4 m/s", () => {
+    expect(MAX_AHEAD).toBe(16);
     expect(MAX_ASTERN).toBe(4);
-    expect(run(at(), 120, { throttle: 0.5, rudder: 0 }).state.speed).toBeCloseTo(6, 1);
-    expect(run(at(), 120, { throttle: 1, rudder: 0 }).state.speed).toBeCloseTo(12, 1);
-    expect(run(at(), 120, { throttle: -1, rudder: 0 }).state.speed).toBeCloseTo(-4, 1);
+    // 40 s reichen bei 15 %/s; Start im offenen Fahrwasser, damit kein Land im Weg ist
+    const open = at({ z: -300 });
+    expect(run(open, 40, { throttle: 0.5, rudder: 0 }).state.speed).toBeCloseTo(8, 1);
+    expect(run(open, 40, { throttle: 1, rudder: 0 }).state.speed).toBeCloseTo(16, 1);
+    expect(run(open, 40, { throttle: -1, rudder: 0 }).state.speed).toBeCloseTo(-4, 1);
   });
 
-  it("nähert sich mit 8 %/s an", () => {
+  it("nähert sich mit 15 %/s an", () => {
     const s = stepShip(at(), { throttle: 1, rudder: 0 }, 1).state;
-    expect(s.speed).toBeCloseTo(12 * 0.08, 5);
+    expect(s.speed).toBeCloseTo(16 * 0.15, 5);
   });
 
   it("fährt in Kursrichtung (0° = Norden)", () => {
-    const s = run(at({ speed: 10 }), 1, { throttle: 10 / 12, rudder: 0 }).state;
+    const s = run(at({ speed: 10 }), 1, { throttle: 10 / 16, rudder: 0 }).state;
     expect(s.z).toBeGreaterThan(9);
     expect(Math.abs(s.x)).toBeLessThan(0.01);
   });
@@ -48,7 +50,7 @@ describe("Fahrmodell", () => {
     expect(run(at(), 5, { throttle: 0, rudder: 1 }).state.heading).toBe(0);
     const rate = (v: number) => {
       const s = at({ speed: v, rudder: MAX_RUDDER });
-      const n = stepShip(s, { throttle: v / 12, rudder: 1 }, 0.1).state;
+      const n = stepShip(s, { throttle: v / 16, rudder: 1 }, 0.1).state;
       return ((n.heading - s.heading + 540) % 360) - 180;
     };
     expect(rate(2)).toBeGreaterThan(0);
