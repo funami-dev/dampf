@@ -28,16 +28,17 @@ Echte Airline-Namen, **keine Original-Logos und keine nachgebildeten Logos**. Je
 besteht aus weißem Rumpf, dem Airline-Namen in einer neutralen Schrift am Rumpf und einem
 Leitwerk in den typischen Farben der Airline mit einem **eigenen, schlichten Symbol**:
 
-| ID                | Name            | Leitwerk (eigene Gestaltung)                                 |
-| ----------------- | --------------- | ------------------------------------------------------------ |
-| `lufthansa`       | Lufthansa       | dunkelblau, gelber Kreis                                     |
-| `emirates`        | Emirates        | rot-grün-weiß-schwarze Streifen                              |
-| `eurowings`       | Eurowings       | bordeauxrot mit türkisem Bogen                               |
-| `condor`          | Condor          | gelb-weiße Querstreifen                                      |
-| `british-airways` | British Airways | dunkelblau mit rot-weißen Wellenstreifen, dunkelblauer Bauch |
-| `la-compagnie`    | La Compagnie    | dunkelblau mit goldener Linie                                |
+| ID                | Name            | Leitwerk (eigene Gestaltung)                                             |
+| ----------------- | --------------- | ------------------------------------------------------------------------ |
+| `lufthansa`       | Lufthansa       | dunkelblau, gelber Kreis                                                 |
+| `emirates`        | Emirates        | rot-grün-weiß-schwarze Streifen                                          |
+| `eurowings`       | Eurowings       | bordeauxrot mit türkisem Bogen                                           |
+| `condor`          | Condor          | gelb-weiße Querstreifen                                                  |
+| `british-airways` | British Airways | dunkelblau mit rot-weißen Wellenstreifen, dunkelblauer Bauch             |
+| `la-compagnie`    | La Compagnie    | dunkelblau mit goldener Linie                                            |
+| `us-airways`      | US Airways      | dunkelblau mit roten und weißen Streifen (Airline seit 2015 eingestellt) |
 
-Jede Kombination aus Flugzeug und Airline ist möglich (4 × 6 = 24).
+Jede Kombination aus Flugzeug und Airline ist möglich (4 × 7 = 28).
 
 ## Welt: Düsseldorf/Köln (vereinfacht)
 
@@ -55,7 +56,7 @@ Jede Kombination aus Flugzeug und Airline ist möglich (4 × 6 = 24).
 
 ## Szenen
 
-1. **Auswahl:** Titel „Pilot Pro“, Flugzeugtyp (4 Buttons), Airline (6 Buttons), Vorschau des
+1. **Auswahl:** Titel „Pilot Pro“, Flugzeugtyp (4 Buttons), Airline (7 Buttons), Vorschau des
    gewählten Flugzeugs (drehend), Button „Abheben!“.
 2. **Fliegen:** 3D-Ansicht, Anzeigen (HUD), Touch-Steuerung, Buttons „Kamera“ und „Menü“.
 
@@ -116,7 +117,7 @@ Karte mit Position, Flughäfen, Rhein und Wahrzeichen.
 
 ## Akzeptanzkriterien
 
-- **PP-AK-01** Alle 4 Flugzeuge und 6 Airlines sind wählbar; jede der 24 Kombinationen
+- **PP-AK-01** Alle 4 Flugzeuge und 7 Airlines sind wählbar; jede der 28 Kombinationen
   erzeugt ein Modell mit dem Airline-Namen am Rumpf.
 - **PP-AK-02** Lackierungs-Daten: jede Airline hat Name, Farben und ein eigenes Symbol; es
   werden keine Bilddateien verwendet.
