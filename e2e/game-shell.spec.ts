@@ -17,7 +17,7 @@ test.describe("Spiel-Rahmen", () => {
         });
       }, INSET);
       await page.goto(`/games/${game.slug}/`);
-      const canvas = page.locator("canvas");
+      const canvas = page.locator("#game > canvas").first();
       await expect(canvas).toBeVisible();
       await page.waitForTimeout(300);
       const vh = page.viewportSize()!.height;

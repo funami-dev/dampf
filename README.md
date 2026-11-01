@@ -34,7 +34,7 @@ gebaut werden. Für die komplette Seite `npm run build && npm run preview` verwe
 
 ```
 apps/portal/         Startseite (Astro, statisch)
-games/<slug>/        je Spiel ein Vite + Phaser 4 Paket mit game.json
+games/<slug>/        je Spiel ein Vite-Paket mit game.json (Phaser 4, 3D-Spiele mit Three.js)
 packages/game-kit/   Manifest-Schema, Spiel-Rahmen mit Zurück-Button, Swipe-Erkennung
 scripts/             Build: validieren → Spiele bauen → Portal bauen → dist/ zusammenführen
 e2e/                 Playwright-Tests gegen dist/

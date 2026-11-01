@@ -23,3 +23,4 @@ Dieses Repo wird **spec-driven** entwickelt:
 | [games/snake.md](games/snake.md)                 | Spiel 1: Snake (Referenz-Template)          | Umgesetzt |
 | [games/himmelhuepfer.md](games/himmelhuepfer.md) | Spiel 2: Himmelhüpfer (Endlos-Hüpfspiel)    | Umgesetzt |
 | [games/semukri-run.md](games/semukri-run.md)     | Spiel 3: SemUkri Run (100-m-Sprint)         | Umgesetzt |
+| [games/pilot-pro.md](games/pilot-pro.md)         | Spiel 4: Pilot Pro (3D-Flugsimulator)       | Umgesetzt |
