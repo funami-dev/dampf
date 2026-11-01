@@ -1,6 +1,6 @@
 # Spiel: Himmelhüpfer
 
-**Status:** Entwurf
+**Status:** Abgenommen
 **Slug:** `himmelhuepfer`
 
 ## Zweck
@@ -14,11 +14,11 @@ SemUkri-Grafiken, -Namen oder -Logos).
 
 Drei Figuren, die sich **nur im Aussehen** unterscheiden (gleiche Physik):
 
-| ID         | Name     | Aussehen                                                                  |
-| ---------- | -------- | ------------------------------------------------------------------------- |
-| `mauli`    | Mauli    | Maulwurf: dunkelgraues Fell, rosa Nase und Pfoten, kleine Brille optional |
-| `schweini` | Schweini | Schwein: rosa, Ringelschwanz, Schlappohren                                |
-| `matti`    | Matti    | Kind, 9 Jahre, lange blonde Haare, blauer Hoodie, blaue Shorts, Sneaker   |
+| ID         | Name     | Aussehen                                                                |
+| ---------- | -------- | ----------------------------------------------------------------------- |
+| `mauli`    | Mauli    | Maulwurf: dunkelgraues Fell, rosa Nase und Pfoten                       |
+| `schweini` | Schweini | Schwein: rosa, Ringelschwanz, Schlappohren                              |
+| `matti`    | Matti    | Kind, 9 Jahre, lange blonde Haare, blauer Hoodie, blaue Shorts, Sneaker |
 
 ## Szenen
 

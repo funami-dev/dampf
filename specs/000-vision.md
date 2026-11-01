@@ -41,4 +41,6 @@ eigenständige Vollbild-Seite.
 - **Stil:** Retro-Arcade mit Pixel-Optik, angelehnt an die Stimmung von Steam: dunkles Blau-Grau,
   helle Akzente in Cyan/Blau, Dampfwolken als Motiv. Logo und Farben sind **eigene** Entwürfe.
   Es werden keine Steam- oder Valve-Logos, -Schriften oder -Markennamen verwendet.
+  Der Pixel-Stil gilt für das Portal; einzelne Spiele dürfen einen eigenen Stil haben
+  (z. B. Himmelhüpfer im Cartoon-Stil), wenn ihre Spec das festlegt.
 - **Sprache:** nur Deutsch (`<html lang="de">`). Alle Texte in Portal und Spielen sind deutsch.
