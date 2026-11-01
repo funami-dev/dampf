@@ -1,13 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 4321;
+/** Mit DAMPF_URL laufen die Tests gegen eine echte Seite (z. B. Production) statt lokal. */
+const remote = process.env.DAMPF_URL;
 
 export default defineConfig({
   testDir: "e2e",
   fullyParallel: true,
   reporter: process.env.CI ? "dot" : "list",
   use: {
-    baseURL: `http://localhost:${PORT}`,
+    baseURL: remote ?? `http://localhost:${PORT}`,
     trace: "retain-on-failure",
   },
   projects: [
@@ -17,9 +19,11 @@ export default defineConfig({
       use: { ...devices["Pixel 7"], viewport: { width: 375, height: 667 } },
     },
   ],
-  webServer: {
-    command: "tsx scripts/serve.ts",
-    port: PORT,
-    reuseExistingServer: !process.env.CI,
-  },
+  webServer: remote
+    ? undefined
+    : {
+        command: "tsx scripts/serve.ts",
+        port: PORT,
+        reuseExistingServer: !process.env.CI,
+      },
 });
