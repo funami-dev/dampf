@@ -2,7 +2,7 @@ import "@fontsource/fredoka/400.css";
 import "@fontsource/fredoka/600.css";
 import "@fontsource/fredoka/700.css";
 import Phaser from "phaser";
-import { mountGameShell } from "@dampf/game-kit";
+import { mountGameShell } from "@dampf/game-kit/shell";
 import manifest from "../game.json";
 import { VIEW_HEIGHT, WIDTH } from "./logic/jump.ts";
 import { FONT } from "./theme.ts";

@@ -80,3 +80,30 @@ test.describe("Startseite ohne JavaScript", () => {
     expect(res.status()).toBe(200);
   });
 });
+
+test.describe("Startseite scrollen", () => {
+  test("PORTAL-AK-09: Startseite lässt sich auf Mobile per Wischgeste scrollen", async ({
+    page,
+  }) => {
+    test.skip(!isMobile(page), "nur Mobile");
+    await page.goto("/");
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollHeight - window.innerHeight,
+    );
+    test.skip(overflow <= 0, "Seite ist kürzer als der Bildschirm");
+    // Echte Touch-Wischgeste nach oben (synthetische Scroll-Gesten umgehen die CSS-Sperre).
+    const cdp = await page.context().newCDPSession(page);
+    const touch = (type: string, y?: number) =>
+      cdp.send("Input.dispatchTouchEvent", {
+        type,
+        touchPoints: y === undefined ? [] : [{ x: 180, y }],
+      });
+    await touch("touchStart", 550);
+    for (let i = 1; i <= 10; i++) {
+      await touch("touchMove", 550 - i * 30);
+      await page.waitForTimeout(16);
+    }
+    await touch("touchEnd");
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  });
+});

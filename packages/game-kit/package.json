@@ -5,6 +5,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./node": "./src/node.ts",
+    "./shell": "./src/shell.ts",
     "./shell.css": "./src/shell.css"
   },
   "scripts": {
