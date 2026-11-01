@@ -1,0 +1,10 @@
+{
+  "slug": "hilden",
+  "title": "Mein Hilden",
+  "description": "Lauf mit Matti in 3D durch Hilden, such dir ein Haus aus und arbeite als Postbote, Bäcker, Polizist oder bei der Feuerwehr.",
+  "thumbnail": "thumbnail.png",
+  "controls": { "keyboard": true, "touch": true },
+  "status": "published",
+  "order": 50,
+  "addedAt": "2026-11-01"
+}

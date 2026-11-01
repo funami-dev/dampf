@@ -39,13 +39,16 @@ async function sprint(page: Page) {
   const mobile = isMobile(page);
   const L = mobile ? await point(page, "tap-left") : null;
   const R = mobile ? await point(page, "tap-right") : null;
-  for (let i = 0; i < 600; i++) {
+  // Gleichmäßig tippen, bis das Ziel erreicht ist (unabhängig davon, wie schnell der Browser ist)
+  const deadline = Date.now() + 60_000;
+  for (let i = 0; Date.now() < deadline; i++) {
     if (i % 10 === 0 && (await state(page))?.phase !== "running") break;
     const left = i % 2 === 0;
     if (mobile) {
       const q = left ? L! : R!;
       await page.touchscreen.tap(q.x, q.y);
     } else await page.keyboard.press(left ? "ArrowLeft" : "ArrowRight");
+    await page.waitForTimeout(25);
   }
   await expect.poll(() => scene(page), { timeout: 10_000 }).toBe("finish");
 }
@@ -62,9 +65,12 @@ test("SR-AK-12: Desktop – Rennen, Rekord, Neuladen, Geist", async ({ page }) =
   await open(page);
   expect(await texts(page)).toContain("Noch keine Bestzeit");
 
-  // Figur per Tastatur wählen: Ukri → Semlaki → Billy
+  // Figur per Tastatur wählen: Ukri → Semlaki → Billy (jeden Schritt abwarten)
+  const character = () => call<string>(page, "character()");
   await page.keyboard.press("ArrowRight");
+  await expect.poll(character).toBe("semlaki");
   await page.keyboard.press("ArrowRight");
+  await expect.poll(character).toBe("billy");
   await page.keyboard.press("Enter");
   await expect.poll(() => scene(page)).toBe("race");
   expect((await state(page))?.character).toBe("billy");
