@@ -1,0 +1,10 @@
+{
+  "slug": "pilot-pro",
+  "title": "Pilot Pro",
+  "description": "3D-Flugsimulator: Wähl A320, A321, A340 oder A380 und deine Airline und flieg frei über Düsseldorf, den Rhein und Köln.",
+  "thumbnail": "thumbnail.png",
+  "controls": { "keyboard": true, "touch": true },
+  "status": "published",
+  "order": 40,
+  "addedAt": "2026-11-01"
+}

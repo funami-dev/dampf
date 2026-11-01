@@ -1,6 +1,6 @@
 # Spiel: Pilot Pro
 
-**Status:** Entwurf
+**Status:** Umgesetzt
 **Slug:** `pilot-pro`
 
 ## Zweck

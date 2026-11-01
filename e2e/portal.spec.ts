@@ -36,7 +36,7 @@ test.describe("Startseite", () => {
       await page.goto("/");
       await page.locator(`a[data-game="${game.slug}"]`).click();
       await expect(page).toHaveURL(`/games/${game.slug}/`);
-      await expect(page.locator("canvas")).toBeVisible();
+      await expect(page.locator("#game > canvas").first()).toBeVisible();
       await expect(page).toHaveTitle(`${game.title} – Dampf`);
       await page.waitForTimeout(500);
       await expectNoErrors(errors);
