@@ -1,6 +1,6 @@
 import "@fontsource/press-start-2p/400.css";
 import Phaser from "phaser";
-import { mountGameShell } from "@dampf/game-kit";
+import { mountGameShell } from "@dampf/game-kit/shell";
 import manifest from "../game.json";
 import { GRID_SIZE } from "./logic/snake.ts";
 import { CELL, COLORS, FONT, HUD } from "./theme.ts";

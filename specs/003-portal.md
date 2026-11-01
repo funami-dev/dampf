@@ -41,6 +41,8 @@ Die Startseite (`/`) zeigt alle veröffentlichten Spiele als Karten. Ein Klick a
   funktionieren).
 - **PORTAL-AK-08** Ein neues Spiel unter `games/` erscheint nach erneutem Build ohne Änderung am
   Portal-Code.
+- **PORTAL-AK-09** Die Startseite lässt sich auf Mobile per Wischgeste vertikal scrollen; das CSS
+  der Spielseiten (Scroll-Sperre) gelangt nicht in die Startseite.
 
 ## Entscheidungen
 

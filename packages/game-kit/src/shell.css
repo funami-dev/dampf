@@ -10,7 +10,8 @@
   --dampf-safe-right: env(safe-area-inset-right, 0px);
 }
 
-html,
+/* Nur Spielseiten sperren das Scrollen, nie die Startseite (PORTAL-AK-09). */
+html:has(> body.dampf-game),
 body.dampf-game {
   margin: 0;
   height: 100%;
