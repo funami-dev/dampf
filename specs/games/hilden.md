@@ -1,6 +1,6 @@
 # Spiel: Mein Hilden
 
-**Status:** Entwurf
+**Status:** Umgesetzt
 **Slug:** `hilden`
 **Name:** „Mein Hilden“ (Arbeitstitel)
 
@@ -17,20 +17,19 @@ Sneaker. Als einfaches Low-Poly-3D-Modell mit Lauf- und Stehanimation.
 
 ## Stadt
 
-- **Quelle:** Straßen, Gebäudeumrisse, Grünflächen und Gewässer aus **OpenStreetMap**
-  (© OpenStreetMap-Mitwirkende, Lizenz ODbL). Die Daten werden **einmalig** heruntergeladen,
-  vereinfacht und als Datei im Repo abgelegt; das Spiel lädt nichts aus dem Internet.
-  - Die Quellenangabe „© OpenStreetMap-Mitwirkende“ ist im Spiel dauerhaft sichtbar.
-  - **Ersatz**, falls kein Zugriff auf OpenStreetMap möglich ist: Innenstadt von Hand
-    vereinfacht nachgebaut (Mittelstraße, Alter Markt, Reformationskirche, Bahnhof, Stadtpark,
-    Itter). Dann stimmt das Straßennetz nur grob.
-- **Ausschnitt:** Innenstadt rund um den Alten Markt, ca. 2 km × 2 km, im echten Maßstab.
-- **Darstellung:** Straßen als flache Bänder (Breite nach Straßentyp), Gebäude als einfache
-  Blöcke aus ihren Grundrissen (Höhe aus der Stockwerkszahl, sonst 9 m), Parks grün,
-  Gewässer blau, Bäume in Parks.
+- **Quelle:** **von Hand vereinfacht nachgebaut** (keine OpenStreetMap-Daten). Die Innenstadt
+  orientiert sich grob an Hilden: Mittelstraße als Fußgängerzone, Alter Markt mit
+  Reformationskirche, Bahnhof im Osten, Stadtpark mit Teich, die Itter im Süden. Straßenverlauf,
+  Abstände und Gebäude stimmen nur ungefähr; Wohnviertel werden regelmäßig ergänzt.
+- **Raster:** Die Stadt ist ein Raster aus 5-m-Feldern (Straße, Platz, Park, Wasser, Gleis,
+  Gebäude mit Höhe, Garten). Daraus entstehen Darstellung, Kollision und Wegfindung.
+- **Ausschnitt:** Innenstadt rund um den Alten Markt, ca. 1,6 km × 1,6 km.
+- **Darstellung:** Boden als eine Textur aus dem Raster (Straßen, Plätze, Parks, Wasser),
+  Gebäude als einfache Blöcke (Innenstadt 3–4, Wohnviertel 2 Stockwerke), Bäume in Parks und an
+  Straßen. Wichtige Straßen sind beschriftet.
 - **Wahrzeichen** mit eigenem, etwas detaillierterem Modell: Reformationskirche am Alten Markt,
   Bahnhof Hilden. Weitere bekannte Orte werden beschriftet (z. B. Mittelstraße, Stadtpark).
-- **Kollision:** Man kann nicht durch Gebäude laufen.
+- **Kollision:** Man kann nicht durch Gebäude, Wasser oder über Gleise laufen.
 
 ## Das eigene Haus
 
@@ -87,16 +86,17 @@ Wahrzeichen. Kaputte oder fehlende Daten → Neustart ohne Absturz.
 
 ## Technik
 
-- Three.js + Vite wie Pilot Pro. Stadtdaten als vorverarbeitete JSON-Datei; Gebäude zu wenigen
-  Meshes zusammengefasst, damit es auf Handys flüssig läuft.
+- Three.js + Vite wie Pilot Pro. Die Stadt wird beim Start deterministisch aus einer kleinen
+  Beschreibung (Straßen, Plätze, Parks, Orte) als Raster erzeugt; Gebäude als wenige Meshes,
+  damit es auf Handys flüssig läuft.
 - Spiellogik (Bewegung, Kollision, Aufgaben, Speicherung) als reines TypeScript, testbar.
-- Skript `scripts/hilden-osm.ts` zum erneuten Herunterladen und Vereinfachen der Kartendaten.
 
 ## Akzeptanzkriterien
 
-- **HI-AK-01** Stadtdaten: Straßen, Gebäude, Grünflächen und Wasser sind vorhanden; der Ausschnitt
-  enthält Alten Markt, Mittelstraße und Reformationskirche.
-- **HI-AK-02** Die OSM-Quellenangabe ist im Spiel sichtbar (falls OSM-Daten genutzt werden).
+- **HI-AK-01** Stadt: Straßen, Gebäude, Grünflächen und Wasser sind vorhanden; Alter Markt,
+  Mittelstraße, Reformationskirche, Bahnhof, Stadtpark und Itter sind enthalten.
+- **HI-AK-02** Alle begehbaren Felder hängen zusammen: Von jedem Haus, Arbeitsort und Wahrzeichen
+  aus ist jeder andere zu Fuß erreichbar.
 - **HI-AK-03** Bewegung: Laufen mit fester Geschwindigkeit, Rennen schneller; man kann nicht in
   Gebäude hineinlaufen (Kollision mit Grundrissen, gleitet an Wänden entlang).
 - **HI-AK-04** Hausauswahl: 3 Häuser werden angeboten; das gewählte wird gespeichert und ist nach

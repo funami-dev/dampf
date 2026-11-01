@@ -54,6 +54,7 @@ if (debugEnabled) {
   const active = () => game.scene.getScenes(true)[0];
   window.__dampf = {
     scene: () => active()?.scene.key ?? "",
+    character: () => game.registry.get("character") as string,
     texts: () => visibleTexts(active()?.children.list ?? []),
     state: () => {
       if (!game.scene.isActive("race")) return null;

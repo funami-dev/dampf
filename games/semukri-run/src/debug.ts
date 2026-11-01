@@ -1,5 +1,7 @@
 export interface DebugHooks {
   scene(): string;
+  /** aktuell gewählte Figur */
+  character(): string;
   state(): Record<string, unknown> | null;
   texts(): string[];
   /** Bildschirmposition (CSS-Pixel) eines benannten Objekts. */

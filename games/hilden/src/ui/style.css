@@ -1,0 +1,192 @@
+.hi-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  color: #fff;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.hi-layer button,
+.hi-stick,
+.hi-look,
+.hi-panel {
+  pointer-events: auto;
+}
+.hi-btn {
+  font:
+    700 15px/1 system-ui,
+    sans-serif;
+  color: #12324f;
+  background: #fff;
+  border: 0;
+  border-radius: 12px;
+  padding: 11px 14px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.hi-btn.primary {
+  background: #ffcc00;
+}
+.hi-btn:focus-visible {
+  outline: 3px solid #ffcc00;
+  outline-offset: 2px;
+}
+.hi-top {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  right: 6px;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+.hi-task {
+  flex: 1;
+  background: rgba(18, 50, 79, 0.8);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 14px;
+  line-height: 1.3;
+  min-height: 20px;
+}
+.hi-task small {
+  display: block;
+  opacity: 0.8;
+  font-size: 11px;
+}
+.hi-arrow {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  margin-left: -14px;
+  border-left: 14px solid transparent;
+  border-right: 14px solid transparent;
+  border-bottom: 30px solid #ffcc00;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
+  transform-origin: 14px 20px;
+}
+.hi-toast {
+  position: absolute;
+  top: 110px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(18, 50, 79, 0.9);
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.hi-toast:empty {
+  display: none;
+}
+.hi-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 10px;
+  pointer-events: none;
+}
+.hi-stick {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  border: 2px solid rgba(255, 255, 255, 0.75);
+  position: relative;
+  touch-action: none;
+}
+.hi-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.hi-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+.hi-use {
+  font-size: 18px;
+  padding: 16px 18px;
+  min-width: 120px;
+}
+.hi-use[hidden] {
+  display: none;
+}
+.hi-look {
+  position: absolute;
+  top: 120px;
+  right: 0;
+  width: 50%;
+  bottom: 170px;
+  touch-action: none;
+}
+.hi-panel {
+  position: absolute;
+  inset: 0;
+  background: rgba(18, 50, 79, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  text-align: center;
+  overflow-y: auto;
+}
+.hi-panel h2 {
+  margin: 0 0 6px;
+  font-size: 24px;
+}
+.hi-panel p {
+  margin: 0;
+  max-width: 34ch;
+  line-height: 1.4;
+}
+.hi-panel .hi-btn {
+  min-width: 220px;
+}
+.hi-map {
+  max-width: 100%;
+  max-height: 70vh;
+  border-radius: 10px;
+  border: 3px solid #fff;
+}
+.hi-bake {
+  width: 260px;
+  height: 28px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #ddd 0 62%, #4caf50 62% 80%, #c0392b 80% 100%);
+  position: relative;
+  border: 3px solid #fff;
+}
+.hi-needle {
+  position: absolute;
+  top: -8px;
+  width: 6px;
+  height: 38px;
+  margin-left: -3px;
+  background: #12324f;
+  border: 2px solid #fff;
+  border-radius: 3px;
+}
