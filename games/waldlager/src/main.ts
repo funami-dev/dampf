@@ -947,6 +947,9 @@ if (debugEnabled) {
           [0, 1],
         ] as const) {
           if (!free(world, state, t.x + dx, t.y + dy)) continue;
+          // kein Strauch in Reichweite, sonst wäre „pflücken“ die nähere Aktion
+          if (world.bushes.some((b) => Math.hypot(b.x - (t.x + dx), b.y - (t.y + dy)) < 2.5))
+            continue;
           const d = Math.hypot(t.x - p.x, t.y - p.y);
           if (d < bd) {
             bd = d;

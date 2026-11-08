@@ -108,6 +108,20 @@ describe("WL-AK-06: Beeren", () => {
   });
 });
 
+describe("Aktion: die nächste gewinnt", () => {
+  it("Zelt neben einem Strauch: am Strauch wird gepflückt, am Zelt geschlafen", () => {
+    const { w, s, p } = setup();
+    const b = w.bushes[0]!;
+    p.tent = { x: b.x + 1, y: b.y };
+    p.x = b.x + 0.5;
+    p.y = b.y - 0.3;
+    expect(actionFor(w, s, p)?.kind).toBe("pick");
+    p.x = b.x + 1.5;
+    p.y = b.y - 0.4;
+    expect(actionFor(w, s, p)?.kind).toBe("sleep");
+  });
+});
+
 describe("WL-AK-07: Bauen", () => {
   function onFlatSpot(w: World, s: State, p: Player) {
     for (let y = 2; y < w.size - 2; y++)

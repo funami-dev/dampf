@@ -327,8 +327,10 @@ export function actionFor(
         d,
       });
   }
-  if (p.tent && Math.hypot(p.tent.x + 0.5 - p.x, p.tent.y + 0.5 - p.y) <= REACH + 0.3)
-    opts.push({ kind: "sleep", label: "Schlafen", target: -1, d: 0.5 });
+  if (p.tent) {
+    const d = Math.hypot(p.tent.x + 0.5 - p.x, p.tent.y + 0.5 - p.y);
+    if (d <= REACH + 0.3) opts.push({ kind: "sleep", label: "Schlafen", target: -1, d });
+  }
   opts.sort((a, b) => a.d - b.d);
   const best = opts[0];
   return best ? { kind: best.kind, label: best.label, target: best.target } : null;

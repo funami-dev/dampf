@@ -116,9 +116,10 @@ Drei Leisten von 0 bis 100 % stehen immer oben im Bild:
   - max. 16 KB je Nachricht.
 - Die **Raum-Logik** ist reines TypeScript und testbar. Für lokale Entwicklung und E2E-Tests
   läuft dieselbe Logik als Node-WebSocket-Server.
-- **Veröffentlichen** per `wrangler deploy`, entweder mit einem Cloudflare-API-Token oder vom
-  Repo-Inhaber selbst. Die Server-Adresse kommt als `VITE_RELAY_URL` in den Vercel-Build. Bis
-  dahin fehlt sie, und es wird nur allein gespielt.
+- **Veröffentlichen** per `wrangler deploy` (Cloudflare-API-Token mit „Workers Scripts: Edit“)
+  als Worker `dampf`, erreichbar unter `wss://dampf.dw-a6b.workers.dev`. Die Adresse steht als
+  `VITE_RELAY_URL` in `games/waldlager/.env.production` und kommt so in den Vercel-Build. Fehlt
+  sie, wird nur allein gespielt.
 
 ## Speichern
 
