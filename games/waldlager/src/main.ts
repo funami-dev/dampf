@@ -52,7 +52,7 @@ const RELAY_URL = (
 ).replace(/\/$/, "");
 
 // --- Seite und Bedienelemente ------------------------------------------
-const stage = mountGameShell({ title: manifest.title });
+const stage = mountGameShell({ title: manifest.title, version: manifest.version });
 stage.style.background = "#1e3a1a";
 const layer = document.createElement("div");
 layer.className = "wl-layer";

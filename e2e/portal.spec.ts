@@ -1,9 +1,16 @@
 import { expect, test } from "@playwright/test";
 import { fileURLToPath } from "node:url";
-import { listedGames, loadManifests } from "../packages/game-kit/src/node.ts";
+import {
+  formatDate,
+  listedGames,
+  loadManifests,
+  newsEntries,
+} from "../packages/game-kit/src/node.ts";
 import { expectNoErrors, isMobile, trackErrors } from "./helpers.ts";
 
-const games = listedGames(loadManifests(fileURLToPath(new URL("../games/", import.meta.url))));
+const all = loadManifests(fileURLToPath(new URL("../games/", import.meta.url)));
+const games = listedGames(all);
+const news = newsEntries(all, 10);
 
 test.describe("Startseite", () => {
   test("PORTAL-AK-01/02/04: listet alle veröffentlichten Spiele mit Bild, Titel, Beschreibung", async ({
@@ -107,5 +114,46 @@ test.describe("Startseite scrollen", () => {
     }
     await touch("touchEnd");
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  });
+});
+
+test.describe("Versionen und Neuigkeiten", () => {
+  test("PORTAL-AK-10: jede Karte zeigt die Version", async ({ page }) => {
+    await page.goto("/");
+    const cards = page.locator("[data-testid=games] > li");
+    for (const [i, game] of games.entries())
+      await expect(cards.nth(i)).toContainText(`v${game.version}`);
+  });
+
+  test("PORTAL-AK-11: Neuigkeiten oben, neueste zuerst, mit Datum, Link, Version und Punkten", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const section = page.getByRole("region", { name: "Neuigkeiten" });
+    await expect(section).toBeVisible();
+    // über den Spielkarten
+    const newsBox = (await section.boundingBox())!;
+    const gridBox = (await page.locator("[data-testid=games]").boundingBox())!;
+    expect(newsBox.y).toBeLessThan(gridBox.y);
+    // weitere Einträge aufklappen (falls vorhanden)
+    if (news.length > 3) await section.getByText("Weitere Neuigkeiten").click();
+    const entries = section.locator("[data-news]");
+    await expect(entries).toHaveCount(Math.min(10, news.length));
+    for (const [i, n] of news.entries()) {
+      const e = entries.nth(i);
+      await expect(e).toHaveAttribute("data-news", `${n.slug}@${n.version}`);
+      await expect(e).toContainText(formatDate(n.date));
+      await expect(e).toContainText(`v${n.version}`);
+      await expect(e.getByRole("link", { name: n.title })).toHaveAttribute(
+        "href",
+        `/games/${n.slug}/`,
+      );
+      for (const item of n.items) await expect(e).toContainText(item);
+    }
+    // kein horizontales Scrollen
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
   });
 });

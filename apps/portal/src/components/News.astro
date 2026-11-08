@@ -1,0 +1,82 @@
+---
+import type { NewsItem } from "@dampf/game-kit";
+import Entry from "./NewsEntry.astro";
+
+interface Props {
+  news: NewsItem[];
+}
+const { news } = Astro.props;
+/** Die neuesten Einträge direkt, weitere aufklappbar (kein inneres Scrollen, PORTAL-AK-09) */
+const SHOWN = 3;
+---
+
+{news.length > 0 && (
+  <section class="news" aria-labelledby="news-title" data-testid="news">
+    <h2 id="news-title">Neuigkeiten</h2>
+    <ol>
+      {news.slice(0, SHOWN).map((n) => (
+        <Entry n={n} />
+      ))}
+    </ol>
+    {news.length > SHOWN && (
+      <details>
+        <summary>Weitere Neuigkeiten</summary>
+        <ol start={SHOWN + 1}>
+          {news.slice(SHOWN).map((n) => (
+            <Entry n={n} />
+          ))}
+        </ol>
+      </details>
+    )}
+  </section>
+)}
+
+<style>
+  .news {
+    margin: 0 0 2.5rem;
+    padding: 1rem 1.1rem 1.2rem;
+    background: var(--panel);
+    border: 3px solid #000;
+    box-shadow: 6px 6px 0 #000;
+  }
+  h2 {
+    font-family: var(--pixel);
+    font-size: 1rem;
+    color: var(--accent);
+    margin: 0 0 0.75rem;
+  }
+  ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1rem;
+  }
+  details {
+    margin-top: 1rem;
+  }
+  summary {
+    cursor: pointer;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+  .meta {
+    margin: 0 0 0.35rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .meta a {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .version {
+    font-variant-numeric: tabular-nums;
+  }
+  ul {
+    margin: 0;
+    padding-left: 1.2rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+</style>

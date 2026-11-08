@@ -3,8 +3,23 @@
   "title": "Kassen-Held",
   "description": "Sitz an der Kasse im EDEKA-Markt: Waren greifen, über den Scanner ziehen, Piep! Ganz ohne Zeitdruck, Kunde für Kunde.",
   "thumbnail": "thumbnail.png",
-  "controls": { "keyboard": true, "touch": true },
+  "controls": {
+    "keyboard": true,
+    "touch": true
+  },
   "status": "published",
   "order": 70,
-  "addedAt": "2026-11-01"
+  "addedAt": "2026-11-01",
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-08",
+      "items": [
+        "Kassieren im EDEKA-Markt: Waren über den Scanner ziehen",
+        "Barcode zeigt weg? Einfach drehen!",
+        "Ganz ohne Zeitdruck – Kunde für Kunde"
+      ]
+    }
+  ]
 }

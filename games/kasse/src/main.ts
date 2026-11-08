@@ -30,7 +30,7 @@ const HOLD_Y = COUNTER_Y + 0.06;
 const FRONT_X = BELT.x1 - 0.02;
 const SPAWN_X = BELT.x0 + 0.2;
 
-const stage = mountGameShell({ title: manifest.title });
+const stage = mountGameShell({ title: manifest.title, version: manifest.version });
 stage.style.background = "#1c4e9c";
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));

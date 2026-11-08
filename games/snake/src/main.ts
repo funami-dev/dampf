@@ -9,7 +9,7 @@ import { StartScene } from "./scenes/StartScene.ts";
 import { PlayScene } from "./scenes/PlayScene.ts";
 import { GameOverScene } from "./scenes/GameOverScene.ts";
 
-const parent = mountGameShell({ title: manifest.title });
+const parent = mountGameShell({ title: manifest.title, version: manifest.version });
 
 // Pixel-Schrift laden, bevor Phaser Texte rendert.
 await document.fonts.load(`16px ${FONT}`).catch(() => undefined);

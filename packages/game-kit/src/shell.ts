@@ -5,6 +5,8 @@ import { installNoZoom } from "./nozoom.ts";
 
 export interface ShellOptions {
   title: string;
+  /** Version aus game.json, wird klein neben dem Titel gezeigt (MANIFEST-AK-11) */
+  version?: string;
 }
 
 /**
@@ -12,7 +14,7 @@ export interface ShellOptions {
  * der Container für das Spiel. Der Button liegt außerhalb des Spielfelds und verdeckt nichts.
  * Gibt das Element zurück, in das Phaser rendern soll.
  */
-export function mountGameShell({ title }: ShellOptions): HTMLElement {
+export function mountGameShell({ title, version }: ShellOptions): HTMLElement {
   document.documentElement.lang = "de";
   document.title = `${title} – Dampf`;
 
@@ -26,6 +28,13 @@ export function mountGameShell({ title }: ShellOptions): HTMLElement {
   name.className = "dampf-title";
   name.textContent = title;
   bar.append(back, name);
+  if (version) {
+    const v = document.createElement("span");
+    v.className = "dampf-version";
+    v.textContent = `v${version}`;
+    v.title = `Version ${version}`;
+    bar.append(v);
+  }
 
   const stage = document.createElement("main");
   stage.className = "dampf-stage";

@@ -21,7 +21,12 @@ const controls = [game.controls.keyboard && "Tastatur", game.controls.touch && "
       decoding="async"
     />
     <div class="body">
-      <h2>{game.title}</h2>
+      <div class="head">
+        <h2>{game.title}</h2>
+        <span class="version" aria-label={`Version ${game.version}`}>
+          v{game.version}
+        </span>
+      </div>
       <p>{game.description}</p>
       <ul class="controls" aria-label="Steuerung">
         {controls.map((c) => (
@@ -74,6 +79,18 @@ const controls = [game.controls.keyboard && "Tastatur", game.controls.touch && "
     flex-direction: column;
     gap: 0.75rem;
     flex: 1;
+  }
+  .head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .version {
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
   h2 {
     font-family: var(--pixel);

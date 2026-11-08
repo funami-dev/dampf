@@ -105,3 +105,14 @@ test.describe("Kein Zoom", () => {
     expect(r.gesture).toBe(false);
   });
 });
+
+test.describe("Version im Spiel", () => {
+  for (const game of games) {
+    test(`MANIFEST-AK-11: ${game.slug} zeigt die Version in der oberen Leiste`, async ({
+      page,
+    }) => {
+      await page.goto(`/games/${game.slug}/?relay=`);
+      await expect(page.locator(".dampf-bar")).toContainText(`v${game.version}`);
+    });
+  }
+});

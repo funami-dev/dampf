@@ -2,9 +2,11 @@
 import "../styles/global.css";
 import Logo from "../components/Logo.astro";
 import GameList from "../components/GameList.astro";
-import { getGames } from "../lib/games.ts";
+import News from "../components/News.astro";
+import { getGames, getNews } from "../lib/games.ts";
 
 const games = getGames();
+const news = getNews();
 ---
 
 <!doctype html>
@@ -32,6 +34,7 @@ const games = getGames();
       </div>
     </header>
     <main class="wrap">
+      <News news={news} />
       <GameList games={games} />
     </main>
     <footer class="wrap">
