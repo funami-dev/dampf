@@ -36,7 +36,16 @@ describe("WL-AK-12: Protokoll", () => {
       null,
       { v: 1, k: "welcome", seed: "1" },
       { v: 1, k: "snap" },
-      { v: 1, k: "snap", total: 1, stumps: [], berries: "4x", fires: [], animals: [], players: [] },
+      {
+        v: 1,
+        k: "snap",
+        total: 1,
+        stumps: [],
+        berries: [[1]],
+        fires: [],
+        animals: [],
+        players: [],
+      },
       {
         v: 1,
         k: "snap",
@@ -67,23 +76,36 @@ describe("WL-AK-12: Protokoll", () => {
     addPlayer(w, host, "me", "Mia", "#e74c3c");
     const g = addPlayer(w, host, "g1", "Ben", "#3498db");
     g.wood = 7;
-    host.stumps[2] = 999;
-    host.berries[0] = 1;
-    host.fires.push({ id: 1, x: 3, y: 4, until: 200 });
-    const snap = parseHost(JSON.parse(JSON.stringify(toSnap(host))));
+    g.radio = true;
+    // Baum, Strauch und Feuer in der Nähe des Gastes
+    const near = (o: { x: number; y: number }) => Math.hypot(o.x - g.x, o.y - g.y) < 20;
+    const tree = w.trees.findIndex(near);
+    const bush = w.bushes.findIndex(near);
+    host.stumps[tree] = 999;
+    host.berries[bush] = 1;
+    host.fires.push({ id: 1, x: Math.floor(g.x) + 2, y: Math.floor(g.y), until: 200 });
+    const far = w.trees.findIndex((t) => Math.hypot(t.x - g.x, t.y - g.y) > 100);
+    host.stumps[far] = 999;
+    const snap = parseHost(JSON.parse(JSON.stringify(toSnap(w, host, [g]))));
     expect(snap?.k).toBe("snap");
     const guest = createState(w);
     applySnap(guest, snap as never, "g1", true);
     expect(Object.keys(guest.players).sort()).toEqual(["g1", "me"]);
     expect(guest.players.g1!.wood).toBe(7);
-    expect(guest.stumps[2]).toBeDefined();
-    expect(guest.berries[0]).toBe(1);
+    expect(guest.players.g1!.radio).toBe(true);
+    expect(guest.stumps[tree]).toBeDefined();
+    expect(guest.stumps[far]).toBeUndefined();
+    expect(guest.berries[bush]).toBe(1);
     expect(guest.fires).toHaveLength(1);
-    expect(guest.animals).toHaveLength(host.animals.length);
+    // nur Tiere in der Nähe des Gastes
+    expect(guest.animals.length).toBeLessThan(host.animals.length);
+    for (const a of guest.animals) expect(Math.abs(a.x - g.x)).toBeLessThanOrEqual(30);
     guest.players.g1!.x = 50.25;
     applySnap(guest, snap as never, "g1", false);
     expect(guest.players.g1!.x).toBe(50.25);
     expect(guest.players.me!.x).toBe(host.players.me!.x);
-    expect(JSON.stringify(toSnap(host)).length).toBeLessThan(16 * 1024);
+    // auch mit 5 Gästen an verschiedenen Orten unter 16 KB
+    const focus = [g, ...[1, 2, 3, 4].map((k) => addPlayer(w, host, `g${k + 1}`, "X", "#3498db"))];
+    expect(JSON.stringify(toSnap(w, host, focus)).length).toBeLessThan(16 * 1024);
   });
 });

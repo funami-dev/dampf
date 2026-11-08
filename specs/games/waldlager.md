@@ -1,6 +1,6 @@
 # Spiel: Waldlager
 
-**Status:** Entwurf (Änderung: Insel 512 × 512, Fallschirm, Flugzeug, Funkgerät, Hai; WL-AK-01, 23 bis 27)
+**Status:** Umgesetzt
 **Slug:** `waldlager`
 **Name:** „Waldlager“ (Arbeitstitel)
 

@@ -15,6 +15,9 @@ interface WlState {
     wood: number;
     berries: number;
     tent: { x: number; y: number } | null;
+    radio: boolean;
+    landing: number;
+    home: { x: number; y: number };
   };
   action: string | null;
   fires: { burning: boolean }[];
@@ -27,6 +30,8 @@ interface WlState {
   stumpList: number[];
   seed: number;
   book: string[];
+  plane: { x: number; y: number; cells: [number, number][] };
+  size: number;
 }
 interface Hooks {
   state(): WlState;
@@ -53,6 +58,11 @@ const state = (page: Page) => hooks(page, (h) => h.state());
 async function open(page: Page, relay = "") {
   await page.goto(`/games/waldlager/?e2e&relay=${encodeURIComponent(relay)}`);
   await expect.poll(() => page.evaluate(() => !!window.__dampf), { timeout: 60_000 }).toBe(true);
+}
+
+/** Warten, bis die Fallschirm-Landung vorbei ist */
+async function landed(page: Page) {
+  await expect.poll(async () => (await state(page)).me.landing, { timeout: 20_000 }).toBe(0);
 }
 
 async function chopTree(page: Page) {
@@ -82,6 +92,7 @@ test("WL-AK-13: Desktop – hacken, Feuer und Zelt bauen, Beeren essen, Nacht", 
   await page.getByRole("button", { name: "Farbe #e74c3c" }).click();
   await page.getByRole("button", { name: "Los geht's" }).click();
   await expect.poll(async () => (await state(page)).screen).toBe("play");
+  await landed(page);
   const s0 = await state(page);
   expect(s0.me.name).toBe("Mia");
   expect(s0.me.color).toBe("#e74c3c");
@@ -161,6 +172,7 @@ test("WL-AK-14: Mobile – Joystick, Aktion, Essen, Bauen, Menü", async ({ page
   await open(page);
   await page.getByRole("button", { name: "Los geht's" }).tap();
   await expect.poll(async () => (await state(page)).screen).toBe("play");
+  await landed(page);
   const vp = page.viewportSize()!;
   const stick = page.getByRole("slider", { name: "Laufen" });
   for (const el of [
@@ -274,6 +286,11 @@ test("WL-AK-15: zwei Browser – Welt ist offen, Liste im Hauptmenü, beitreten,
   await expect(lobby3.getByText(/Mia, Ben · 2 \/ 6/)).toBeVisible({ timeout: 20_000 });
 
   // Gastgeber fällt einen Baum → beim Gast ist er ein Stumpf
+  await landed(page);
+  await landed(guest);
+  // Gast in die Nähe des Gastgebers holen (große Insel)
+  const hp = (await state(page)).me;
+  await guest.evaluate((p) => (window.__dampf as Hooks).teleport(p.x + 3, p.y + 3), hp);
   await hooks(page, (h) => h.setNeeds({ fitness: 100 }));
   await chopTree(page);
   const stump = (await state(page)).stumpList[0]!;
@@ -332,7 +349,7 @@ test("WL-AK-22: Tier entdecken – Meldung und Tierbuch", async ({ page }) => {
       : page.getByRole("button", { name: n }).click();
   await tap("Menü");
   await tap("Tierbuch");
-  await expect(page.getByText(`${count} / 31 entdeckt`)).toBeVisible();
+  await expect(page.getByText(`${count} / 32 entdeckt`)).toBeVisible();
   await expect(page.getByText("???").first()).toBeVisible();
   const entry = page.locator(".wl-animal:not(.unseen)").first();
   await expect(entry).toBeVisible();
@@ -343,6 +360,63 @@ test("WL-AK-22: Tier entdecken – Meldung und Tierbuch", async ({ page }) => {
   await expect.poll(() => page.evaluate(() => !!window.__dampf), { timeout: 60_000 }).toBe(true);
   expect((await state(page)).book).toContain(a[2]);
   await page.getByRole("button", { name: "Tierbuch" }).click();
-  await expect(page.getByText(`${count} / 31 entdeckt`)).toBeVisible();
+  await expect(page.getByText(`${count} / 32 entdeckt`)).toBeVisible();
+  await expectNoErrors(errors);
+});
+
+test("WL-AK-27: Fallschirm, Flugzeug, Funkgerät", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors = trackErrors(page);
+  await open(page);
+  const mobile = isMobile(page);
+  const press = (n: string) =>
+    mobile
+      ? page.getByRole("button", { name: n }).tap()
+      : page.getByRole("button", { name: n }).click();
+  await page.getByLabel("Dein Name").fill("Lea");
+  await press("Los geht's");
+  await expect.poll(async () => (await state(page)).screen).toBe("play");
+  const s0 = await state(page);
+  expect(s0.size).toBe(512);
+  expect(s0.me.landing).toBeGreaterThan(0);
+  // Während der Landung keine Bewegung
+  const x0 = s0.me.x;
+  if (!mobile) {
+    await page.keyboard.down("ArrowRight");
+    await page.waitForTimeout(400);
+    await page.keyboard.up("ArrowRight");
+    expect((await state(page)).me.x).toBe(x0);
+  }
+  await landed(page);
+  await expect(page.getByText(/^Gelandet!/)).toBeVisible();
+  const s1 = await state(page);
+  expect(Math.hypot(s1.me.home.x - s1.plane.x, s1.me.home.y - s1.plane.y)).toBeGreaterThanOrEqual(
+    120,
+  );
+  // Ohne Funkgerät kein Funk
+  await expect(page.getByRole("button", { name: /Funk/ })).toBeHidden();
+  // Test-Hilfe: zum Flugzeug
+  const [cx, cy] = s1.plane.cells[0]!;
+  await page.evaluate(([x, y]) => (window.__dampf as Hooks).teleport(x! - 1.5, y! + 0.5), [cx, cy]);
+  await expect.poll(async () => (await state(page)).me.radio).toBe(true);
+  await expect(page.getByText("📻 Du hast im Flugzeug ein Funkgerät gefunden!")).toBeVisible();
+  const funk = page.getByRole("button", { name: /Funk/ });
+  await expect(funk).toBeVisible();
+  const vp = page.viewportSize()!;
+  const b = (await funk.boundingBox())!;
+  expect(b.x + b.width).toBeLessThanOrEqual(vp.width + 0.5);
+  expect(b.y + b.height).toBeLessThanOrEqual(vp.height + 0.5);
+  await press("📻 Funk");
+  const me = (await state(page)).me;
+  await expect(page.getByRole("list", { name: "Spieler" })).toContainText(
+    `Lea · X ${Math.floor(me.x)} · Y ${Math.floor(me.y)}`,
+  );
+  await expect(page.getByLabel("Inselkarte")).toBeVisible();
+  await press("Zurück");
+  // Funkgerät bleibt nach Neuladen
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => !!window.__dampf), { timeout: 60_000 }).toBe(true);
+  await press("Weiterspielen");
+  expect((await state(page)).me.radio).toBe(true);
   await expectNoErrors(errors);
 });

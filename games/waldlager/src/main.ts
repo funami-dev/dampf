@@ -28,9 +28,16 @@ import { browserStore, load, save } from "./logic/save.ts";
 import { applySnap, parseGuest, parseHost, toSnap, type GuestMsg } from "./logic/protocol.ts";
 import { HABITAT_TEXT, SPECIES, TIME_TEXT, UNICORN, speciesById } from "./logic/species.ts";
 import { discover, loadBook, saveBook } from "./logic/tierbuch.ts";
-import { generateWorld, idx, inside, type World } from "./logic/world.ts";
+import { T, generateWorld, idx, inside, type World } from "./logic/world.ts";
 import { HS, isoX, isoY, tileX, tileY } from "./render/iso.ts";
-import { addPlayerTex, addTent, addTextures, speciesCanvas, tileKey } from "./render/textures.ts";
+import {
+  addChute,
+  addPlayerTex,
+  addTent,
+  addTextures,
+  speciesCanvas,
+  tileKey,
+} from "./render/textures.ts";
 import { debugEnabled } from "./debug.ts";
 
 const store = browserStore();
@@ -71,6 +78,7 @@ layer.innerHTML = `
   <div class="wl-bottom">
     <div class="wl-stick" role="slider" aria-label="Laufen"><div class="wl-knob"></div></div>
     <div class="wl-actions">
+      <button class="wl-btn" type="button" data-b="radio" hidden>📻 Funk</button>
       <button class="wl-btn" type="button" data-b="build">Bauen</button>
       <button class="wl-btn" type="button" data-b="eat">Essen</button>
       <button class="wl-btn primary wl-act" type="button" data-b="act" aria-label="Aktion">Aktion</button>
@@ -103,6 +111,7 @@ let ws: WebSocket | null = null;
 let roomCode: string | null = null;
 let netTimer = 0;
 let gotSnap = false;
+let worldReady = true;
 let nextOpenTry = 0;
 let metaTimer = 0;
 let lobby: { code: string; host: string; players: string[]; count: number; max: number }[] | null =
@@ -112,16 +121,17 @@ let lobbyTimer: ReturnType<typeof setInterval> | null = null;
 // Tierbuch
 const book = loadBook(store);
 let seeTimer = 0;
+let wasLanding = false;
 const me = (): Player => state.players[meId]!;
 
 let profile = { name: "", color: COLORS[1] as string };
-const saved = load(store);
-if (saved) {
-  world = saved.world;
-  state = saved.state;
-  meId = saved.me;
-  profile = { name: me().name, color: me().color };
-} else newWorld();
+let saved: ReturnType<typeof load> = null;
+
+/** Große Insel erzeugen dauert einen Moment: erst Hinweis zeigen, dann rechnen */
+function withLoading(fn: () => void) {
+  panel(`<h2>Die Insel entsteht …</h2><p>Gleich geht's los.</p>`);
+  setTimeout(fn, 40);
+}
 
 function newWorld(seed = Date.now() & 0x7fffffff || 1) {
   world = generateWorld(seed);
@@ -129,6 +139,7 @@ function newWorld(seed = Date.now() & 0x7fffffff || 1) {
   meId = "me";
   addPlayer(world, state, meId, profile.name, profile.color);
   bushAt = null;
+  minimap = null;
 }
 
 const toast = (t: string | null, s = 2.2) => {
@@ -202,6 +213,7 @@ function doBuild(kind: "tent" | "fire") {
 
 actBtn.addEventListener("click", () => doAct());
 $('[data-b="eat"]').addEventListener("click", () => doEat());
+$('[data-b="radio"]').addEventListener("click", () => openRadio());
 $('[data-b="build"]').addEventListener("click", () => toggleBuild());
 $('[data-b="tent"]').addEventListener("click", () => doBuild("tent"));
 $('[data-b="fire"]').addEventListener("click", () => doBuild("fire"));
@@ -223,6 +235,7 @@ window.addEventListener("keydown", (e) => {
     chopTimer = 0.45;
   }
   if (e.code === "KeyQ") doEat();
+  if (e.code === "KeyF" && screen === "play" && me().radio) openRadio();
   if (e.code === "KeyT" && screen === "play") {
     toggleBuild(false);
     openBook(() => resume());
@@ -249,7 +262,7 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("pagehide", () => persist());
 
 function persist() {
-  if (state && world && mode !== "guest") save(store, world.seed, state, meId);
+  if (state && world && mode !== "guest") save(store, world.seed, state, meId, world.size);
 }
 
 // --- Menüs --------------------------------------------------------------
@@ -311,13 +324,21 @@ function openStart() {
   );
   const start = (fresh: boolean) => {
     takeName();
-    if (fresh) newWorld();
+    if (fresh) return withLoading(() => go(true));
+    go(false);
+  };
+  const go = (fresh: boolean) => {
+    if (fresh) {
+      newWorld();
+      saved = null;
+    }
     const p = me();
     p.name = profile.name;
     p.color = profile.color;
     persist();
     resume();
-    toast(`Hallo ${p.name}! Such dir einen Baum und hack Holz (E).`, 3.5);
+    if (p.landing <= 0)
+      toast(`Hallo ${p.name}! Irgendwo auf der Insel liegt ein abgestürztes Flugzeug.`, 4);
   };
   el.querySelector('[data-a="play"]')!.addEventListener("click", () => start(false));
   el.querySelector('[data-a="new"]')?.addEventListener("click", () => start(true));
@@ -398,6 +419,88 @@ function openBook(back: () => void) {
   el.querySelector('[data-a="back"]')!.addEventListener("click", back);
 }
 
+/** Inselkarte (einmal je Welt gezeichnet) */
+let minimap: HTMLCanvasElement | null = null;
+function islandMap(): HTMLCanvasElement {
+  if (minimap) return minimap;
+  const c = document.createElement("canvas");
+  c.width = world.size;
+  c.height = world.size;
+  const g = c.getContext("2d")!;
+  const img = g.createImageData(world.size, world.size);
+  const col: Record<number, [number, number, number]> = {
+    [T.SEA]: [31, 79, 143],
+    [T.WATER]: [58, 123, 213],
+    [T.FORD]: [95, 155, 216],
+    [T.BRIDGE]: [139, 90, 43],
+    [T.SAND]: [217, 197, 138],
+    [T.GRASS]: [106, 168, 79],
+    [T.FOREST]: [47, 95, 39],
+    [T.ROCK]: [141, 141, 141],
+    [T.WRECK]: [200, 200, 200],
+  };
+  for (let i = 0; i < world.terrain.length; i++) {
+    const [r, gg, b] = col[world.terrain[i]!] ?? [0, 0, 0];
+    const k = 1 - world.height[i]! * 0.06;
+    img.data[i * 4] = r * k;
+    img.data[i * 4 + 1] = gg * k;
+    img.data[i * 4 + 2] = b * k;
+    img.data[i * 4 + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  minimap = c;
+  return c;
+}
+
+/** Funkgerät: alle Spieler mit Koordinaten und Inselkarte (WL-AK-25) */
+let radioTimer: ReturnType<typeof setInterval> | null = null;
+function openRadio() {
+  if (screen !== "play" || !me().radio) return;
+  toggleBuild(false);
+  const el = panel(`<h2>📻 Funk</h2>
+    <ul class="wl-radio" aria-label="Spieler"></ul>
+    <canvas class="wl-map" width="256" height="256" aria-label="Inselkarte"></canvas>
+    <button class="wl-btn primary" type="button" data-a="back">Zurück</button>`);
+  el.classList.add("wl-panel-scroll");
+  const list = el.querySelector<HTMLElement>(".wl-radio")!;
+  const cv = el.querySelector<HTMLCanvasElement>(".wl-map")!;
+  const g = cv.getContext("2d")!;
+  const draw = () => {
+    if (!el.isConnected) {
+      if (radioTimer) clearInterval(radioTimer);
+      radioTimer = null;
+      return;
+    }
+    list.innerHTML = Object.values(state.players)
+      .map(
+        (q) =>
+          `<li class="${q.id === meId ? "me" : ""}"><i style="background:${q.color}"></i><b>${escapeHtml(q.name)}</b> · X ${Math.floor(q.x)} · Y ${Math.floor(q.y)}</li>`,
+      )
+      .join("");
+    const k = cv.width / world.size;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(islandMap(), 0, 0, cv.width, cv.height);
+    g.fillStyle = "#fff";
+    g.font = "bold 16px system-ui";
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.fillText("✈", world.plane.x * k, world.plane.y * k);
+    for (const q of Object.values(state.players)) {
+      g.fillStyle = q.color;
+      g.strokeStyle = "#fff";
+      g.lineWidth = q.id === meId ? 2.5 : 1.5;
+      g.beginPath();
+      g.arc(q.x * k, q.y * k, q.id === meId ? 5 : 4, 0, Math.PI * 2);
+      g.fill();
+      g.stroke();
+    }
+  };
+  draw();
+  if (radioTimer) clearInterval(radioTimer);
+  radioTimer = setInterval(draw, 500);
+  el.querySelector('[data-a="back"]')!.addEventListener("click", () => resume());
+}
+
 function openMenu() {
   if (screen !== "play") return;
   toggleBuild(false);
@@ -412,10 +515,11 @@ function openMenu() {
   el.querySelector('[data-a="book"]')!.addEventListener("click", () => openBook(() => openMenu()));
   el.querySelector('[data-a="new"]')?.addEventListener("click", () => {
     closeWorld();
-    newWorld();
-    persist();
-    resume();
-    toast("Eine neue Welt!");
+    withLoading(() => {
+      newWorld();
+      persist();
+      resume();
+    });
   });
   el.querySelector('[data-a="leave"]')?.addEventListener("click", () => leaveGuest(null));
   el.querySelector('[data-a="main"]')!.addEventListener("click", () => {
@@ -539,7 +643,7 @@ function onGuestMsg(id: string, d: unknown) {
       sendMeta();
     }
     hostSend(id, { v: 1, k: "welcome", seed: world.seed });
-    hostSend(id, toSnap(state));
+    hostSend(id, toSnap(world, state, [state.players[id]!]));
     return;
   }
   const p = state.players[id];
@@ -598,15 +702,19 @@ function joinWorld(code: string) {
         const h = parseHost(m.d);
         if (!h) return;
         if (h.k === "welcome") {
-          world = generateWorld(h.seed);
-          state = createState(world);
-          state.players = {};
-          meId = myId;
-          addPlayer(world, state, meId, profile.name, profile.color);
-          bushAt = null;
-          resume();
-          toast("Du bist in der Welt angekommen!", 3);
-        } else if (h.k === "snap" && meId === myId && world.seed) {
+          worldReady = false;
+          withLoading(() => {
+            world = generateWorld(h.seed);
+            state = createState(world);
+            state.players = {};
+            meId = myId;
+            addPlayer(world, state, meId, profile.name, profile.color);
+            bushAt = null;
+            minimap = null;
+            worldReady = true;
+            resume();
+          });
+        } else if (h.k === "snap" && meId === myId && worldReady) {
           applySnap(state, h, meId, !gotSnap);
           if (!state.players[meId]) addPlayer(world, state, meId, profile.name, profile.color);
           gotSnap = true;
@@ -632,6 +740,7 @@ function leaveGuest(reason: string | null) {
     meId = own.me;
     bushAt = null;
   } else newWorld();
+  minimap = null;
   if (!reason) return openStart();
   screen = "menu";
   panel(`<h2>Welt verlassen</h2><p role="alert">${reason}</p>
@@ -644,7 +753,15 @@ function netTick(dt: number) {
   netTimer += dt;
   if (netTimer < 0.1) return;
   netTimer = 0;
-  if (mode === "host" && guests().length) hostSend(undefined, toSnap(state));
+  if (mode === "host" && guests().length)
+    hostSend(
+      undefined,
+      toSnap(
+        world,
+        state,
+        guests().map((id) => state.players[id]!),
+      ),
+    );
   metaTimer += 0.1;
   if (metaTimer >= 10) {
     metaTimer = 0;
@@ -731,7 +848,11 @@ class WorldScene extends Phaser.Scene {
     tick(Math.min(0.1, delta / 1000));
     const p = me();
     const cam = this.cameras.main;
-    cam.centerOn(Math.round(isoX(p.x, p.y)), Math.round(isoY(p.x, p.y, hAt(p.x, p.y)) - 10));
+    const lift = p.landing > 0 ? (p.landing / 3) * 100 : 0;
+    cam.centerOn(
+      Math.round(isoX(p.x, p.y)),
+      Math.round(isoY(p.x, p.y, hAt(p.x, p.y)) - 10 - lift * 0.6),
+    );
     const v = cam.worldView;
     const corners = [
       [v.x, v.y],
@@ -805,9 +926,20 @@ class WorldScene extends Phaser.Scene {
         f.y + 0.5,
         0.9,
       );
+    // Flugzeugwrack
+    const pl = world.plane;
+    if (Math.abs(pl.x - p.x) < 40 && Math.abs(pl.y - p.y) < 40)
+      place("wreck", "wreck", pl.x + 0.5, pl.y + 0.5, 0.72).setDepth((pl.x + pl.y + 3) * 10);
     for (const q of Object.values(state.players)) {
       if (q.sleeping) continue;
       const s = place(`p:${q.id}`, addPlayerTex(this.textures, q.color), q.x, q.y);
+      if (q.landing > 0) {
+        // Fallschirm: schwebt von oben herab
+        s.y -= Math.round((q.landing / 3) * 100);
+        s.x += Math.round(Math.sin(time / 300) * 3);
+        const c = place(`chute:${q.id}`, addChute(this.textures, q.color), q.x, q.y);
+        c.setPosition(s.x, s.y - 16).setDepth(s.depth + 1);
+      }
       if (q.moving) s.y -= Math.floor(time / 120) % 2;
       if (q.moving || q.chop) s.setFlipX(isoX(q.fx, q.fy) < 0);
       if (q.id !== meId) {
@@ -929,6 +1061,16 @@ function tick(dt: number) {
     nextOpenTry = now() + 30_000;
     openWorld();
   }
+  // Nach der Fallschirm-Landung
+  if (screen === "play" && state.players[meId]) {
+    const landing = me().landing > 0;
+    if (wasLanding && !landing)
+      toast(
+        "Gelandet! Irgendwo auf der Insel liegt ein abgestürztes Flugzeug – dort findest du ein Funkgerät.",
+        5,
+      );
+    wasLanding = landing;
+  }
   // Tiere entdecken
   seeTimer += dt;
   if (screen === "play" && seeTimer >= 0.25 && (mode !== "guest" || gotSnap)) {
@@ -970,12 +1112,22 @@ function updateHud() {
     mode === "host"
       ? `Online · ${Object.keys(state.players).length}`
       : `Gast · ${Object.keys(state.players).length}`;
+  $<HTMLButtonElement>('[data-b="radio"]').hidden = !p.radio;
   const a = screen === "play" ? actionFor(world, state, p) : null;
   actBtn.textContent = a ? a.label : "Aktion";
   actBtn.disabled = !a;
 }
 
 // --- Start --------------------------------------------------------------
+panel(`<h2>Die Insel entsteht …</h2><p>Gleich geht's los.</p>`);
+await new Promise((r) => setTimeout(r, 40));
+saved = load(store);
+if (saved) {
+  world = saved.world;
+  state = saved.state;
+  meId = saved.me;
+  profile = { name: me().name, color: me().color };
+} else newWorld();
 const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: stage,
@@ -1009,6 +1161,9 @@ if (debugEnabled) {
           berries: p.berries,
           tent: p.tent,
           sleeping: p.sleeping,
+          radio: p.radio,
+          landing: p.landing,
+          home: p.home,
         },
         action: actionFor(world, state, p)?.kind ?? null,
         fires: state.fires.map((f) => ({
@@ -1031,6 +1186,8 @@ if (debugEnabled) {
         })),
         stumpList: Object.keys(state.stumps).map(Number),
         book: [...book],
+        plane: { x: world.plane.x, y: world.plane.y, cells: world.plane.cells },
+        size: world.size,
         lobby,
         lobbyError,
         visible: visibleAnimals(state, p).map((a) => a.kind),
