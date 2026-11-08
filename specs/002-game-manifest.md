@@ -1,6 +1,6 @@
 # 002 – Game-Manifest (`game.json`) & Pflichten eines Spiels
 
-**Status:** Umgesetzt
+**Status:** Entwurf (Änderung: MANIFEST-AK-09, kein Zoom)
 
 ## Zweck
 
@@ -40,6 +40,13 @@ gemeinsam genutzt.
 - Setzt `<title>` auf „<title> – Dampf“.
 - Hält den sicheren Bereich frei (`env(safe-area-inset-*)`): Auf dem iPhone liegt kein Teil des
   Spielfelds und kein Bedienelement unter der Safari-Leiste, der Notch oder dem Home-Indikator.
+- **Verhindert Zoomen auf Spielseiten:** Schnelles Doppeltippen (z. B. beim Holzhacken oder auf
+  Buttons) und Zwei-Finger-Zoom vergrößern die Seite nicht. Umsetzung im `game-kit`:
+  `touch-action: manipulation` für die ganze Spielseite, ein zweites Tippen innerhalb von 350 ms
+  löst keinen Browser-Zoom aus, Safari-Gesten (`gesturestart`/`gesturechange`) werden
+  abgefangen. Ist die Seite trotzdem vergrößert (z. B. durch Bedienungshilfen), wird beim
+  nächsten Tippen auf das Spielfeld automatisch auf 100 % zurückgesetzt. Die Startseite
+  (Portal) bleibt zoombar.
 
 ## Akzeptanzkriterien
 
@@ -55,3 +62,7 @@ gemeinsam genutzt.
 - **MANIFEST-AK-08** Der Spielbereich berücksichtigt `env(safe-area-inset-bottom)` und
   `env(safe-area-inset-top)` (umgesetzt im gemeinsamen Spiel-Rahmen von `game-kit`), sodass
   Spielfeld und Buttons vollständig im sichtbaren Bereich liegen (E2E mit simuliertem Inset).
+- **MANIFEST-AK-09** Spielseiten zoomen nicht: `touch-action: manipulation` auf der Seite, der
+  zweite Tipp eines Doppeltipps (< 350 ms) wird nicht als Zoom-Geste weitergegeben, und
+  `gesturestart` wird verhindert. Das Spiel bekommt beide Tipps trotzdem. Die Startseite ist
+  davon nicht betroffen (E2E).
