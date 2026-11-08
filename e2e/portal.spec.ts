@@ -23,9 +23,10 @@ test.describe("Startseite", () => {
       const img = card.getByRole("img", { name: game.title });
       await expect(img).toBeVisible();
       await img.scrollIntoViewIfNeeded();
-      expect(
-        await img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth),
-      ).toBeGreaterThan(0);
+      // Bilder laden lazy: warten, bis das Bild wirklich da ist (über das Netz kann das dauern)
+      await expect
+        .poll(() => img.evaluate((el: HTMLImageElement) => (el.complete ? el.naturalWidth : 0)))
+        .toBeGreaterThan(0);
     }
     await expectNoErrors(errors);
   });
@@ -76,8 +77,9 @@ test.describe("Startseite ohne JavaScript", () => {
       "href",
       `/games/${first.slug}/`,
     );
-    const res = await page.request.get(`/games/${first.slug}/`);
-    expect(res.status()).toBe(200);
+    // Über den Browser laden (nutzt dieselbe Netzwerkverbindung wie die Seite)
+    const res = await page.goto(`/games/${first.slug}/`);
+    expect(res?.status()).toBe(200);
   });
 });
 
