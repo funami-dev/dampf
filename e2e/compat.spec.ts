@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
 import { expectNoErrors, isMobile, trackErrors } from "./helpers.ts";
 
 const GAMES_3D = ["pilot-pro", "hilden", "juist-faehre", "kasse"];
-const GAMES_ALL = [...GAMES_3D, "snake", "himmelhuepfer", "semukri-run"];
+const GAMES_ALL = [...GAMES_3D, "snake", "himmelhuepfer", "semukri-run", "waldlager"];
 const TOO_OLD = /Dein Gerät ist leider zu alt für dieses Spiel/;
 
 test("BUILD-AK-11: Spiel-Bundles enthalten keine Syntax neuer als ES2020", () => {

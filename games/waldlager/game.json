@@ -1,0 +1,10 @@
+{
+  "slug": "waldlager",
+  "title": "Waldlager",
+  "description": "Im isometrischen Pixel-Wald Holz hacken, Zelt und Lagerfeuer bauen, Beeren suchen – bis es dämmert. Tiere laufen frei herum.",
+  "thumbnail": "thumbnail.png",
+  "controls": { "keyboard": true, "touch": true },
+  "status": "published",
+  "order": 80,
+  "addedAt": "2026-11-08"
+}
