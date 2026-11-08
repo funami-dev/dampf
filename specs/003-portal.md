@@ -1,6 +1,6 @@
 # 003 – Portal / Startseite
 
-**Status:** Umgesetzt
+**Status:** Entwurf (Änderung: Version auf Karten, Neuigkeiten, PORTAL-AK-10/11)
 
 ## Zweck
 
@@ -12,8 +12,15 @@ Die Startseite (`/`) zeigt alle veröffentlichten Spiele als Karten. Ein Klick a
 - Kopfbereich: Logo/Name „Dampf“ + Kurzbeschreibung (ein Satz).
 - Optik: Retro-Pixel-Stil nach 000-vision (dunkles Blau-Grau, Cyan-Akzente, Pixel-Schrift
   für Überschriften, gut lesbare Schrift für Fließtext).
-- Raster aus Spielkarten. Je Karte: Thumbnail, Titel, Beschreibung, Steuerungs-Icons
-  (Tastatur / Touch).
+- Raster aus Spielkarten. Je Karte: Thumbnail, Titel, **Version** (klein, z. B. „v1.0.0“),
+  Beschreibung, Steuerungs-Icons (Tastatur / Touch).
+- **Neuigkeiten** (unter den Spielkarten), aus den `changelog`-Einträgen aller veröffentlichten
+  Spiele:
+  - die neuesten Einträge zuerst (nach Datum, bei gleichem Datum nach der Sortierung der Spiele),
+    höchstens 10.
+  - Je Eintrag: Datum (z. B. „8. November 2026“), Spieltitel als Link zum Spiel, Version und die
+    Punkte als Liste.
+  - Ohne Einträge entfällt der Bereich.
 - Sortierung: `order` aufsteigend, danach `title` alphabetisch.
 - Leerer Zustand: Gibt es keine veröffentlichten Spiele, wird ein Hinweistext angezeigt.
 - Fußbereich: Link zum GitHub-Repo.
@@ -41,6 +48,13 @@ Die Startseite (`/`) zeigt alle veröffentlichten Spiele als Karten. Ein Klick a
   funktionieren).
 - **PORTAL-AK-08** Ein neues Spiel unter `games/` erscheint nach erneutem Build ohne Änderung am
   Portal-Code.
+- **PORTAL-AK-10** Jede Spielkarte zeigt die Version des Spiels („v“ + `version`).
+- **PORTAL-AK-11** Der Bereich „Neuigkeiten“ zeigt die neuesten Änderungsprotokoll-Einträge
+  veröffentlichter Spiele:
+  - neueste zuerst, höchstens 10;
+  - mit Datum, verlinktem Spieltitel, Version und Punkten;
+  - Entwürfe (`draft`) erscheinen nicht.
+  - Er funktioniert ohne JavaScript und ohne horizontales Scrollen auf Mobile (375×667).
 - **PORTAL-AK-09** Die Startseite lässt sich auf Mobile per Wischgeste vertikal scrollen; das CSS
   der Spielseiten (Scroll-Sperre) gelangt nicht in die Startseite.
 
