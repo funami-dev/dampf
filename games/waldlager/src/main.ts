@@ -1312,7 +1312,11 @@ if (debugEnabled) {
           [1, 0],
           [0, 1],
         ] as const)
-          if (free(world, state, b.x + dx, b.y + dy)) {
+          if (
+            free(world, state, b.x + dx, b.y + dy) &&
+            // dort muss „Beeren pflücken“ die nächste Aktion sein (kein Baum näher)
+            actionFor(world, state, { ...p, x: b.x + dx + 0.5, y: b.y + dy + 0.5 })?.kind === "pick"
+          ) {
             const d = Math.hypot(b.x - p.x, b.y - p.y);
             if (d < bd) {
               bd = d;
