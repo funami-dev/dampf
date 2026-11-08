@@ -1,6 +1,6 @@
 # Spiel: Waldlager
 
-**Status:** Entwurf (Änderung: Entdecken und Tierbuch, WL-AK-18 bis 22; Welten immer offen mit Liste, WL-AK-11/15/16)
+**Status:** Umgesetzt
 **Slug:** `waldlager`
 **Name:** „Waldlager“ (Arbeitstitel)
 

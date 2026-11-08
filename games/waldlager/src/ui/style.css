@@ -242,3 +242,79 @@
   letter-spacing: 3px;
   color: #f6c344;
 }
+.wl-hint {
+  font-size: 13px;
+  opacity: 0.85;
+}
+.wl-lobby {
+  width: min(380px, 100%);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 8px 10px;
+  text-align: left;
+}
+.wl-lobby h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+.wl-rooms {
+  display: grid;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.wl-room-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  padding: 6px 8px;
+}
+.wl-room-item small {
+  opacity: 0.85;
+}
+.wl-muted {
+  opacity: 0.75;
+  font-size: 14px;
+}
+.wl-panel-scroll {
+  justify-content: flex-start;
+}
+.wl-count {
+  font-weight: 700;
+  color: #f6c344;
+}
+.wl-book {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  gap: 8px;
+  width: min(940px, 100%);
+  text-align: left;
+}
+.wl-animal {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 8px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.wl-animal img {
+  image-rendering: pixelated;
+  width: 54px;
+  height: auto;
+  flex: none;
+}
+.wl-animal.unseen img {
+  filter: brightness(0) opacity(0.45);
+}
+.wl-animal.unseen b {
+  opacity: 0.7;
+}

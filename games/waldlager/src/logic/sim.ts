@@ -1,11 +1,15 @@
-import { DAY, START_TIME, isNight } from "./daytime.ts";
+import { DAY, START_TIME, isNight, phaseOf } from "./daytime.ts";
+import { SPECIES, UNICORN, speciesById } from "./species.ts";
 import { FULL, RATES, eatBerry, stepNeeds, type Needs } from "./needs.ts";
 import { T, idx, inside, terrainWalkable, type World } from "./world.ts";
 
 /** Spielstand einer Welt (Spec: specs/games/waldlager.md). Reine Daten, serialisierbar. */
 export const COLORS = ["#e74c3c", "#3498db", "#f1c40f", "#9b59b6", "#e67e22", "#1abc9c"] as const;
-export const ANIMALS = ["reh", "hase", "fuchs", "eichhoernchen"] as const;
-export type AnimalKind = (typeof ANIMALS)[number];
+/** Alle Tierarten-IDs (Reihenfolge = Index im Netzwerk-Protokoll) */
+export const ANIMALS: readonly string[] = SPECIES.map((x) => x.id);
+export type AnimalKind = string;
+export const UNICORN_CHANCE = 0.15;
+export const SIGHT = { day: 5, night: 3, fire: 6 };
 
 export const LIMITS = { wood: 30, berries: 20 };
 export const COSTS = { tent: 8, fire: 3 };
@@ -64,6 +68,8 @@ export interface State {
   animals: Animal[];
   players: Record<string, Player>;
   rand: number;
+  /** aktueller Spieltag (für das Einhorn) */
+  day: number;
 }
 
 export interface Input {
@@ -80,6 +86,54 @@ function nextRand(s: State): number {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
+const COUNT = { haeufig: 3, selten: 2, "sehr-selten": 1 } as const;
+
+/** Liegt das Feld im Lebensraum der Art? (Spawn; Wasser- und Hügeltiere bleiben auch dort) */
+export function habitatOk(w: World, kind: string, x: number, y: number, strict = true): boolean {
+  if (!inside(w, x, y)) return false;
+  const sp = speciesById(kind);
+  if (!sp) return false;
+  const i = idx(w, x, y);
+  switch (sp.habitat) {
+    case "wasser":
+      return nearWater(w, x, y, 3);
+    case "huegel":
+      return w.height[i]! >= 2;
+    case "wald":
+      return !strict || w.terrain[i] === T.FOREST;
+    case "wiese":
+      return !strict || w.terrain[i] === T.GRASS || w.terrain[i] === T.SAND;
+  }
+}
+
+function nearWater(w: World, x: number, y: number, r: number): boolean {
+  for (let dy = -r; dy <= r; dy++)
+    for (let dx = -r; dx <= r; dx++) {
+      if (Math.abs(dx) + Math.abs(dy) > r) continue;
+      const nx = x + dx;
+      const ny = y + dy;
+      if (inside(w, nx, ny) && w.terrain[idx(w, nx, ny)] === T.WATER) return true;
+    }
+  return false;
+}
+
+/** Nachtaktive Tiere sind am Morgen und tagsüber versteckt (WL-AK-19) */
+export function hiddenAt(kind: string, total: number): boolean {
+  const ph = phaseOf(total);
+  return speciesById(kind)?.time === "nacht" && (ph === "tag" || ph === "morgen");
+}
+
+function spawn(w: World, s: State, kind: string, far: (x: number, y: number) => boolean): boolean {
+  for (let tries = 0; tries < 400; tries++) {
+    const x = Math.floor(nextRand(s) * w.size);
+    const y = Math.floor(nextRand(s) * w.size);
+    if (!free(w, s, x, y) || !habitatOk(w, kind, x, y) || !far(x, y)) continue;
+    s.animals.push({ kind, x: x + 0.5, y: y + 0.5, tx: x + 0.5, ty: y + 0.5, fleeing: false });
+    return true;
+  }
+  return false;
+}
+
 export function createState(w: World): State {
   const s: State = {
     total: START_TIME,
@@ -91,24 +145,31 @@ export function createState(w: World): State {
     animals: [],
     players: {},
     rand: w.seed ^ 0x5eed,
+    day: -1,
   };
-  for (let k = 0; k < 32; k++) {
-    for (let tries = 0; tries < 50; tries++) {
-      const x = Math.floor(nextRand(s) * w.size);
-      const y = Math.floor(nextRand(s) * w.size);
-      if (Math.hypot(x - w.start.x, y - w.start.y) < 8 || !free(w, s, x, y)) continue;
-      s.animals.push({
-        kind: ANIMALS[k % ANIMALS.length]!,
-        x: x + 0.5,
-        y: y + 0.5,
-        tx: x + 0.5,
-        ty: y + 0.5,
-        fleeing: false,
-      });
-      break;
-    }
+  const awayFromStart = (x: number, y: number) => Math.hypot(x - w.start.x, y - w.start.y) >= 6;
+  for (const sp of SPECIES) {
+    if (sp.id === UNICORN) continue;
+    const n =
+      sp.rarity === "selten" ? 1 + Math.floor(nextRand(s) * COUNT.selten) : COUNT[sp.rarity];
+    for (let k = 0; k < n; k++)
+      if (!spawn(w, s, sp.id, awayFromStart) && k === 0) spawn(w, s, sp.id, () => true);
   }
+  newDay(w, s);
   return s;
+}
+
+/** Neuer Spieltag: altes Einhorn geht, mit 15 % Chance kommt ein neues (WL-AK-20) */
+export function newDay(w: World, s: State) {
+  s.day = Math.floor(s.total / DAY);
+  s.animals = s.animals.filter((a) => a.kind !== UNICORN);
+  if (nextRand(s) >= UNICORN_CHANCE) return;
+  const players = Object.values(s.players);
+  const far = (x: number, y: number) =>
+    w.terrain[idx(w, x, y)] === T.GRASS &&
+    players.every((p) => Math.hypot(p.x - x, p.y - y) > 25) &&
+    Math.hypot(x - w.start.x, y - w.start.y) > (players.length ? 0 : 25);
+  spawn(w, s, UNICORN, far);
 }
 
 export function addPlayer(w: World, s: State, id: string, name: string, color: string): Player {
@@ -161,9 +222,16 @@ function canStand(w: World, s: State, x: number, y: number): boolean {
 }
 
 /** Bewegt mit Gleiten an Hindernissen entlang. */
-function moveBody(w: World, s: State, b: { x: number; y: number }, dx: number, dy: number) {
-  if (canStand(w, s, b.x + dx, b.y)) b.x += dx;
-  if (canStand(w, s, b.x, b.y + dy)) b.y += dy;
+function moveBody(
+  w: World,
+  s: State,
+  b: { x: number; y: number },
+  dx: number,
+  dy: number,
+  ok: (x: number, y: number) => boolean = () => true,
+) {
+  if (canStand(w, s, b.x + dx, b.y) && ok(Math.floor(b.x + dx), Math.floor(b.y))) b.x += dx;
+  if (canStand(w, s, b.x, b.y + dy) && ok(Math.floor(b.x), Math.floor(b.y + dy))) b.y += dy;
 }
 
 /** Bildschirm-Eingabe (rechts/unten) → Kachel-Richtung (isometrisch). */
@@ -214,6 +282,7 @@ export function stepWorld(w: World, s: State, dt: number): GameEvent[] {
   const night = isNight(s.total);
   const allAsleep = players.length > 0 && players.every((p) => p.sleeping);
   s.total += dt * (allAsleep && night ? 4 : 1);
+  if (Math.floor(s.total / DAY) !== s.day) newDay(w, s);
   for (const [k, at] of Object.entries(s.stumps)) if (at <= s.total) delete s.stumps[Number(k)];
   for (const [k, at] of Object.entries(s.refill))
     if (at <= s.total) {
@@ -259,6 +328,9 @@ function nearFree(w: World, s: State, x: number, y: number) {
 function stepAnimals(w: World, s: State, dt: number, night: boolean) {
   const players = Object.values(s.players);
   for (const a of s.animals) {
+    if (hiddenAt(a.kind, s.total)) continue;
+    const sp = speciesById(a.kind);
+    const ok = (x: number, y: number) => habitatOk(w, a.kind, x, y, false);
     const near = players.find((p) => Math.hypot(p.x - a.x, p.y - a.y) < 4);
     if (near) {
       const d = Math.hypot(a.x - near.x, a.y - near.y) || 1;
@@ -275,7 +347,9 @@ function stepAnimals(w: World, s: State, dt: number, night: boolean) {
         a.ty = a.y;
       }
     }
-    if (night && !a.fleeing) continue;
+    // Tagaktive ruhen nachts, nachtaktive tagsüber (dann sind sie ohnehin versteckt)
+    const resting = sp?.time === "nacht" ? !night && phaseOf(s.total) !== "daemmerung" : night;
+    if (resting && !a.fleeing) continue;
     const dx = a.tx - a.x;
     const dy = a.ty - a.y;
     const d = Math.hypot(dx, dy);
@@ -283,12 +357,28 @@ function stepAnimals(w: World, s: State, dt: number, night: boolean) {
     const step = Math.min(d, (a.fleeing ? 4 : 1.2) * dt);
     const bx = a.x;
     const by = a.y;
-    moveBody(w, s, a, (dx / d) * step, (dy / d) * step);
+    moveBody(w, s, a, (dx / d) * step, (dy / d) * step, ok);
     if (a.x === bx && a.y === by) {
       a.tx = a.x;
       a.ty = a.y;
     }
   }
+}
+
+/** Tiere, die die Figur gerade sehen kann (WL-AK-21) */
+export function visibleAnimals(s: State, p: { x: number; y: number }): Animal[] {
+  const night = isNight(s.total) || phaseOf(s.total) === "daemmerung";
+  const burning = s.fires.filter((f) => f.until > s.total);
+  return s.animals.filter((a) => {
+    if (hiddenAt(a.kind, s.total)) return false;
+    const d = Math.hypot(a.x - p.x, a.y - p.y);
+    if (d <= (night ? SIGHT.night : SIGHT.day)) return true;
+    return (
+      night &&
+      d <= SIGHT.fire + 4 &&
+      burning.some((f) => Math.hypot(f.x + 0.5 - a.x, f.y + 0.5 - a.y) <= SIGHT.fire)
+    );
+  });
 }
 
 export type ActionKind = "chop" | "pick" | "sleep" | "wake" | "stoke";

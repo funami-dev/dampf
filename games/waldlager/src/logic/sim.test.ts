@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
-  ANIMALS,
   COSTS,
+  UNICORN_CHANCE,
+  hiddenAt,
+  habitatOk,
+  newDay,
+  visibleAnimals,
   FIRE,
   act,
   actionFor,
@@ -18,6 +22,8 @@ import {
 } from "./sim.ts";
 import { DAY } from "./daytime.ts";
 import { T, generateWorld, idx, type World } from "./world.ts";
+import { SPECIES, UNICORN, speciesById } from "./species.ts";
+import { discover, loadBook, saveBook, BOOK_KEY } from "./tierbuch.ts";
 
 function setup(seed = 3) {
   const w = generateWorld(seed);
@@ -251,21 +257,19 @@ describe("WL-AK-08: Schlafen beschleunigt die Nacht", () => {
 });
 
 describe("WL-AK-09: Tiere", () => {
-  it("alle Arten, nur auf begehbaren Feldern, fliehen vor Spielern", () => {
+  it("nur auf begehbaren Feldern, fliehen vor Spielern", () => {
     const { w, s, p } = setup();
-    expect(new Set(s.animals.map((a) => a.kind))).toEqual(new Set(ANIMALS));
     for (let i = 0; i < 600; i++) {
       stepWorld(w, s, 0.25);
       for (const a of s.animals) expect(free(w, s, Math.floor(a.x), Math.floor(a.y))).toBe(true);
     }
-    const a = s.animals[0]!;
+    s.total = 100 + Math.ceil(s.total / DAY) * DAY;
+    const a = s.animals.find((x) => !hiddenAt(x.kind, s.total))!;
     p.x = a.x + 1;
     p.y = a.y;
     const d0 = Math.hypot(a.x - p.x, a.y - p.y);
-    s.total = 100;
     for (let i = 0; i < 10; i++) stepWorld(w, s, 0.1);
     expect(a.fleeing || Math.hypot(a.x - p.x, a.y - p.y) > d0).toBe(true);
-    expect(s.animals.length).toBe(new Set(s.animals).size);
   });
   it("es gibt keine Aktion gegen Tiere", () => {
     const { w, s, p } = setup();
@@ -277,5 +281,125 @@ describe("WL-AK-09: Tiere", () => {
     expect(["chop", "pick", "sleep", "wake", "stoke", undefined]).toContain(kind);
     act(w, s, p);
     expect(s.animals.length).toBe(n);
+  });
+});
+
+describe("WL-AK-19: Tiere in der Welt", () => {
+  for (const seed of [1, 3, 42, 777]) {
+    it(`Seed ${seed}: jede Art (außer Einhorn) kommt vor, im richtigen Lebensraum`, () => {
+      const w = generateWorld(seed);
+      const s = createState(w);
+      const kinds = new Set(s.animals.map((a) => a.kind));
+      for (const sp of SPECIES) if (sp.id !== UNICORN) expect(kinds, sp.id).toContain(sp.id);
+      for (const a of s.animals) {
+        const x = Math.floor(a.x);
+        const y = Math.floor(a.y);
+        expect(free(w, s, x, y)).toBe(true);
+        expect(habitatOk(w, a.kind, x, y, false), a.kind).toBe(true);
+        if (speciesById(a.kind)!.habitat === "huegel")
+          expect(w.height[idx(w, x, y)]).toBeGreaterThanOrEqual(2);
+      }
+      // seltene Arten höchstens 2-mal, sehr seltene 1-mal
+      for (const sp of SPECIES) {
+        const n = s.animals.filter((a) => a.kind === sp.id).length;
+        if (sp.rarity === "selten") expect(n).toBeLessThanOrEqual(2);
+        if (sp.rarity === "sehr-selten") expect(n).toBeLessThanOrEqual(1);
+      }
+    });
+  }
+
+  it("Wasser- und Hügeltiere bleiben in ihrem Lebensraum, auch über viele Schritte", () => {
+    const { w, s } = setup(9);
+    for (let i = 0; i < 2000; i++) stepWorld(w, s, 0.25);
+    for (const a of s.animals)
+      expect(habitatOk(w, a.kind, Math.floor(a.x), Math.floor(a.y), false), a.kind).toBe(true);
+  });
+
+  it("nachtaktive Tiere sind tagsüber versteckt, in Dämmerung und Nacht sichtbar", () => {
+    expect(hiddenAt("igel", 100)).toBe(true);
+    expect(hiddenAt("igel", 10)).toBe(true);
+    expect(hiddenAt("igel", 380)).toBe(false);
+    expect(hiddenAt("igel", 500)).toBe(false);
+    expect(hiddenAt("reh", 100)).toBe(false);
+    expect(hiddenAt("reh", 500)).toBe(false);
+  });
+});
+
+describe("WL-AK-20: Einhorn", () => {
+  it("ca. 15 % der Tage, höchstens eins, weit weg, gleicher Seed → gleicher Verlauf", () => {
+    const run = (seed: number) => {
+      const w = generateWorld(seed);
+      const s = createState(w);
+      const p = addPlayer(w, s, "a", "Mia", "#e74c3c");
+      const days: boolean[] = [];
+      for (let d = 1; d <= 400; d++) {
+        s.total = d * DAY + 1;
+        newDay(w, s);
+        const u = s.animals.filter((a) => a.kind === UNICORN);
+        expect(u.length).toBeLessThanOrEqual(1);
+        if (u[0]) expect(Math.hypot(u[0].x - p.x, u[0].y - p.y)).toBeGreaterThan(25);
+        days.push(u.length === 1);
+      }
+      return days;
+    };
+    const a = run(11);
+    expect(run(11)).toEqual(a);
+    const share = a.filter(Boolean).length / a.length;
+    expect(share).toBeGreaterThan(UNICORN_CHANCE - 0.07);
+    expect(share).toBeLessThan(UNICORN_CHANCE + 0.07);
+  });
+
+  it("verschwindet am Tagesende", () => {
+    const { w, s } = setup(5);
+    let found = false;
+    for (let d = 1; d < 200 && !found; d++) {
+      s.total = d * DAY + 1;
+      newDay(w, s);
+      found = s.animals.some((a) => a.kind === UNICORN);
+    }
+    expect(found).toBe(true);
+    // Nächster Tag: das alte Einhorn ist weg (evtl. kommt ein neues woanders)
+    const old = s.animals.find((a) => a.kind === UNICORN)!;
+    s.total += DAY;
+    newDay(w, s);
+    expect(s.animals).not.toContain(old);
+  });
+});
+
+describe("WL-AK-21: Entdecken und Tierbuch", () => {
+  it("sichtbar: tags 5 Felder, nachts 3 Felder oder im Feuerschein; versteckte nie", () => {
+    const { s, p } = setup();
+    s.animals = [
+      { kind: "reh", x: p.x + 4.5, y: p.y, tx: 0, ty: 0, fleeing: false },
+      { kind: "igel", x: p.x - 2, y: p.y, tx: 0, ty: 0, fleeing: false },
+    ];
+    s.total = 100; // Tag
+    expect(visibleAnimals(s, p).map((a) => a.kind)).toEqual(["reh"]);
+    s.total = 500; // Nacht
+    expect(visibleAnimals(s, p).map((a) => a.kind)).toEqual(["igel"]);
+    s.fires.push({ id: 1, x: Math.floor(p.x + 4.5), y: Math.floor(p.y) + 1, until: 9999 });
+    expect(
+      visibleAnimals(s, p)
+        .map((a) => a.kind)
+        .sort(),
+    ).toEqual(["igel", "reh"]);
+  });
+
+  it("jede Art wird genau einmal eingetragen; Tierbuch übersteht Neuladen, kaputte Daten → leer", () => {
+    const data = new Map<string, string>();
+    const store = {
+      get: (k: string) => data.get(k) ?? null,
+      set: (k: string, v: string) => void data.set(k, v),
+    };
+    const book = loadBook(store);
+    expect(book.size).toBe(0);
+    expect(discover(book, ["reh", "reh", "igel", "drache"])).toEqual(["reh", "igel"]);
+    expect(discover(book, ["reh"])).toEqual([]);
+    saveBook(store, book);
+    expect([...loadBook(store)].sort()).toEqual(["igel", "reh"]);
+    for (const bad of ["{", '{"v":2,"seen":["reh"]}', '{"v":1,"seen":"reh"}'])
+      expect(loadBook({ get: () => bad, set: () => undefined }).size).toBe(0);
+    data.set(BOOK_KEY, '{"v":1,"seen":["reh",5,"drache"]}');
+    expect([...loadBook(store)]).toEqual(["reh"]);
   });
 });

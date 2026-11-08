@@ -103,3 +103,58 @@ describe("WL-AK-11: Raum-Server", () => {
     expect(route("/x")).toBeNull();
   });
 });
+
+describe("WL-AK-11: Liste offener Welten", () => {
+  it("nur Räume mit gemeldetem Namen, mit Gastgeber, Spielern und Anzahl", () => {
+    let t = 0;
+    const hub = new Hub(Math.random, () => t++);
+    const h1 = fake();
+    const c1 = hub.host(h1);
+    expect(hub.list()).toEqual([]);
+    hub.message(h1, JSON.stringify({ t: "meta", host: "Mia", players: ["Mia"] }));
+    const g = fake();
+    hub.join(g, c1);
+    hub.message(h1, JSON.stringify({ t: "meta", host: "Mia", players: ["Mia", "Ben"] }));
+    const h2 = fake();
+    const c2 = hub.host(h2);
+    hub.message(h2, JSON.stringify({ t: "meta", host: "Lea" }));
+    const l = hub.list();
+    expect(l.map((r) => r.code)).toEqual([c2, c1]);
+    expect(l[1]).toEqual({ code: c1, host: "Mia", players: ["Mia", "Ben"], count: 2, max: 6 });
+    expect(l[0]!.players).toEqual(["Lea"]);
+    // meta wird nicht an Gäste weitergeleitet
+    expect(g.got.some((m) => m.t === "msg")).toBe(false);
+    hub.disconnect(h1);
+    expect(hub.list().map((r) => r.code)).toEqual([c2]);
+  });
+
+  it("Namen werden gekürzt und bereinigt, leere Namen ignoriert", () => {
+    const hub = new Hub();
+    const h = fake();
+    hub.host(h);
+    hub.message(h, JSON.stringify({ t: "meta", host: "   " }));
+    expect(hub.list()).toEqual([]);
+    hub.message(
+      h,
+      JSON.stringify({ t: "meta", host: "Sehr\u0000Langer​Name123", players: [1, "", "Ben\n"] }),
+    );
+    const r = hub.list()[0]!;
+    expect(r.host).toBe("SehrLangerNa");
+    expect(r.host.length).toBeLessThanOrEqual(12);
+    expect(r.players).toEqual(["Ben"]);
+  });
+
+  it("höchstens 50 Einträge", () => {
+    const hub = new Hub();
+    for (let i = 0; i < 60; i++) {
+      const h = fake();
+      hub.host(h);
+      hub.message(h, JSON.stringify({ t: "meta", host: `S${i}` }));
+    }
+    expect(hub.list()).toHaveLength(50);
+  });
+
+  it("Pfad /rooms", () => {
+    expect(route("/rooms")).toEqual({ kind: "list" });
+  });
+});

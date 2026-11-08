@@ -3,7 +3,7 @@
  * Gästen weiter, setzt Grenzen durch. Keine Spiellogik, keine gespeicherten Daten.
  * Läuft gleich in Node (lokal/Tests) und in Cloudflare (Durable Object).
  */
-export const LIMITS = { peers: 6, perSecond: 20, bytes: 16 * 1024 };
+export const LIMITS = { peers: 6, perSecond: 20, bytes: 16 * 1024, listed: 50, name: 12 };
 export const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 
 export interface Conn {
@@ -24,6 +24,37 @@ interface Room {
   host: Peer;
   guests: Map<string, Peer>;
   nextId: number;
+  created: number;
+  /** vom Gastgeber gemeldet: sein Name und die Namen aller Spieler */
+  meta: { host: string; players: string[] } | null;
+}
+
+/** Eintrag in der Liste offener Welten */
+export interface RoomInfo {
+  code: string;
+  host: string;
+  players: string[];
+  count: number;
+  max: number;
+}
+
+/** Namen kürzen und Steuerzeichen entfernen */
+export function cleanName(x: unknown): string {
+  if (typeof x !== "string") return "";
+  // Steuer- und unsichtbare Zeichen entfernen (Codepunkte statt Regex-Bereich, wegen Lint)
+  const bad = (c: number) =>
+    c < 0x20 ||
+    (c >= 0x7f && c <= 0x9f) ||
+    (c >= 0x200b && c <= 0x200f) ||
+    (c >= 0x2028 && c <= 0x202e);
+  return [
+    ...[...x]
+      .filter((ch) => !bad(ch.codePointAt(0)!))
+      .join("")
+      .trim(),
+  ]
+    .slice(0, LIMITS.name)
+    .join("");
 }
 
 export type ServerMsg =
@@ -63,7 +94,14 @@ export class Hub {
   /** Gastgeber eröffnet einen Raum */
   host(conn: Conn): string {
     const code = this.newCode();
-    const room: Room = { code, guests: new Map(), nextId: 1, host: undefined as unknown as Peer };
+    const room: Room = {
+      code,
+      guests: new Map(),
+      nextId: 1,
+      host: undefined as unknown as Peer,
+      created: this.now(),
+      meta: null,
+    };
     const peer: Peer = { conn, id: "host", room, windowStart: this.now(), count: 0 };
     room.host = peer;
     this.rooms.set(code, room);
@@ -117,11 +155,35 @@ export class Hub {
     }
     const room = p.room;
     if (p.id === "host") {
-      const m = data as { t?: string; to?: string; d?: unknown };
+      const m = data as { t?: string; to?: string; d?: unknown; host?: unknown; players?: unknown };
+      if (m?.t === "meta") {
+        const host = cleanName(m.host);
+        if (!host) return;
+        const players = Array.isArray(m.players)
+          ? m.players.map(cleanName).filter(Boolean).slice(0, LIMITS.peers)
+          : [];
+        room.meta = { host, players: players.length ? players : [host] };
+        return;
+      }
       if (m?.t !== "to") return;
       const targets = m.to ? [room.guests.get(m.to)].filter(Boolean) : [...room.guests.values()];
       for (const g of targets) send(g!.conn, { t: "msg", d: m.d });
     } else send(room.host.conn, { t: "from", id: p.id, d: data });
+  }
+
+  /** Liste offener Welten (nur mit gemeldetem Namen), neueste zuerst */
+  list(): RoomInfo[] {
+    return [...this.rooms.values()]
+      .filter((r) => r.meta)
+      .sort((a, b) => b.created - a.created)
+      .slice(0, LIMITS.listed)
+      .map((r) => ({
+        code: r.code,
+        host: r.meta!.host,
+        players: r.meta!.players,
+        count: r.guests.size + 1,
+        max: LIMITS.peers,
+      }));
   }
 
   disconnect(conn: Conn) {
@@ -145,8 +207,18 @@ export class Hub {
 }
 
 /** Pfad → Rolle: /host oder /join/ABCD */
-export function route(path: string): { kind: "host" } | { kind: "join"; code: string } | null {
+export function route(
+  path: string,
+): { kind: "host" } | { kind: "join"; code: string } | { kind: "list" } | null {
   if (path === "/host") return { kind: "host" };
+  if (path === "/rooms") return { kind: "list" };
   const m = /^\/join\/([A-Za-z]{4})$/.exec(path);
   return m ? { kind: "join", code: m[1]! } : null;
 }
+
+export const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET",
+  "Content-Type": "application/json; charset=utf-8",
+  "Cache-Control": "no-store",
+};
