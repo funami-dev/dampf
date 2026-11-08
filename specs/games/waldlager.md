@@ -1,6 +1,6 @@
 # Spiel: Waldlager
 
-**Status:** Umgesetzt
+**Status:** Entwurf (Änderung: Insel 512 × 512, Fallschirm, Flugzeug, Funkgerät, Hai; WL-AK-01, 23 bis 27)
 **Slug:** `waldlager`
 **Name:** „Waldlager“ (Arbeitstitel)
 
@@ -14,22 +14,67 @@ eigene Welt kommen**, sobald der Online-Server bereitsteht.
 Kindgerecht: **Tiere werden nie verletzt oder getötet.** Es gibt keine Waffen und keine Aktion
 gegen Tiere. Rehe und andere Waldtiere laufen nur herum. Man kann nicht sterben.
 
-## Welt
+## Welt: eine Insel
 
-- **Isometrische Kachelkarte** (2D, Phaser), ca. 96 × 96 Felder, aus einem **Seed** deterministisch
-  erzeugt. Alle Grafiken werden per Code gezeichnet, es gibt keine Bilddateien.
-- **Gelände:**
+- **Isometrische Kachelkarte** (2D, Phaser), **512 × 512 Felder**, aus einem **Seed**
+  deterministisch erzeugt. Alle Grafiken werden per Code gezeichnet, es gibt keine Bilddateien.
+- **Immer eine Insel:**
+  - Rundum liegt **Meer**: mindestens 12 Felder breit an jedem Rand, danach erst Land.
+  - Das Meer ist nicht begehbar und nicht zu überqueren. Es gibt dort keine Furten und keine
+    Brücken.
+  - Die Küste ist unregelmäßig, mit Buchten und Landzungen.
+  - Mindestens 35 % der Karte sind Land.
+- **Gelände auf der Insel:**
+  - Strand (Sand) an der Küste.
   - Wiese und Waldboden.
   - **Wald** mit vielen Bäumen.
-  - **Flüsse**, die nicht begehbar sind. Es gibt **Furten bzw. Brücken**, mindestens zwei je Fluss.
+  - **Flüsse**, 3 bis 5, laufen vom Inland zum Meer. Sie sind nicht begehbar; jeder Fluss hat
+    mindestens zwei **Furten oder Brücken**.
   - **Hügel** in 2–3 Höhenstufen, als erhöhte Kacheln mit Kanten dargestellt und begehbar.
-  - **Wenige Berge** (Fels): nicht begehbar und nicht abbaubar.
-- **Startpunkt:** eine Lichtung nahe einem Fluss, mit Beerensträuchern in der Nähe.
-- **Erreichbarkeit:** Alle begehbaren Felder hängen zusammen.
+  - **Einige Berge** (Fels): nicht begehbar und nicht abbaubar.
+- **Meer und Fluss sehen verschieden aus:** Das Meer ist dunkler und hat Wellen am Strand.
+- **Erreichbarkeit:** Alle begehbaren Felder der Insel hängen zusammen.
+- **Leistung:** Das Erzeugen der Welt dauert auf einem normalen Rechner höchstens 3 Sekunden.
+  Während dessen steht „Die Insel entsteht …“. Gezeichnet wird nur der sichtbare Ausschnitt.
+- **Alte Spielstände:** Spielstände mit der alten, kleinen Welt (96 × 96) werden nicht
+  übernommen. Man startet in einer neuen Insel-Welt. Das Tierbuch bleibt erhalten.
+
+## Fallschirm-Landung
+
+- **Beim Start einer Welt** und beim Beitreten als Gast schwebt man mit einem **Fallschirm**
+  auf die Insel. Das dauert etwa 3 Sekunden; der Schirm ist in der eigenen Farbe. Danach geht
+  es los.
+- **Landeplatz:**
+  - Für jede Spielerin und jeden Spieler ein **eigener, zufälliger** Ort.
+  - Immer auf freiem, begehbarem Land, nicht im Wasser und nicht in Bäumen.
+  - Mindestens 120 Felder vom Flugzeug entfernt.
+  - Beerensträucher sind immer in der Nähe (höchstens 6 Felder).
+- Der Landeplatz ist das „Zuhause“, solange man kein Zelt hat: Dort wacht man auf, wenn man vor
+  Müdigkeit eingeschlafen ist.
+
+## Das abgestürzte Flugzeug und das Funkgerät
+
+- Irgendwo auf der Insel liegt **ein abgestürztes Flugzeug**:
+  - ein großes Wrack aus Rumpf, abgebrochenem Flügel und Trümmerteilen über mehrere Felder,
+  - auf ebenem Land, ohne Logo oder echte Fluggesellschaft.
+  - Die Wrack-Felder sind nicht begehbar, man kann aber direkt daneben stehen.
+- **Funkgerät finden:**
+  - Wer bis auf 2 Felder an das Wrack herankommt, findet ein **Funkgerät**.
+  - Es erscheint einmal die Meldung „📻 Du hast im Flugzeug ein Funkgerät gefunden!“.
+  - Jede Spielerin und jeder Spieler findet ein eigenes.
+- **Das Funkgerät** gilt **pro Welt**: In einer neuen Welt und als Gast in einer fremden Welt muss
+  man das Flugzeug erst finden. Nach Neuladen bleibt es erhalten.
+- **Funk** (Button „Funk“ bzw. Taste F, nur mit Funkgerät sichtbar):
+  - **Liste** aller Spieler in der Welt mit Namen und **Koordinaten**, z. B.
+    „Ben · X 213 · Y 377“; die eigene Zeile ist hervorgehoben.
+  - **Kleine Inselkarte** mit Küste, farbigen Punkten für alle Spieler und einem Symbol für das
+    Flugzeug.
+  - Koordinaten sind die Feldnummern: X und Y von 0 bis 511.
+- Ohne Funkgerät gibt es keine Koordinaten und keine Karte. Man muss sich am Gelände orientieren.
 
 ## Tiere entdecken (nie verletzbar)
 
-Waldlager ist auch ein **Entdeckerspiel**: Im Wald leben **31 Tierarten**. Wer ein Tier zum ersten
+Waldlager ist auch ein **Entdeckerspiel**: Auf der Insel leben **32 Tierarten**. Wer ein Tier zum ersten
 Mal sieht, trägt es ins **Tierbuch** ein.
 
 - Es gibt keine Aktion, die ein Tier verletzt, fängt, füttert oder tötet. Tiere blockieren den Weg
@@ -46,6 +91,11 @@ Mal sieht, trägt es ins **Tierbuch** ein.
     versteckt und nicht zu sehen.
 - **Seltenheit:** häufig, selten, sehr selten. Seltene Arten gibt es nur ein- bis zweimal in einer
   Welt. Jede Art außer dem Einhorn kommt in jeder Welt mindestens einmal vor.
+- **Der Hai** (sehr selten):
+  - Ab und zu sieht man im Meer nahe der Küste eine **Haifischflosse**, die ihre Kreise zieht.
+  - Ein Hai bleibt immer im Meer und kommt nie an Land; es gibt höchstens zwei auf der Karte.
+  - Die Flosse ist nur etwa ein Drittel der Zeit über Wasser zu sehen, sonst taucht der Hai ab.
+  - Er zählt für das Tierbuch, wenn man die Flosse sieht.
 - **Das Einhorn** (sehr selten, magisch):
   - Zu Beginn jedes Spieltags gibt es mit 15 % Chance für diesen Tag ein Einhorn.
   - Es erscheint auf einer Lichtung weit weg von allen Spielern und schimmert leicht.
@@ -86,6 +136,7 @@ Mal sieht, trägt es ins **Tierbuch** ein.
 | Ringelnatter    | Wasser     | Tag   | selten      |
 | Hirschkäfer     | Wald       | Nacht | selten      |
 | Zitronenfalter  | Wiese      | Tag   | häufig      |
+| Hai             | Meer       | Tag   | sehr selten |
 | Einhorn         | Wiese      | Tag   | sehr selten |
 
 Zu jeder Art gibt es im Tierbuch einen kurzen, kindgerechten Satz (z. B. „Der Igel rollt sich
@@ -99,7 +150,7 @@ bei Gefahr zu einer stacheligen Kugel zusammen.“).
 - **Beim ersten Mal** je Art erscheint die Meldung „Neu entdeckt: Igel!“, beim Einhorn
   „✨ Ein Einhorn! ✨“. Danach kommt für diese Art keine Meldung mehr.
 - **Tierbuch** (Menüpunkt „Tierbuch“, Taste T):
-  - Liste aller 31 Arten mit Zähler, z. B. „12 / 31 entdeckt“.
+  - Liste aller 32 Arten mit Zähler, z. B. „12 / 32 entdeckt“.
   - **Entdeckte Arten:** Bild, Name, Lebensraum, Tageszeit und der kurze Satz.
   - **Unentdeckte Arten:** dunkle Silhouette und „???“, dazu nur ein Hinweis auf Lebensraum und
     Tageszeit (z. B. „Nachts im Wald“). Beim Einhorn steht nur „Sehr selten …“.
@@ -252,15 +303,20 @@ Figur steht.
 
 ## Akzeptanzkriterien
 
-- **WL-AK-01** Welt: Gleicher Seed ergibt die gleiche Welt. Es gibt Wiese, Wald, Fluss mit
-  Furt/Brücke, Hügel und Berge. Alle begehbaren Felder hängen zusammen. Der Start liegt auf einer
-  Lichtung mit Beeren in Reichweite.
+- **WL-AK-01** Welt:
+  - Gleicher Seed ergibt die gleiche Welt, und sie ist 512 × 512 Felder groß.
+  - Es ist eine Insel: Alle Randfelder in 12 Feldern Breite sind Meer, ohne Furt oder Brücke,
+    und mindestens 35 % der Karte sind Land.
+  - Es gibt Strand, Wiese, Wald, 3–5 Flüsse mit je mindestens zwei Furten oder Brücken, Hügel
+    und Berge.
+  - Alle begehbaren Felder hängen zusammen.
+  - Das Erzeugen dauert höchstens 3 Sekunden.
 - **WL-AK-02** Kollision: Wasser (außer Furt/Brücke), Berge, Bäume und Zelte sind nicht begehbar.
   Man gleitet an Hindernissen entlang.
 - **WL-AK-03** Leisten: Hunger, Müdigkeit und Fitness sinken und steigen wie in der Tabelle und
   bleiben zwischen 0 und 100.
 - **WL-AK-04** Kein Sterben: Hunger 0 macht langsam. Müdigkeit 0 lässt einschlafen, man wacht am
-  Zelt bzw. Startpunkt mit 50 % auf, und das Inventar bleibt. Fitness 0 sperrt Rennen und Hacken
+  Zelt bzw. Landeplatz mit 50 % auf, und das Inventar bleibt. Fitness 0 sperrt Rennen und Hacken
   bis 20 %.
 - **WL-AK-05** Holz: Ein Baum gibt 3 Holz, wird zum Stumpf und wächst nach einem Spieltag nach.
   Das Inventar hat maximal 30 Holz.
@@ -302,7 +358,7 @@ Figur steht.
 - **WL-AK-17** Fokusverlust pausiert: Allein hält die Zeit an, online bleibt die eigene Figur
   stehen.
 
-- **WL-AK-18** Katalog: mindestens 29 Arten plus Einhorn. Jede Art hat Name, Lebensraum,
+- **WL-AK-18** Katalog: mindestens 30 Arten plus Einhorn (darunter der Hai). Jede Art hat Name, Lebensraum,
   Tageszeit, Seltenheit und einen Satz, und es gibt eine per Code gezeichnete Grafik.
 - **WL-AK-19** Tiere in der Welt:
   - Jede Art außer dem Einhorn kommt mindestens einmal vor.
@@ -319,9 +375,34 @@ Figur steht.
   - Versteckte Tiere zählen nicht.
   - Das Tierbuch übersteht Neuladen und „Neue Welt“, kaputte Daten ergeben ein leeres Tierbuch.
 - **WL-AK-22** (E2E) In die Nähe eines Tieres gehen ergibt die Meldung „Neu entdeckt: …“. Das
-  Tierbuch zeigt dann „1 / 31 entdeckt“ (bzw. die passende Zahl) mit Name und Satz; unentdeckte
+  Tierbuch zeigt dann „1 / 32 entdeckt“ (bzw. die passende Zahl) mit Name und Satz; unentdeckte
   Arten zeigen „???“. Nach Neuladen ist der Eintrag noch da. Auf Mobile ist das Tierbuch
   bedienbar.
+
+- **WL-AK-23** Fallschirm:
+  - Jede Spielerin und jeder Spieler, auch ein Gast, landet auf einem eigenen, zufälligen,
+    freien Landfeld mit mindestens 120 Feldern Abstand zum Flugzeug und Beeren in höchstens
+    6 Feldern.
+  - Die Landung dauert etwa 3 Sekunden mit sichtbarem Schirm; währenddessen kann man nicht
+    laufen.
+- **WL-AK-24** Flugzeug:
+  - Es gibt genau ein Wrack auf ebenem Land; es ist erreichbar, und seine Felder sind nicht
+    begehbar.
+  - Wer bis auf 2 Felder herankommt, erhält das Funkgerät mit genau einer Meldung.
+  - Das Funkgerät gilt pro Welt und übersteht Neuladen.
+- **WL-AK-25** Funk:
+  - Ohne Funkgerät gibt es keinen Funk-Button.
+  - Mit Funkgerät zeigt „Funk“ (Taste F) alle Spieler der Welt mit Namen und Koordinaten (X/Y
+    0–511) und eine Inselkarte mit Punkten für die Spieler und das Flugzeug.
+- **WL-AK-26** Hai:
+  - Haie sind nur im Meer, verlassen es nie, und es gibt höchstens zwei.
+  - Die Flosse ist zeitweise abgetaucht und dann weder sichtbar noch entdeckbar.
+  - Der Hai steht im Tierbuch (32 Arten).
+- **WL-AK-27** (E2E) Neue Welt:
+  - Fallschirm-Landung, danach laufen.
+  - Mit Test-Hilfe zum Flugzeug: Meldung und Funk-Button erscheinen.
+  - Der Funk zeigt den eigenen Namen mit Koordinaten und die Karte.
+  - Auf Mobile ist „Funk“ sichtbar und bedienbar.
 
 ## Nicht-Ziele (MVP)
 
