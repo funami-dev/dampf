@@ -226,3 +226,19 @@
   border-color: #fff;
   box-shadow: 0 0 0 2px #000;
 }
+.wl-room {
+  background: rgba(246, 195, 68, 0.92);
+  color: #1f3b17;
+  border-radius: 10px;
+  padding: 5px 9px;
+  font-weight: 700;
+  font-size: 13px;
+}
+.wl-room[hidden] {
+  display: none;
+}
+.wl-code {
+  font-size: 22px;
+  letter-spacing: 3px;
+  color: #f6c344;
+}

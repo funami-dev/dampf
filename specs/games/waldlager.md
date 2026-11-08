@@ -1,6 +1,6 @@
 # Spiel: Waldlager
 
-**Status:** Abgenommen
+**Status:** Umgesetzt
 **Slug:** `waldlager`
 **Name:** „Waldlager“ (Arbeitstitel)
 

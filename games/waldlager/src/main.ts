@@ -23,6 +23,7 @@ import {
   type State,
 } from "./logic/sim.ts";
 import { browserStore, load, save } from "./logic/save.ts";
+import { applySnap, parseGuest, parseHost, toSnap, type GuestMsg } from "./logic/protocol.ts";
 import { generateWorld, idx, inside, type World } from "./logic/world.ts";
 import { HS, isoX, isoY, tileX, tileY } from "./render/iso.ts";
 import { addPlayerTex, addTent, addTextures, tileKey } from "./render/textures.ts";
@@ -30,7 +31,12 @@ import { debugEnabled } from "./debug.ts";
 
 const store = browserStore();
 /** Online-Server (WL-AK-16): ohne Adresse nur Einzelspieler */
-const RELAY_URL = (import.meta.env.VITE_RELAY_URL as string | undefined) ?? "";
+const params = new URLSearchParams(location.search);
+const RELAY_URL = (
+  debugEnabled && params.has("relay")
+    ? params.get("relay")!
+    : ((import.meta.env.VITE_RELAY_URL as string | undefined) ?? "")
+).replace(/\/$/, "");
 
 // --- Seite und Bedienelemente ------------------------------------------
 const stage = mountGameShell({ title: manifest.title });
@@ -48,6 +54,7 @@ layer.innerHTML = `
     </div>
     <div class="wl-side">
       <div class="wl-clock" data-h="clock">07:00</div>
+      <div class="wl-room" data-h="room" hidden></div>
       <button class="wl-btn" type="button" data-b="menu">Menü</button>
     </div>
   </div>
@@ -86,6 +93,12 @@ let toastUntil = 0;
 let saveTimer = 0;
 let chopTimer = 0;
 let bushAt: Map<number, number> | null = null;
+// Mehrspieler
+let mode: "solo" | "host" | "guest" = "solo";
+let ws: WebSocket | null = null;
+let roomCode: string | null = null;
+let netTimer = 0;
+let gotSnap = false;
 const me = (): Player => state.players[meId]!;
 
 let profile = { name: "", color: COLORS[1] as string };
@@ -148,10 +161,13 @@ stickEl.addEventListener("pointercancel", releaseStick);
 const canPlay = () => screen === "play" && !paused && !overlay;
 function doAct() {
   if (!canPlay()) return;
+  if (mode === "guest") return guestSend({ v: 1, k: "act" });
   toast(act(world, state, me()), 1.2);
 }
 function doEat() {
-  if (canPlay()) toast(eat(me()), 1.5);
+  if (!canPlay()) return;
+  if (mode === "guest") return guestSend({ v: 1, k: "eat" });
+  toast(eat(me()), 1.5);
 }
 function toggleBuild(on = !building) {
   if (!canPlay() && on) return;
@@ -160,6 +176,11 @@ function toggleBuild(on = !building) {
 }
 function doBuild(kind: "tent" | "fire") {
   if (!canPlay()) return;
+  if (mode === "guest") {
+    guestSend({ v: 1, k: "build", kind });
+    toggleBuild(false);
+    return;
+  }
   if (kind === "tent") addTent(game.textures, me().color);
   const msg = build(world, state, me(), kind);
   toast(msg);
@@ -211,7 +232,7 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("pagehide", () => persist());
 
 function persist() {
-  if (state && world) save(store, world.seed, state, meId);
+  if (state && world && mode !== "guest") save(store, world.seed, state, meId);
 }
 
 // --- Menüs --------------------------------------------------------------
@@ -280,22 +301,280 @@ function openStart() {
   };
   el.querySelector('[data-a="play"]')!.addEventListener("click", () => start(false));
   el.querySelector('[data-a="new"]')?.addEventListener("click", () => start(true));
+  el.querySelector('[data-a="join"]')?.addEventListener("click", () => {
+    profile.name = input.value.trim().slice(0, 12) || "Wanderer";
+    openJoin();
+  });
+}
+
+function openJoin() {
+  const el = panel(`<h2>Einer Welt beitreten</h2>
+    <p>Gib den Raum-Code ein, den dir der Gastgeber zeigt.</p>
+    <label class="wl-field">Raum-Code <input type="text" maxlength="4" autocomplete="off" autocapitalize="characters" placeholder="ABCD" /></label>
+    <button class="wl-btn primary" type="button" data-a="go">Beitreten</button>
+    <button class="wl-btn" type="button" data-a="back">Zurück</button>`);
+  const input = el.querySelector("input")!;
+  const go = () => {
+    const code = input.value.trim().toUpperCase();
+    if (/^[A-Z]{4}$/.test(code)) joinWorld(code);
+    else toast("Der Code hat 4 Buchstaben.");
+  };
+  el.querySelector('[data-a="go"]')!.addEventListener("click", go);
+  input.addEventListener("keydown", (e) => e.key === "Enter" && go());
+  el.querySelector('[data-a="back"]')!.addEventListener("click", () => openStart());
 }
 
 function openMenu() {
   if (screen !== "play") return;
   toggleBuild(false);
+  const online =
+    mode === "host"
+      ? `<p>Raum-Code: <b class="wl-code">${roomCode ?? "…"}</b> – andere können damit beitreten.</p>
+         <button class="wl-btn" type="button" data-a="close">Welt schließen</button>`
+      : mode === "guest"
+        ? `<button class="wl-btn" type="button" data-a="leave">Welt verlassen</button>`
+        : RELAY_URL
+          ? `<button class="wl-btn" type="button" data-a="open">Welt öffnen</button>`
+          : "";
   const el = panel(`<h2>Menü</h2>
     <button class="wl-btn primary" type="button" data-a="resume">Weiterspielen</button>
-    <button class="wl-btn" type="button" data-a="new">Neue Welt</button>
+    ${online}
+    ${mode === "solo" ? `<button class="wl-btn" type="button" data-a="new">Neue Welt</button>` : ""}
     <p><small>Laufen: WASD/Pfeile oder Joystick · Rennen: Umschalt · Aktion: E · Essen: Q · Bauen: B (1 Zelt, 2 Feuer)</small></p>`);
   el.querySelector('[data-a="resume"]')!.addEventListener("click", () => resume());
-  el.querySelector('[data-a="new"]')!.addEventListener("click", () => {
+  el.querySelector('[data-a="new"]')?.addEventListener("click", () => {
     newWorld();
     persist();
     resume();
     toast("Eine neue Welt!");
   });
+  el.querySelector('[data-a="open"]')?.addEventListener("click", () => {
+    resume();
+    openWorld();
+  });
+  el.querySelector('[data-a="close"]')?.addEventListener("click", () => {
+    closeWorld();
+    resume();
+    toast("Deine Welt ist wieder nur für dich.");
+  });
+  el.querySelector('[data-a="leave"]')?.addEventListener("click", () => leaveGuest(null));
+}
+
+// --- Mehrspieler über WebSocket (Raum-Server) ----------------------------
+const OFFLINE = "Online gerade nicht möglich – spiel einfach allein weiter.";
+
+function connect(
+  path: string,
+  onMsg: (m: Record<string, unknown>) => void,
+  onEnd: (opened: boolean) => void,
+) {
+  let opened = false;
+  let sock: WebSocket;
+  try {
+    sock = new WebSocket(RELAY_URL + path);
+  } catch {
+    onEnd(false);
+    return null;
+  }
+  sock.addEventListener("open", () => (opened = true));
+  sock.addEventListener("message", (e) => {
+    try {
+      onMsg(JSON.parse(String(e.data)) as Record<string, unknown>);
+    } catch {
+      /* ungültig: ignorieren */
+    }
+  });
+  let ended = false;
+  const end = () => {
+    if (ended) return;
+    ended = true;
+    if (ws === sock) ws = null;
+    onEnd(opened);
+  };
+  sock.addEventListener("close", end);
+  sock.addEventListener("error", end);
+  return sock;
+}
+
+function hostSend(to: string | undefined, d: unknown) {
+  if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ t: "to", to, d }));
+}
+function guestSend(d: GuestMsg) {
+  if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(d));
+}
+const guests = () => Object.keys(state.players).filter((id) => id !== meId);
+function dropGuests() {
+  for (const id of guests()) delete state.players[id];
+}
+
+/** Gastgeber: eigene Welt für andere öffnen */
+function openWorld() {
+  if (!RELAY_URL || mode !== "solo") return;
+  mode = "host";
+  roomCode = null;
+  ws = connect(
+    "/host",
+    (m) => {
+      if (m.t === "room" && typeof m.code === "string") {
+        roomCode = m.code;
+        toast(`Deine Welt ist offen! Raum-Code: ${m.code}`, 6);
+      } else if (m.t === "from" && typeof m.id === "string") onGuestMsg(m.id, m.d);
+      else if (m.t === "peer-leave" && typeof m.id === "string") {
+        const p = state.players[m.id];
+        if (p) toast(`${p.name} ist gegangen.`);
+        delete state.players[m.id];
+      }
+    },
+    (opened) => {
+      if (mode !== "host") return;
+      mode = "solo";
+      roomCode = null;
+      dropGuests();
+      toast(
+        opened ? "Verbindung zum Raum-Server verloren – du spielst allein weiter." : OFFLINE,
+        4,
+      );
+    },
+  );
+}
+
+function closeWorld() {
+  if (mode !== "host") return;
+  mode = "solo";
+  roomCode = null;
+  const s = ws;
+  ws = null;
+  s?.close();
+  dropGuests();
+}
+
+function onGuestMsg(id: string, d: unknown) {
+  const g = parseGuest(d);
+  if (!g) return;
+  if (g.k === "hello") {
+    if (!state.players[id]) {
+      if (Object.keys(state.players).length >= 6) return;
+      addPlayer(world, state, id, g.name, g.color);
+      toast(`${state.players[id]!.name} ist in deine Welt gekommen!`, 3);
+    }
+    hostSend(id, { v: 1, k: "welcome", seed: world.seed });
+    hostSend(id, toSnap(state));
+    return;
+  }
+  const p = state.players[id];
+  if (!p) return;
+  const say = (text: string | null) => text && hostSend(id, { v: 1, k: "toast", text });
+  switch (g.k) {
+    case "move":
+      if (inside(world, Math.floor(g.x), Math.floor(g.y))) {
+        p.x = g.x;
+        p.y = g.y;
+      }
+      p.fx = g.fx;
+      p.fy = g.fy;
+      p.moving = g.moving;
+      p.running = g.running && !p.exhausted;
+      if (g.moving) {
+        p.sleeping = false;
+        p.chop = null;
+      }
+      break;
+    case "act":
+      say(act(world, state, p));
+      break;
+    case "eat":
+      say(eat(p));
+      break;
+    case "build":
+      say(build(world, state, p, g.kind));
+      break;
+  }
+}
+
+/** Gast: einer fremden Welt beitreten */
+function joinWorld(code: string) {
+  if (!RELAY_URL) return;
+  persist();
+  let myId = "";
+  mode = "guest";
+  gotSnap = false;
+  ws = connect(
+    `/join/${code}`,
+    (m) => {
+      if (m.t === "joined" && typeof m.id === "string") {
+        myId = m.id;
+        guestSend({ v: 1, k: "hello", name: profile.name || "Wanderer", color: profile.color });
+      } else if (m.t === "error") {
+        leaveGuest(
+          m.reason === "full"
+            ? "Diese Welt ist schon voll (6 Spieler)."
+            : "Diesen Raum gibt es nicht – prüf den Code.",
+        );
+      } else if (m.t === "closed") leaveGuest("Der Gastgeber hat die Welt verlassen.");
+      else if (m.t === "msg") {
+        const h = parseHost(m.d);
+        if (!h) return;
+        if (h.k === "welcome") {
+          world = generateWorld(h.seed);
+          state = createState(world);
+          state.players = {};
+          meId = myId;
+          addPlayer(world, state, meId, profile.name, profile.color);
+          bushAt = null;
+          resume();
+          toast("Du bist in der Welt angekommen!", 3);
+        } else if (h.k === "snap" && meId === myId && world.seed) {
+          applySnap(state, h, meId, !gotSnap);
+          if (!state.players[meId]) addPlayer(world, state, meId, profile.name, profile.color);
+          gotSnap = true;
+        } else if (h.k === "toast") toast(h.text, 1.5);
+      }
+    },
+    (opened) => {
+      if (mode === "guest") leaveGuest(opened ? "Der Gastgeber hat die Welt verlassen." : OFFLINE);
+    },
+  );
+}
+
+function leaveGuest(reason: string | null) {
+  if (mode !== "guest") return;
+  mode = "solo";
+  const s = ws;
+  ws = null;
+  s?.close();
+  const own = load(store);
+  if (own) {
+    world = own.world;
+    state = own.state;
+    meId = own.me;
+    bushAt = null;
+  } else newWorld();
+  if (!reason) return openStart();
+  screen = "menu";
+  panel(`<h2>Welt verlassen</h2><p role="alert">${reason}</p>
+    <button class="wl-btn primary" type="button">Zum Menü</button>`)
+    .querySelector("button")!
+    .addEventListener("click", () => openStart());
+}
+
+function netTick(dt: number) {
+  netTimer += dt;
+  if (netTimer < 0.1) return;
+  netTimer = 0;
+  if (mode === "host" && guests().length) hostSend(undefined, toSnap(state));
+  if (mode === "guest" && gotSnap) {
+    const p = me();
+    guestSend({
+      v: 1,
+      k: "move",
+      x: p.x,
+      y: p.y,
+      fx: p.fx,
+      fy: p.fy,
+      moving: p.moving,
+      running: p.running,
+    });
+  }
 }
 
 // --- Darstellung (Phaser) ----------------------------------------------
@@ -531,23 +810,33 @@ function tick(dt: number) {
     const run = k("ShiftLeft", "ShiftRight") || Math.hypot(stick.x, stick.y) > 0.95;
     movePlayer(world, state, me(), { x: ix, y: iy, run }, dt);
     // Aktionstaste gedrückt halten: weiter hacken
-    if (k("KeyE", "Space") && me().chop) {
+    if (k("KeyE", "Space") && actionFor(world, state, me())?.kind === "chop") {
       chopTimer -= dt;
       if (chopTimer <= 0) {
         doAct();
         chopTimer = 0.45;
       }
     }
-    for (const ev of stepWorld(world, state, dt)) if (ev.player === meId) toast(ev.text, 3);
+    if (mode !== "guest") for (const ev of stepWorld(world, state, dt)) onEvent(ev);
     saveTimer += dt;
     if (saveTimer > 5) {
       saveTimer = 0;
       persist();
     }
-  } else if (screen === "play") movePlayer(world, state, me(), { x: 0, y: 0, run: false }, dt);
+  } else if (screen === "play") {
+    movePlayer(world, state, me(), { x: 0, y: 0, run: false }, dt);
+    // Mit anderen läuft die Welt weiter (WL-AK-17)
+    if (mode === "host" && guests().length)
+      for (const ev of stepWorld(world, state, dt)) onEvent(ev);
+  }
+  if (mode !== "solo") netTick(dt);
   updateHud();
 }
 const now = () => performance.now();
+function onEvent(ev: { player: string; text: string }) {
+  if (ev.player === meId) toast(ev.text, 3);
+  else if (mode === "host") hostSend(ev.player, { v: 1, k: "toast", text: ev.text });
+}
 
 function updateHud() {
   const p = me();
@@ -562,6 +851,12 @@ function updateHud() {
   hud("berries").textContent = `🫐 ${p.berries}`;
   hud("clock").textContent =
     `${phaseOf(state.total) === "nacht" ? "🌙" : "☀️"} ${clockOf(state.total)}`;
+  const room = hud("room");
+  room.hidden = mode === "solo";
+  room.textContent =
+    mode === "host"
+      ? `Raum ${roomCode ?? "…"} · ${Object.keys(state.players).length}`
+      : `Gast · ${Object.keys(state.players).length}`;
   const a = screen === "play" ? actionFor(world, state, p) : null;
   actBtn.textContent = a ? a.label : "Aktion";
   actBtn.disabled = !a;
@@ -613,6 +908,15 @@ if (debugEnabled) {
         animals: state.animals.length,
         building,
         fireBurn: FIRE.burn,
+        mode,
+        roomCode,
+        players: Object.values(state.players).map((q) => ({
+          id: q.id,
+          name: q.name,
+          x: q.x,
+          y: q.y,
+        })),
+        stumpList: Object.keys(state.stumps).map(Number),
       };
     },
     teleport: (x, y, fx, fy) => {

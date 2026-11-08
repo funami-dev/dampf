@@ -21,6 +21,11 @@ interface WlState {
   stumps: number;
   animals: number;
   building: boolean;
+  mode: string;
+  roomCode: string | null;
+  players: { id: string; name: string; x: number; y: number }[];
+  stumpList: number[];
+  seed: number;
 }
 interface Hooks {
   state(): WlState;
@@ -42,8 +47,9 @@ const hooks = <R>(page: Page, fn: (h: Hooks) => R) =>
   page.evaluate(`(${fn.toString()})(window.__dampf)`) as Promise<R>;
 const state = (page: Page) => hooks(page, (h) => h.state());
 
-async function open(page: Page) {
-  await page.goto("/games/waldlager/?e2e");
+/** relay: Adresse des Raum-Servers; leer = nur Einzelspieler (WL-AK-16) */
+async function open(page: Page, relay = "") {
+  await page.goto(`/games/waldlager/?e2e&relay=${encodeURIComponent(relay)}`);
   await expect.poll(() => page.evaluate(() => !!window.__dampf), { timeout: 60_000 }).toBe(true);
 }
 
@@ -219,4 +225,74 @@ test("WL-AK-17: Fokusverlust pausiert, allein hält die Zeit an", async ({ page 
   expect((await state(page)).total).toBe(t);
   await page.getByRole("button", { name: "Weiterspielen" }).click();
   await expect.poll(async () => (await state(page)).total).toBeGreaterThan(t);
+});
+
+test("WL-AK-15: zwei Browser – Welt öffnen, beitreten, gemeinsam hacken, Gastgeber geht", async ({
+  page,
+  browser,
+}) => {
+  test.skip(isMobile(page), "nur Desktop");
+  test.skip(!!process.env.DAMPF_URL, "braucht den lokalen Raum-Server");
+  test.setTimeout(180_000);
+  const relay = "ws://localhost:8787";
+  const errors = trackErrors(page);
+  await open(page, relay);
+  await page.getByLabel("Dein Name").fill("Mia");
+  await page.getByRole("button", { name: "Los geht's" }).click();
+  await page.getByRole("button", { name: "Menü" }).click();
+  await page.getByRole("button", { name: "Welt öffnen" }).click();
+  await expect
+    .poll(async () => (await state(page)).roomCode, { timeout: 30_000 })
+    .toMatch(/^[A-Z]{4}$/);
+  const code = (await state(page)).roomCode!;
+  await expect(page.getByText(`Raum ${code}`)).toBeVisible();
+
+  const ctx2 = await browser.newContext();
+  const guest = await ctx2.newPage();
+  const errors2 = trackErrors(guest);
+  await open(guest, relay);
+  await guest.getByLabel("Dein Name").fill("Ben");
+  await guest.getByRole("button", { name: "Farbe #f1c40f" }).click();
+  await guest.getByRole("button", { name: "Einer Welt beitreten" }).click();
+  await guest.getByLabel("Raum-Code").fill(code.toLowerCase());
+  await guest.getByRole("button", { name: "Beitreten" }).click();
+  await expect.poll(async () => (await state(guest)).mode, { timeout: 30_000 }).toBe("guest");
+  // Beide sehen sich
+  await expect.poll(async () => (await state(page)).players.length, { timeout: 30_000 }).toBe(2);
+  await expect.poll(async () => (await state(guest)).players.length, { timeout: 30_000 }).toBe(2);
+  expect((await state(page)).players.map((p) => p.name).sort()).toEqual(["Ben", "Mia"]);
+  expect((await state(guest)).seed).toBe((await state(page)).seed);
+
+  // Gastgeber fällt einen Baum → beim Gast ist er ein Stumpf
+  await hooks(page, (h) => h.setNeeds({ fitness: 100 }));
+  await chopTree(page);
+  const stump = (await state(page)).stumpList[0]!;
+  await expect
+    .poll(async () => (await state(guest)).stumpList, { timeout: 15_000 })
+    .toContain(stump);
+
+  // Gast hackt selbst: Holz kommt vom Gastgeber zurück
+  const t = (await hooks(guest, (h) => h.nearestTree()))!;
+  await guest.evaluate(
+    (t) =>
+      (window.__dampf as Hooks).teleport(t[2]! + 0.5, t[3]! + 0.5, t[0]! - t[2]!, t[1]! - t[3]!),
+    t,
+  );
+  await guest.waitForTimeout(400);
+  for (let i = 0; i < 4; i++) {
+    await guest.keyboard.press("e");
+    await guest.waitForTimeout(150);
+  }
+  await expect.poll(async () => (await state(guest)).me.wood, { timeout: 15_000 }).toBe(3);
+  await expect.poll(async () => (await state(page)).stumpList.length, { timeout: 15_000 }).toBe(2);
+
+  // Gastgeber geht → Hinweis beim Gast
+  await page.close();
+  await expect(guest.getByRole("alert")).toContainText("Der Gastgeber hat die Welt verlassen", {
+    timeout: 15_000,
+  });
+  await expect.poll(async () => (await state(guest)).mode).toBe("solo");
+  await expectNoErrors(errors);
+  await expectNoErrors(errors2);
+  await ctx2.close();
 });

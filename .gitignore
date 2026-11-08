@@ -9,3 +9,6 @@ playwright-report
 *.log
 .idea
 .vscode
+
+# Cloudflare (Raum-Server)
+.wrangler/
