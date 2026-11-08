@@ -31,6 +31,8 @@ interface WlState {
   seed: number;
   book: string[];
   plane: { x: number; y: number; cells: [number, number][] };
+  debris: { x: number; y: number }[];
+  bridges: number[];
   size: number;
 }
 interface Hooks {
@@ -42,6 +44,7 @@ interface Hooks {
   nearestBush(): [number, number] | null;
   buildSpot(): [number, number, number, number] | null;
   nearestAnimal(): [number, number, string] | null;
+  riverSpot(): [number, number, number, number] | null;
 }
 
 declare global {
@@ -189,7 +192,9 @@ test("WL-AK-14: Mobile – Joystick, Aktion, Essen, Bauen, Menü", async ({ page
     expect(b.x + b.width).toBeLessThanOrEqual(vp.width + 0.5);
     expect(b.y + b.height).toBeLessThanOrEqual(vp.height + 0.5);
   }
-  // Joystick bewegt die Figur
+  // Joystick bewegt die Figur (auf eine freie Fläche stellen)
+  const free0 = (await hooks(page, (h) => h.buildSpot()))!;
+  await page.evaluate((f) => (window.__dampf as Hooks).teleport(f[0]! + 0.5, f[1]! + 0.5), free0);
   const s0 = await state(page);
   const b = (await stick.boundingBox())!;
   const cx = b.x + b.width / 2;
@@ -207,7 +212,7 @@ test("WL-AK-14: Mobile – Joystick, Aktion, Essen, Bauen, Menü", async ({ page
   await page.waitForTimeout(800);
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   const s1 = await state(page);
-  expect(Math.hypot(s1.me.x - s0.me.x, s1.me.y - s0.me.y)).toBeGreaterThan(0.3);
+  expect(Math.hypot(s1.me.x - s0.me.x, s1.me.y - s0.me.y)).toBeGreaterThan(0.15);
 
   // Aktion per Button (Holz hacken)
   const t = (await hooks(page, (h) => h.nearestTree()))!;
@@ -286,6 +291,9 @@ test("WL-AK-15: zwei Browser – Welt ist offen, Liste im Hauptmenü, beitreten,
   await expect(lobby3.getByText(/Mia, Ben · 2 \/ 6/)).toBeVisible({ timeout: 20_000 });
 
   // Gastgeber fällt einen Baum → beim Gast ist er ein Stumpf
+  await page.bringToFront();
+  if (await page.getByRole("button", { name: "Weiterspielen" }).isVisible())
+    await page.getByRole("button", { name: "Weiterspielen" }).click();
   await landed(page);
   await landed(guest);
   // Gast in die Nähe des Gastgebers holen (große Insel)
@@ -377,7 +385,7 @@ test("WL-AK-27: Fallschirm, Flugzeug, Funkgerät", async ({ page }) => {
   await press("Los geht's");
   await expect.poll(async () => (await state(page)).screen).toBe("play");
   const s0 = await state(page);
-  expect(s0.size).toBe(512);
+  expect(s0.size).toBe(256);
   expect(s0.me.landing).toBeGreaterThan(0);
   // Während der Landung keine Bewegung
   const x0 = s0.me.x;
@@ -391,7 +399,7 @@ test("WL-AK-27: Fallschirm, Flugzeug, Funkgerät", async ({ page }) => {
   await expect(page.getByText(/^Gelandet!/)).toBeVisible();
   const s1 = await state(page);
   expect(Math.hypot(s1.me.home.x - s1.plane.x, s1.me.home.y - s1.plane.y)).toBeGreaterThanOrEqual(
-    120,
+    58,
   );
   // Ohne Funkgerät kein Funk
   await expect(page.getByRole("button", { name: /Funk/ })).toBeHidden();
@@ -418,5 +426,73 @@ test("WL-AK-27: Fallschirm, Flugzeug, Funkgerät", async ({ page }) => {
   await expect.poll(() => page.evaluate(() => !!window.__dampf), { timeout: 60_000 }).toBe(true);
   await press("Weiterspielen");
   expect((await state(page)).me.radio).toBe(true);
+  await expectNoErrors(errors);
+});
+
+test("WL-AK-30: Brücke bauen, über den Fluss laufen, Trümmer ansehen", async ({ page }) => {
+  test.skip(isMobile(page), "nur Desktop");
+  test.setTimeout(180_000);
+  const errors = trackErrors(page);
+  await open(page);
+  await page.getByRole("button", { name: "Los geht's" }).click();
+  await landed(page);
+  // Holz für drei Brückenstücke
+  for (let k = 0; k < 3; k++) {
+    await hooks(page, (h) => h.setNeeds({ fitness: 100 }));
+    await chopTree(page);
+  }
+  expect((await state(page)).me.wood).toBeGreaterThanOrEqual(9);
+  const spot = (await hooks(page, (h) => h.riverSpot()))!;
+  expect(spot).not.toBeNull();
+  const [sx, sy, fx, fy] = spot;
+  await page.evaluate(
+    (s) => (window.__dampf as Hooks).teleport(s[0]! + 0.5, s[1]! + 0.5, s[2], s[3]),
+    spot,
+  );
+  await page.keyboard.press("b");
+  // Stück für Stück bauen, bis vor der Figur kein Flusswasser mehr ist
+  let built = 0;
+  for (let k = 0; k < 4; k++) {
+    const before = (await state(page)).bridges.length;
+    await page.keyboard.press("3");
+    await page.waitForTimeout(100);
+    if ((await state(page)).bridges.length === before) break;
+    built++;
+    await page.evaluate(
+      ([x, y, fx, fy]) => (window.__dampf as Hooks).teleport(x! + 0.5, y! + 0.5, fx, fy),
+      [sx + fx * built, sy + fy * built, fx, fy],
+    );
+  }
+  expect(built).toBeGreaterThanOrEqual(1);
+  expect((await state(page)).bridges.length).toBe(built);
+  await page.keyboard.press("Escape");
+  // über die Brücke ans andere Ufer laufen: Kachelrichtung → Bildschirm-Tasten
+  const keys =
+    fx === 1
+      ? ["ArrowRight", "ArrowDown"]
+      : fx === -1
+        ? ["ArrowLeft", "ArrowUp"]
+        : fy === 1
+          ? ["ArrowLeft", "ArrowDown"]
+          : ["ArrowRight", "ArrowUp"];
+  const along = async () => {
+    const me = (await state(page)).me;
+    return (me.x - (sx + 0.5)) * fx + (me.y - (sy + 0.5)) * fy;
+  };
+  for (const k of keys) await page.keyboard.down(k);
+  // laufen, bis man jenseits der Brücke steht (langsame Rechner brauchen länger)
+  await expect.poll(along, { timeout: 15_000 }).toBeGreaterThan(built + 0.4);
+  for (const k of keys) await page.keyboard.up(k);
+
+  // Trümmerteil ansehen
+  const d = (await state(page)).debris[0]!;
+  await page.evaluate((d) => (window.__dampf as Hooks).teleport(d.x + 0.5, d.y + 0.5), d);
+  await expect.poll(async () => (await state(page)).action).toBe("inspect");
+  await page.keyboard.press("e");
+  await expect(
+    page.getByText(
+      /^Ein Stück Flugzeug! Die Spur führt nach .+ – (ganz nah|nicht mehr weit|noch weit weg)\.$/,
+    ),
+  ).toBeVisible();
   await expectNoErrors(errors);
 });

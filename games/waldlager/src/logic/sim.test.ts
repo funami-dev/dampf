@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   COSTS,
+  canBridgeAt,
   UNICORN_CHANCE,
   hiddenAt,
   habitatOk,
@@ -48,7 +49,7 @@ function nextToTree(w: World, s: State, p: Player) {
 }
 
 describe("WL-AK-02: Kollision", () => {
-  it("Wasser, Fels und Bäume sind nicht begehbar, Furten schon", () => {
+  it("Wasser, Fels und Bäume sind nicht begehbar, gebaute Brücken schon", () => {
     const { w, s } = setup();
     const find = (t: number) => {
       const i = w.terrain.findIndex((x) => x === t);
@@ -56,7 +57,9 @@ describe("WL-AK-02: Kollision", () => {
     };
     expect(free(w, s, ...find(T.WATER))).toBe(false);
     expect(free(w, s, ...find(T.ROCK))).toBe(false);
-    expect(free(w, s, ...find(T.FORD))).toBe(true);
+    const [wx, wy] = find(T.WATER);
+    s.bridges[idx(w, wx, wy)] = 1;
+    expect(free(w, s, wx, wy)).toBe(true);
     const t = w.trees[0]!;
     expect(free(w, s, t.x, t.y)).toBe(false);
   });
@@ -419,7 +422,10 @@ describe("WL-AK-23: Fallschirm", () => {
         free(w, s, p.home.x, p.home.y) ||
           Object.values(s.players).some((q) => q !== p && Math.floor(q.x) === p.home.x),
       ).toBe(true);
-      expect(Math.hypot(p.home.x - w.plane.x, p.home.y - w.plane.y)).toBeGreaterThanOrEqual(120);
+      expect(Math.hypot(p.home.x - w.plane.x, p.home.y - w.plane.y)).toBeGreaterThanOrEqual(58);
+      let trees = 0;
+      for (const t of w.trees) if (Math.hypot(t.x - p.home.x, t.y - p.home.y) <= 15) trees++;
+      expect(trees).toBeGreaterThanOrEqual(10);
       expect(w.bushes.some((b) => Math.hypot(b.x - p.home.x, b.y - p.home.y) <= 6)).toBe(true);
       expect(p.landing).toBe(3);
     }
@@ -470,5 +476,54 @@ describe("WL-AK-26: Hai", () => {
     expect(visibleAnimals(s, viewer)).toContain(a);
     s.total = 60;
     expect(visibleAnimals(s, viewer)).not.toContain(a);
+  });
+});
+
+describe("WL-AK-28: Brücke bauen", () => {
+  it("3 Holz je Feld, nur auf Flusswasser vor der Figur, dann begehbar", () => {
+    const { w, s, p } = setup(2);
+    p.landing = 0;
+    // Ufer-Feld mit Fluss rechts davon (Kachel +x)
+    let spot: [number, number] | null = null;
+    for (let i = 0; i < w.terrain.length && !spot; i++) {
+      if (w.terrain[i] !== T.WATER) continue;
+      const x = i % w.size;
+      const y = Math.floor(i / w.size);
+      if (free(w, s, x - 1, y) && w.terrain[idx(w, x - 1, y)] !== T.WATER) spot = [x - 1, y];
+    }
+    const [bx, by] = spot!;
+    p.x = bx + 0.5;
+    p.y = by + 0.5;
+    p.fx = 1;
+    p.fy = 0;
+    p.wood = 2;
+    expect(build(w, s, p, "bridge")).toMatch(/3 Holz/);
+    p.wood = 9;
+    expect(free(w, s, bx + 1, by)).toBe(false);
+    expect(build(w, s, p, "bridge")).toBe("Ein Stück Brücke steht!");
+    expect(p.wood).toBe(6);
+    expect(free(w, s, bx + 1, by)).toBe(true);
+    // gleiche Stelle nochmal: geht nicht
+    expect(build(w, s, p, "bridge")).toMatch(/Flusswasser/);
+    // nicht auf Land, nicht aufs Meer
+    p.fx = -1;
+    expect(build(w, s, p, "bridge")).toMatch(/Flusswasser/);
+    const sea = w.terrain.findIndex((t) => t === T.SEA);
+    expect(canBridgeAt(w, s, sea % w.size, Math.floor(sea / w.size))).toBe(false);
+    expect(p.wood).toBe(6);
+    // auf der Brücke kein Zelt
+    expect(canBuildAt(w, s, bx + 1, by)).toBe(false);
+  });
+});
+
+describe("WL-AK-29: Trümmer ansehen", () => {
+  it("am Trümmerteil gibt die Aktion den Hinweis", () => {
+    const { w, s, p } = setup(2);
+    const d = w.debris[0]!;
+    p.x = d.x + 0.5;
+    p.y = d.y + 0.5;
+    s.berries = s.berries.map(() => 0); // kein Strauch dazwischen
+    expect(actionFor(w, s, p)?.kind).toBe("inspect");
+    expect(act(w, s, p)).toMatch(/^Ein Stück Flugzeug! Die Spur führt nach /);
   });
 });

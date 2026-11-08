@@ -15,6 +15,7 @@ describe("WL-AK-12: Protokoll", () => {
       kind: "fire",
     });
     expect(parseGuest({ v: 1, k: "act" })).toEqual({ v: 1, k: "act" });
+    expect(parseGuest({ v: 1, k: "build", kind: "bridge" })?.k).toBe("build");
   });
 
   it("falsche Version oder ungültiger Inhalt → null, kein Absturz", () => {
@@ -84,7 +85,8 @@ describe("WL-AK-12: Protokoll", () => {
     host.stumps[tree] = 999;
     host.berries[bush] = 1;
     host.fires.push({ id: 1, x: Math.floor(g.x) + 2, y: Math.floor(g.y), until: 200 });
-    const far = w.trees.findIndex((t) => Math.hypot(t.x - g.x, t.y - g.y) > 100);
+    const far = w.trees.findIndex((t) => Math.hypot(t.x - g.x, t.y - g.y) > 60);
+    host.bridges[1234] = 1;
     host.stumps[far] = 999;
     const snap = parseHost(JSON.parse(JSON.stringify(toSnap(w, host, [g]))));
     expect(snap?.k).toBe("snap");
@@ -97,6 +99,7 @@ describe("WL-AK-12: Protokoll", () => {
     expect(guest.stumps[far]).toBeUndefined();
     expect(guest.berries[bush]).toBe(1);
     expect(guest.fires).toHaveLength(1);
+    expect(guest.bridges[1234]).toBe(1);
     // nur Tiere in der Nähe des Gastes
     expect(guest.animals.length).toBeLessThan(host.animals.length);
     for (const a of guest.animals) expect(Math.abs(a.x - g.x)).toBeLessThanOrEqual(30);

@@ -86,6 +86,7 @@ export function load(store: Store): { world: World; state: State; me: string } |
       refill: s.refill ?? {},
       fires: s.fires,
       nextFire: num(s.nextFire) ? s.nextFire : 1,
+      bridges: s.bridges && typeof s.bridges === "object" ? s.bridges : {},
       players: {},
     };
     const home = { x: Math.floor(me.x), y: Math.floor(me.y) };

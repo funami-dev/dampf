@@ -14,7 +14,7 @@ export const T = {
 } as const;
 export type Terrain = (typeof T)[keyof typeof T];
 
-export const SIZE = 512;
+export const SIZE = 256;
 /** Meer-Rand an jeder Seite (WL-AK-01) */
 export const SEA_MARGIN = 12;
 
@@ -33,6 +33,12 @@ export interface Plane {
   cells: [number, number][];
 }
 
+/** Trümmerteil der Absturzspur */
+export interface Debris {
+  x: number;
+  y: number;
+}
+
 export interface World {
   seed: number;
   size: number;
@@ -46,6 +52,7 @@ export interface World {
   start: { x: number; y: number };
   plane: Plane;
   rivers: number;
+  debris: Debris[];
 }
 
 export const idx = (w: { size: number }, x: number, y: number) => y * w.size + x;
@@ -190,23 +197,6 @@ function carveRiver(w: World, rand: Rand, cx: number, cy: number): boolean {
       w.terrain[i] = T.WATER;
       w.height[i] = 0;
     }
-  const crossings = Math.max(2, Math.floor(path.length / 45));
-  for (let k = 0; k < crossings; k++) {
-    const [px, py] = path[Math.floor(((k + 0.5) / crossings) * path.length)]!;
-    for (const [dx, dy] of [
-      [0, 0],
-      [1, 0],
-      [0, 1],
-      [1, 1],
-      [-1, 0],
-      [0, -1],
-      [2, 0],
-      [0, 2],
-    ] as const) {
-      const i = idx(w, px + dx, py + dy);
-      if (w.terrain[i] === T.WATER) w.terrain[i] = k % 2 === 0 ? T.FORD : T.BRIDGE;
-    }
-  }
   return true;
 }
 
@@ -219,8 +209,11 @@ function removeTree(w: World, ti: number) {
 
 const open = (w: World, i: number) => terrainWalkable(w.terrain[i]!) && !w.treeAt[i];
 
-/** Felder ohne Baum, die zu Fuß erreichbar sind (ab Inselmitte). */
-export function reachable(w: World): Uint8Array {
+/**
+ * Felder ohne Baum, die zu Fuß erreichbar sind (ab Inselmitte).
+ * Mit `bridged` zählen Flussfelder als überbrückbar (man kann dort Brücken bauen).
+ */
+export function reachable(w: World, bridged = false): Uint8Array {
   const seen = new Uint8Array(w.size * w.size);
   const s = idx(w, w.start.x, w.start.y);
   const q = [s];
@@ -234,7 +227,7 @@ export function reachable(w: World): Uint8Array {
       const ny = y + dy;
       if (!inside(w, nx, ny)) continue;
       const j = ny * w.size + nx;
-      if (!seen[j] && open(w, j)) {
+      if (!seen[j] && (open(w, j) || (bridged && w.terrain[j] === T.WATER))) {
         seen[j] = 1;
         q.push(j);
       }
@@ -249,11 +242,12 @@ export function reachable(w: World): Uint8Array {
  */
 function connectAll(w: World) {
   const n = w.size * w.size;
-  const reached = reachable(w);
+  const reached = reachable(w, true);
   const cost = (i: number) => {
     const t = w.terrain[i]!;
     if (t === T.SEA || t === T.WRECK) return -1;
-    if (t === T.WATER || t === T.ROCK) return 8;
+    if (t === T.WATER) return 1; // Fluss: dort kann man Brücken bauen
+    if (t === T.ROCK) return 8;
     return w.treeAt[i] ? 2 : 1;
   };
   const dist = new Int32Array(n).fill(0x7fffffff);
@@ -289,10 +283,9 @@ function connectAll(w: World) {
   }
   const done = reached;
   for (let i = 0; i < n; i++) {
-    if (done[i] || !open(w, i) || prev[i] === -1) continue;
+    if (done[i] || !(open(w, i) || w.terrain[i] === T.WATER) || prev[i] === -1) continue;
     for (let j = i; j !== -1 && !done[j]; j = prev[j]!) {
       done[j] = 1;
-      if (w.terrain[j] === T.WATER) w.terrain[j] = T.FORD;
       if (w.terrain[j] === T.ROCK) w.terrain[j] = T.GRASS;
       const ti = w.treeAt[j]!;
       if (ti) removeTree(w, ti - 1);
@@ -341,6 +334,71 @@ function placePlane(w: World, rand: Rand): Plane {
   return { x: px, y: py, cells };
 }
 
+/** Trümmerspur: 15–25 Teile, 10–90 Felder vom Wrack, nahe am Wrack dichter (WL-AK-29) */
+export const DEBRIS = { min: 15, max: 25, near: 10, far: 90 };
+function placeDebris(w: World, rand: Rand): Debris[] {
+  const n = DEBRIS.min + Math.floor(rand() * (DEBRIS.max - DEBRIS.min + 1));
+  const dir = rand() * Math.PI * 2;
+  const out: Debris[] = [];
+  const used = new Set<number>();
+  const ok = (x: number, y: number) => {
+    if (!inside(w, x, y)) return false;
+    const i = idx(w, x, y);
+    const t = w.terrain[i]!;
+    return (t === T.GRASS || t === T.FOREST || t === T.SAND) && !w.treeAt[i] && !used.has(i);
+  };
+  for (let k = 0; k < n * 8 && out.length < n; k++) {
+    const f = Math.pow(rand(), 1.6); // mehr Teile nahe am Wrack
+    const d = DEBRIS.near + f * (DEBRIS.far - DEBRIS.near);
+    const a = dir + (rand() - 0.5) * 0.7;
+    const x = Math.round(w.plane.x + Math.cos(a) * d);
+    const y = Math.round(w.plane.y + Math.sin(a) * d);
+    // nächstes passendes Feld in der Nähe suchen
+    let placed = false;
+    for (let r = 0; r <= 3 && !placed; r++)
+      for (let dy = -r; dy <= r && !placed; dy++)
+        for (let dx = -r; dx <= r && !placed; dx++) {
+          const px = x + dx;
+          const py = y + dy;
+          const dd = Math.hypot(px - w.plane.x, py - w.plane.y);
+          if (dd < DEBRIS.near || dd > DEBRIS.far || !ok(px, py)) continue;
+          used.add(idx(w, px, py));
+          out.push({ x: px, y: py });
+          placed = true;
+        }
+  }
+  return out;
+}
+
+const DIRECTIONS = [
+  "Osten",
+  "Nordosten",
+  "Norden",
+  "Nordwesten",
+  "Westen",
+  "Südwesten",
+  "Süden",
+  "Südosten",
+];
+
+/** Hinweis eines Trümmerteils: Himmelsrichtung (Norden = oben am Bildschirm) und Entfernung */
+export function debrisHint(
+  w: World,
+  x: number,
+  y: number,
+): { dir: string; dist: string; text: string } {
+  const dx = w.plane.x - x;
+  const dy = w.plane.y - y;
+  // isometrisch: Bildschirm-rechts = (dx − dy), Bildschirm-unten = (dx + dy) / 2
+  const sx = dx - dy;
+  const sy = (dx + dy) / 2;
+  const ang = (Math.atan2(-sy, sx) * 180) / Math.PI;
+  const dir = DIRECTIONS[((Math.round(ang / 45) % 8) + 8) % 8]!;
+  const d = Math.hypot(dx, dy);
+  const dist = d < 20 ? "ganz nah" : d < 50 ? "nicht mehr weit" : "noch weit weg";
+  return { dir, dist, text: `Ein Stück Flugzeug! Die Spur führt nach ${dir} – ${dist}.` };
+}
+
 /** Weltgenerator: gleicher Seed → gleiche Insel (WL-AK-01). */
 export function generateWorld(seed: number, size = SIZE): World {
   const rand = rng(seed);
@@ -356,6 +414,7 @@ export function generateWorld(seed: number, size = SIZE): World {
     start: { x: size >> 1, y: size >> 1 },
     plane: { x: 0, y: 0, cells: [] },
     rivers: 0,
+    debris: [],
   };
   const coast = valueNoise(rand, size, size / 6);
   const coastFine = valueNoise(rand, size, size / 20);
@@ -397,7 +456,7 @@ export function generateWorld(seed: number, size = SIZE): World {
     if (found) break;
   }
   // Berge: einige Felshaufen
-  const mountains = 4 + Math.floor(rand() * 3);
+  const mountains = 2 + Math.floor(rand() * 3);
   for (let m = 0; m < mountains; m++) {
     const cx = SEA_MARGIN + 20 + Math.floor(rand() * (size - 2 * SEA_MARGIN - 40));
     const cy = SEA_MARGIN + 20 + Math.floor(rand() * (size - 2 * SEA_MARGIN - 40));
@@ -471,6 +530,7 @@ export function generateWorld(seed: number, size = SIZE): World {
       w.bushes.push({ x: i % size, y: (i / size) | 0 });
   }
   connectAll(w);
+  w.debris = placeDebris(w, rand);
   w.trees = w.trees.filter((t) => t.x >= 0);
   w.treeAt.fill(0);
   w.trees.forEach((t, k) => (w.treeAt[idx(w, t.x, t.y)] = k + 1));

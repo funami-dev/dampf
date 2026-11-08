@@ -21,6 +21,7 @@ describe("WL-AK-10: Speichern", () => {
     s.stumps[3] = 1800;
     s.berries[0] = 1;
     s.fires.push({ id: 1, x: 9, y: 9, until: 1300 });
+    s.bridges[777] = 1;
     addPlayer(w, s, "gast", "Gast", "#e74c3c");
     const store = memory();
     save(store, 77, s, "me");
@@ -40,6 +41,7 @@ describe("WL-AK-10: Speichern", () => {
     expect(r.state.stumps[3]).toBe(1800);
     expect(r.state.berries[0]).toBe(1);
     expect(r.state.fires).toHaveLength(1);
+    expect(r.state.bridges[777]).toBe(1);
     expect(Object.keys(r.state.players)).toEqual(["me"]);
   });
 
