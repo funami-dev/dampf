@@ -1,6 +1,6 @@
 # Spiel: Waldlager
 
-**Status:** Umgesetzt
+**Status:** Entwurf (Änderung: Entdecken und Tierbuch, WL-AK-18 bis 22)
 **Slug:** `waldlager`
 **Name:** „Waldlager“ (Arbeitstitel)
 
@@ -27,12 +27,85 @@ gegen Tiere. Rehe und andere Waldtiere laufen nur herum. Man kann nicht sterben.
 - **Startpunkt:** eine Lichtung nahe einem Fluss, mit Beerensträuchern in der Nähe.
 - **Erreichbarkeit:** Alle begehbaren Felder hängen zusammen.
 
-## Tiere (nur Deko, nie verletzbar)
+## Tiere entdecken (nie verletzbar)
 
-- **Rehe**, **Hasen**, **Füchse** und **Eichhörnchen** wandern zufällig umher. Kommt man zu nah,
-  laufen sie davon. Nachts ruhen sie.
-- Es gibt keine Aktion, die ein Tier verletzt, fängt oder tötet. Tiere blockieren den Weg nicht
-  dauerhaft.
+Waldlager ist auch ein **Entdeckerspiel**: Im Wald leben **31 Tierarten**. Wer ein Tier zum ersten
+Mal sieht, trägt es ins **Tierbuch** ein.
+
+- Es gibt keine Aktion, die ein Tier verletzt, fängt, füttert oder tötet. Tiere blockieren den Weg
+  nicht dauerhaft. Kommt man zu nah, laufen sie davon (Vögel, Fledermäuse und Schmetterlinge
+  flattern weg).
+- **Lebensraum:** Jede Art lebt dort, wo sie hingehört:
+  - **Wald:** zwischen Bäumen.
+  - **Wiese:** auf offenen Flächen.
+  - **Wasser:** am Ufer, höchstens 3 Felder vom Fluss entfernt.
+  - **Hügel:** auf Höhe 2 oder 3, auch am Fels.
+- **Tageszeit:**
+  - **Tagaktive** Tiere ruhen nachts, man sieht sie aber.
+  - **Nachtaktive** Tiere sind nur in der Dämmerung und nachts unterwegs; tagsüber sind sie
+    versteckt und nicht zu sehen.
+- **Seltenheit:** häufig, selten, sehr selten. Seltene Arten gibt es nur ein- bis zweimal in einer
+  Welt. Jede Art außer dem Einhorn kommt in jeder Welt mindestens einmal vor.
+- **Das Einhorn** (sehr selten, magisch):
+  - Zu Beginn jedes Spieltags gibt es mit 15 % Chance für diesen Tag ein Einhorn.
+  - Es erscheint auf einer Lichtung weit weg von allen Spielern und schimmert leicht.
+  - Es gibt höchstens eins gleichzeitig, und am Ende des Tages verschwindet es wieder.
+- Alle Tiere werden als Pixel-Grafiken per Code gezeichnet, keine Bilddateien.
+
+### Arten
+
+| Art             | Lebensraum | Zeit  | Seltenheit  |
+| --------------- | ---------- | ----- | ----------- |
+| Reh             | Wald       | Tag   | häufig      |
+| Hase            | Wiese      | Tag   | häufig      |
+| Fuchs           | Wald       | Tag   | häufig      |
+| Eichhörnchen    | Wald       | Tag   | häufig      |
+| Rothirsch       | Wald       | Tag   | selten      |
+| Wildschwein     | Wald       | Tag   | häufig      |
+| Dachs           | Wald       | Nacht | häufig      |
+| Igel            | Wiese      | Nacht | häufig      |
+| Baummarder      | Wald       | Nacht | selten      |
+| Mauswiesel      | Wiese      | Tag   | häufig      |
+| Biber           | Wasser     | Tag   | selten      |
+| Fischotter      | Wasser     | Tag   | selten      |
+| Wolf            | Wald       | Nacht | selten      |
+| Luchs           | Hügel      | Nacht | sehr selten |
+| Wildkatze       | Wald       | Nacht | selten      |
+| Maulwurf        | Wiese      | Tag   | häufig      |
+| Siebenschläfer  | Wald       | Nacht | häufig      |
+| Fledermaus      | Wald       | Nacht | häufig      |
+| Waldkauz        | Wald       | Nacht | häufig      |
+| Uhu             | Hügel      | Nacht | selten      |
+| Buntspecht      | Wald       | Tag   | häufig      |
+| Eichelhäher     | Wald       | Tag   | häufig      |
+| Rotkehlchen     | Wiese      | Tag   | häufig      |
+| Graureiher      | Wasser     | Tag   | häufig      |
+| Stockente       | Wasser     | Tag   | häufig      |
+| Grasfrosch      | Wasser     | Tag   | häufig      |
+| Feuersalamander | Wald       | Nacht | selten      |
+| Ringelnatter    | Wasser     | Tag   | selten      |
+| Hirschkäfer     | Wald       | Nacht | selten      |
+| Zitronenfalter  | Wiese      | Tag   | häufig      |
+| Einhorn         | Wiese      | Tag   | sehr selten |
+
+Zu jeder Art gibt es im Tierbuch einen kurzen, kindgerechten Satz (z. B. „Der Igel rollt sich
+bei Gefahr zu einer stacheligen Kugel zusammen.“).
+
+### Entdecken und Tierbuch
+
+- **Entdeckt** ist ein Tier, wenn die eigene Figur ihm nahe kommt:
+  - tagsüber bis 5 Felder,
+  - nachts bis 3 Felder oder im Lichtkreis eines brennenden Feuers.
+- **Beim ersten Mal** je Art erscheint die Meldung „Neu entdeckt: Igel!“, beim Einhorn
+  „✨ Ein Einhorn! ✨“. Danach kommt für diese Art keine Meldung mehr.
+- **Tierbuch** (Menüpunkt „Tierbuch“, Taste T):
+  - Liste aller 31 Arten mit Zähler, z. B. „12 / 31 entdeckt“.
+  - **Entdeckte Arten:** Bild, Name, Lebensraum, Tageszeit und der kurze Satz.
+  - **Unentdeckte Arten:** dunkle Silhouette und „???“, dazu nur ein Hinweis auf Lebensraum und
+    Tageszeit (z. B. „Nachts im Wald“). Beim Einhorn steht nur „Sehr selten …“.
+- **Das Tierbuch gehört der Spielerin bzw. dem Spieler, nicht der Welt.** Es bleibt bei „Neue Welt“
+  erhalten und wird auch als Gast in fremden Welten weitergeführt. Im Mehrspieler entdeckt jeder
+  für sich.
 
 ## Spielfigur
 
@@ -127,6 +200,9 @@ Drei Leisten von 0 bis 100 % stehen immer oben im Bild:
 Tageszeit), Inventar, Leisten, Name und Farbe. Kaputte oder fehlende Daten führen zu einer
 neuen Welt ohne Absturz. Als Gast wird nichts von der fremden Welt gespeichert.
 
+Das **Tierbuch** steht getrennt unter `dampf.waldlager.tierbuch.v1` (Liste entdeckter Arten). Es
+wird auch als Gast gespeichert. Kaputte Daten ergeben ein leeres Tierbuch.
+
 ## Steuerung
 
 | Aktion                                                      | Tastatur              | Touch                                 |
@@ -177,8 +253,7 @@ Figur steht.
 - **WL-AK-08** Tag und Nacht: Ein Zyklus dauert 10 Min. mit den Phasen Morgen, Tag, Dämmerung und
   Nacht. Nachts ist es um Feuer und Figur heller als sonst. Schlafen allein lässt die Nacht
   4-mal so schnell laufen.
-- **WL-AK-09** Tiere: Rehe, Hasen, Füchse und Eichhörnchen wandern nur auf begehbaren Feldern und
-  fliehen vor Spielern. Es gibt keine Aktion, die ein Tier verletzt oder entfernt.
+- **WL-AK-09** Tiere wandern nur auf begehbaren Feldern und fliehen vor Spielern. Es gibt keine Aktion, die ein Tier verletzt oder entfernt.
 - **WL-AK-10** Speichern: Welt, Inventar und Leisten überstehen Neuladen. Kaputte Daten führen zu
   einer neuen Welt ohne Absturz.
 - **WL-AK-11** Raum-Server-Logik: Ein Raum-Code ist eindeutig, es gibt höchstens 6 Spieler, und
@@ -198,9 +273,30 @@ Figur steht.
 - **WL-AK-17** Fokusverlust pausiert: Allein hält die Zeit an, online bleibt die eigene Figur
   stehen.
 
+- **WL-AK-18** Katalog: mindestens 29 Arten plus Einhorn. Jede Art hat Name, Lebensraum,
+  Tageszeit, Seltenheit und einen Satz, und es gibt eine per Code gezeichnete Grafik.
+- **WL-AK-19** Tiere in der Welt:
+  - Jede Art außer dem Einhorn kommt mindestens einmal vor.
+  - Wassertiere sind höchstens 3 Felder vom Wasser entfernt, Hügeltiere stehen auf Höhe ≥ 2.
+  - Nachtaktive Tiere sind tagsüber versteckt.
+  - Tiere stehen nur auf begehbaren Feldern.
+- **WL-AK-20** Einhorn:
+  - Pro Spieltag kommt es mit 15 % Chance, gleicher Seed ergibt den gleichen Verlauf.
+  - Es gibt höchstens eins, es erscheint weit weg von Spielern und verschwindet am Tagesende.
+  - Über viele Tage liegt der Anteil der Tage mit Einhorn ungefähr bei 15 %.
+- **WL-AK-21** Entdecken:
+  - Ein Tier im Sichtradius (Tag 5, Nacht 3 oder im Feuerschein) wird einmal eingetragen und
+    löst genau eine Meldung „Neu entdeckt: …“ aus.
+  - Versteckte Tiere zählen nicht.
+  - Das Tierbuch übersteht Neuladen und „Neue Welt“, kaputte Daten ergeben ein leeres Tierbuch.
+- **WL-AK-22** (E2E) In die Nähe eines Tieres gehen ergibt die Meldung „Neu entdeckt: …“. Das
+  Tierbuch zeigt dann „1 / 31 entdeckt“ (bzw. die passende Zahl) mit Name und Satz; unentdeckte
+  Arten zeigen „???“. Nach Neuladen ist der Eintrag noch da. Auf Mobile ist das Tierbuch
+  bedienbar.
+
 ## Nicht-Ziele (MVP)
 
-- **Tiere:** Keine Tiere jagen, fangen, füttern oder zähmen.
+- **Tiere:** Keine Tiere jagen, fangen, füttern oder zähmen, keine Fotos und keine Tier-Sounds.
 - **Spielinhalte:** Kein Kampf, keine weiteren Rohstoffe oder Werkzeuge (Stein, Erz), kein
   Kochen, kein Wetter oder Regen, kein Wasser trinken.
 - **Online:** Keine Konten, kein Chat (höchstens kurze Emote-Symbole später), keine dauerhaft
