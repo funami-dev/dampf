@@ -2,7 +2,7 @@
  * Tierarten (WL-AK-18). Grafiken als Pixel-Raster: jedes Zeichen ist ein Pixel,
  * „.“ ist durchsichtig, andere Zeichen stehen für eine Farbe aus der Palette der Art.
  */
-export type Habitat = "wald" | "wiese" | "wasser" | "huegel";
+export type Habitat = "wald" | "wiese" | "wasser" | "huegel" | "meer";
 export type Activity = "tag" | "nacht";
 export type Rarity = "haeufig" | "selten" | "sehr-selten";
 
@@ -518,6 +518,25 @@ export const SPECIES: readonly Species[] = [
     pixels: ["yy..k..yy", "yyy.k.yyy", "yoyykyyoy", ".yyykyyy.", "..yykyy..", "...yky..."],
   },
   {
+    id: "hai",
+    name: "Hai",
+    habitat: "meer",
+    time: "tag",
+    rarity: "sehr-selten",
+    fact: "Vom Hai sieht man meist nur die Rückenflosse – er zieht seine Kreise weit draußen im Meer.",
+    palette: { g: "#5d6b78", l: "#8e9ba6", w: "#e8f2fa", b: "#2c5f9e" },
+    pixels: [
+      ".....g......",
+      "....gg......",
+      "...ggg......",
+      "..gggl......",
+      ".ggggl......",
+      "gggggl......",
+      "wwbbwwbbwwbb",
+      ".bbwwbbwwbb.",
+    ],
+  },
+  {
     id: "einhorn",
     name: "Einhorn",
     habitat: "wiese",
@@ -560,5 +579,6 @@ export const HABITAT_TEXT: Record<Habitat, string> = {
   wiese: "auf der Wiese",
   wasser: "am Wasser",
   huegel: "auf den Hügeln",
+  meer: "im Meer",
 };
 export const TIME_TEXT: Record<Activity, string> = { tag: "Tagsüber", nacht: "Nachts" };

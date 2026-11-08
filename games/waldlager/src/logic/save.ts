@@ -1,5 +1,5 @@
 import { COLORS, addPlayer, createState, type Player, type State } from "./sim.ts";
-import { generateWorld, type World } from "./world.ts";
+import { SIZE, generateWorld, type World } from "./world.ts";
 
 /** Speicherstand (WL-AK-10), localStorage-Schlüssel dampf.waldlager.v1 */
 export const KEY = "dampf.waldlager.v1";
@@ -31,12 +31,14 @@ export function browserStore(): Store {
 export interface Saved {
   v: 1;
   seed: number;
+  /** Kartengröße; alte Spielstände ohne Größe (96 × 96) werden nicht übernommen */
+  size: number;
   state: State;
   me: string;
 }
 
-export function save(store: Store, seed: number, state: State, me: string) {
-  const data: Saved = { v: 1, seed, state, me };
+export function save(store: Store, seed: number, state: State, me: string, size = SIZE) {
+  const data: Saved = { v: 1, seed, size, state, me };
   store.set(KEY, JSON.stringify(data));
 }
 
@@ -67,11 +69,12 @@ export function load(store: Store): { world: World; state: State; me: string } |
     if (!raw) return null;
     const d = JSON.parse(raw) as Saved;
     if (d?.v !== 1 || !num(d.seed) || typeof d.me !== "string") return null;
+    if (d.size !== SIZE && !(num(d.size) && d.size >= 64 && d.size <= SIZE)) return null;
     const s = d.state;
     if (!s || !num(s.total) || !Array.isArray(s.berries) || !Array.isArray(s.fires)) return null;
     const me = s.players?.[d.me];
     if (!validPlayer(me)) return null;
-    const world = generateWorld(d.seed);
+    const world = generateWorld(d.seed, d.size);
     if (s.berries.length !== world.bushes.length) return null;
     // Nur die eigene Figur übernehmen (Gäste gehören nicht zur gespeicherten Welt)
     const fresh = createState(world);
@@ -85,12 +88,14 @@ export function load(store: Store): { world: World; state: State; me: string } |
       nextFire: num(s.nextFire) ? s.nextFire : 1,
       players: {},
     };
+    const home = { x: Math.floor(me.x), y: Math.floor(me.y) };
     const p = addPlayer(
       world,
       state,
       me.id,
       me.name,
       COLORS.includes(me.color as never) ? me.color : COLORS[0],
+      home,
     );
     Object.assign(p, {
       x: me.x,
@@ -99,6 +104,12 @@ export function load(store: Store): { world: World; state: State; me: string } |
       wood: me.wood,
       berries: me.berries,
       tent: me.tent ?? null,
+      home:
+        me.home && num(me.home.x) && num(me.home.y)
+          ? me.home
+          : { x: Math.floor(me.x), y: Math.floor(me.y) },
+      radio: me.radio === true,
+      landing: 0,
     });
     return { world, state, me: me.id };
   } catch {

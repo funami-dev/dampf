@@ -62,6 +62,7 @@ describe("WL-AK-02: Kollision", () => {
   });
   it("man läuft nicht in einen Baum, gleitet aber seitlich weiter", () => {
     const { w, s, p } = setup();
+    p.landing = 0;
     const k = nextToTree(w, s, p);
     const t = w.trees[k]!;
     // Bildschirm-Richtung so wählen, dass es in Kachel-Richtung +x geht: (sx,sy) = (1,1)/√2 → (+x)
@@ -81,8 +82,8 @@ describe("WL-AK-05: Holz hacken", () => {
     expect(s.stumps[k]).toBeDefined();
     const t = w.trees[k]!;
     expect(free(w, s, t.x, t.y)).toBe(true);
-    p.x = w.start.x + 0.5;
-    p.y = w.start.y + 0.5;
+    p.x = p.home.x + 0.5;
+    p.y = p.home.y + 0.5;
     for (let i = 0; i < DAY + 1; i++) stepWorld(w, s, 1);
     expect(s.stumps[k]).toBeUndefined();
   });
@@ -189,11 +190,11 @@ describe("WL-AK-07: Bauen", () => {
 describe("WL-AK-04: Kein Sterben", () => {
   it("Müdigkeit 0 → am Zelt aufwachen mit 50 %, Inventar bleibt", () => {
     const { w, s, p } = setup();
-    p.tent = { x: w.start.x + 1, y: w.start.y };
+    p.tent = { x: p.home.x + 1, y: p.home.y };
     p.wood = 9;
     p.berries = 2;
-    p.x = 10.5;
-    p.y = 10.5;
+    p.x = p.home.x + 40.5;
+    p.y = p.home.y + 0.5;
     p.needs.rest = 0.001;
     const ev = stepWorld(w, s, 1);
     expect(ev[0]?.text).toMatch(/eingeschlafen/);
@@ -203,6 +204,7 @@ describe("WL-AK-04: Kein Sterben", () => {
   });
   it("Hunger 0 macht langsam", () => {
     const { w, s, p } = setup();
+    p.landing = 0;
     const x0 = p.x;
     const y0 = p.y;
     movePlayer(w, s, p, { x: 0, y: -1, run: false }, 0.2);
@@ -215,6 +217,7 @@ describe("WL-AK-04: Kein Sterben", () => {
   });
   it("Fitness 0 sperrt Rennen und Hacken bis 20 %", () => {
     const { w, s, p } = setup();
+    p.landing = 0;
     nextToTree(w, s, p);
     p.needs.fitness = 3;
     act(w, s, p);
@@ -261,10 +264,11 @@ describe("WL-AK-09: Tiere", () => {
     const { w, s, p } = setup();
     for (let i = 0; i < 600; i++) {
       stepWorld(w, s, 0.25);
-      for (const a of s.animals) expect(free(w, s, Math.floor(a.x), Math.floor(a.y))).toBe(true);
+      for (const a of s.animals)
+        if (a.kind !== "hai") expect(free(w, s, Math.floor(a.x), Math.floor(a.y))).toBe(true);
     }
     s.total = 100 + Math.ceil(s.total / DAY) * DAY;
-    const a = s.animals.find((x) => !hiddenAt(x.kind, s.total))!;
+    const a = s.animals.find((x) => !hiddenAt(x.kind, s.total) && x.kind !== "hai")!;
     p.x = a.x + 1;
     p.y = a.y;
     const d0 = Math.hypot(a.x - p.x, a.y - p.y);
@@ -294,7 +298,7 @@ describe("WL-AK-19: Tiere in der Welt", () => {
       for (const a of s.animals) {
         const x = Math.floor(a.x);
         const y = Math.floor(a.y);
-        expect(free(w, s, x, y)).toBe(true);
+        if (a.kind !== "hai") expect(free(w, s, x, y)).toBe(true);
         expect(habitatOk(w, a.kind, x, y, false), a.kind).toBe(true);
         if (speciesById(a.kind)!.habitat === "huegel")
           expect(w.height[idx(w, x, y)]).toBeGreaterThanOrEqual(2);
@@ -303,7 +307,7 @@ describe("WL-AK-19: Tiere in der Welt", () => {
       for (const sp of SPECIES) {
         const n = s.animals.filter((a) => a.kind === sp.id).length;
         if (sp.rarity === "selten") expect(n).toBeLessThanOrEqual(2);
-        if (sp.rarity === "sehr-selten") expect(n).toBeLessThanOrEqual(1);
+        if (sp.rarity === "sehr-selten") expect(n).toBeLessThanOrEqual(sp.id === "hai" ? 2 : 1);
       }
     });
   }
@@ -401,5 +405,70 @@ describe("WL-AK-21: Entdecken und Tierbuch", () => {
       expect(loadBook({ get: () => bad, set: () => undefined }).size).toBe(0);
     data.set(BOOK_KEY, '{"v":1,"seen":["reh",5,"drache"]}');
     expect([...loadBook(store)]).toEqual(["reh"]);
+  });
+});
+
+describe("WL-AK-23: Fallschirm", () => {
+  it("eigener zufälliger Landeplatz: frei, weit weg vom Flugzeug, Beeren in der Nähe; 3 s Landung", () => {
+    const w = generateWorld(21);
+    const s = createState(w);
+    const homes = ["a", "b", "c", "d"].map((id) => addPlayer(w, s, id, id, "#e74c3c"));
+    expect(new Set(homes.map((p) => `${p.home.x},${p.home.y}`)).size).toBe(4);
+    for (const p of homes) {
+      expect(
+        free(w, s, p.home.x, p.home.y) ||
+          Object.values(s.players).some((q) => q !== p && Math.floor(q.x) === p.home.x),
+      ).toBe(true);
+      expect(Math.hypot(p.home.x - w.plane.x, p.home.y - w.plane.y)).toBeGreaterThanOrEqual(120);
+      expect(w.bushes.some((b) => Math.hypot(b.x - p.home.x, b.y - p.home.y) <= 6)).toBe(true);
+      expect(p.landing).toBe(3);
+    }
+    const p = homes[0]!;
+    const x0 = p.x;
+    movePlayer(w, s, p, { x: 1, y: 0, run: false }, 0.5);
+    expect(p.x).toBe(x0);
+    for (let i = 0; i < 31; i++) stepWorld(w, s, 0.1);
+    expect(p.landing).toBe(0);
+  });
+});
+
+describe("WL-AK-24: Funkgerät", () => {
+  it("bis 2 Felder ans Wrack → Funkgerät, genau eine Meldung", () => {
+    const { w, s, p } = setup(2);
+    p.landing = 0;
+    const [cx, cy] = w.plane.cells[0]!;
+    p.x = cx - 2 + 0.5;
+    p.y = cy + 0.5;
+    const ev = stepWorld(w, s, 0.1);
+    expect(p.radio).toBe(true);
+    expect(ev.filter((e) => /Funkgerät/.test(e.text))).toHaveLength(1);
+    expect(stepWorld(w, s, 0.1).filter((e) => /Funkgerät/.test(e.text))).toHaveLength(0);
+    const q = addPlayer(w, s, "far", "Fern", "#3498db");
+    stepWorld(w, s, 0.1);
+    expect(q.radio).toBe(false);
+  });
+});
+
+describe("WL-AK-26: Hai", () => {
+  it("nur im Meer, höchstens zwei, zeitweise abgetaucht", () => {
+    const { w, s } = setup(4);
+    const sharks = () => s.animals.filter((a) => a.kind === "hai");
+    expect(sharks().length).toBeGreaterThanOrEqual(1);
+    expect(sharks().length).toBeLessThanOrEqual(2);
+    for (let i = 0; i < 1200; i++) {
+      stepWorld(w, s, 0.25);
+      for (const a of sharks())
+        expect(w.terrain[idx(w, Math.floor(a.x), Math.floor(a.y))]).toBe(T.SEA);
+    }
+    let up = 0;
+    for (let t = 0; t < 900; t++) if (!hiddenAt("hai", t)) up++;
+    expect(up / 900).toBeGreaterThan(0.25);
+    expect(up / 900).toBeLessThan(0.45);
+    const a = sharks()[0]!;
+    const viewer = { x: a.x, y: a.y + 2 };
+    s.total = 10;
+    expect(visibleAnimals(s, viewer)).toContain(a);
+    s.total = 60;
+    expect(visibleAnimals(s, viewer)).not.toContain(a);
   });
 });

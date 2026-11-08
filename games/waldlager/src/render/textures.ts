@@ -51,6 +51,8 @@ const TILE_COLORS: Record<number, [string, string]> = {
   [T.BRIDGE]: ["#8b5a2b", "#6b421d"],
   [T.ROCK]: ["#8d8d8d", "#b3b3b3"],
   [T.SAND]: ["#d9c58a", "#c4ae6f"],
+  [T.SEA]: ["#1f4f8f", "#5d8fd0"],
+  [T.WRECK]: ["#6f7550", "#545a3a"],
 };
 
 export const tileKey = (t: number, v: number) => `tile${t}_${v}`;
@@ -63,7 +65,8 @@ function addTiles(tex: Phaser.Textures.TextureManager) {
       // Seiten in einem dunkleren Ton der Oberfläche, darunter etwas Erde
       const side = shade(base, 0.62);
       for (let r = 0; r < HS + TH / 2; r++) {
-        const earth = r > TH / 2 + 2 && Number(t) !== T.WATER && Number(t) !== T.ROCK;
+        const earth =
+          r > TH / 2 + 2 && Number(t) !== T.WATER && Number(t) !== T.ROCK && Number(t) !== T.SEA;
         g.fillStyle = earth ? "#5e4630" : shade(base, 0.5);
         g.fillRect(0, TH / 2 + r, TW / 2, 1);
         g.fillStyle = earth ? "#6e5238" : side;
@@ -72,7 +75,13 @@ function addTiles(tex: Phaser.Textures.TextureManager) {
       // Kanten der Seiten an die Raute anpassen (unten spitz)
       g.clearRect(0, TH + HS - 1, TW, 1);
       diamond(g, 0, base);
-      speckle(g, 0, dot, Number(t) === T.WATER ? 4 : 9, Number(t) * 31 + v * 7 + 1);
+      speckle(
+        g,
+        0,
+        dot,
+        Number(t) === T.WATER || Number(t) === T.SEA ? 4 : 9,
+        Number(t) * 31 + v * 7 + 1,
+      );
       if (Number(t) === T.BRIDGE) {
         g.fillStyle = "#5a3818";
         for (let k = 2; k < TH; k += 3) g.fillRect(4, k, TW - 8, 1);
@@ -193,6 +202,72 @@ function addFire(tex: Phaser.Textures.TextureManager) {
   }
 }
 
+/** Fallschirm in der Farbe des Spielers */
+export function addChute(tex: Phaser.Textures.TextureManager, color: string) {
+  const key = `chute${color}`;
+  if (tex.exists(key)) return key;
+  const [c, g] = canvas(26, 26);
+  for (let r = 0; r < 9; r++) {
+    const w = Math.round(Math.sqrt(1 - ((8 - r) / 9) ** 2) * 13);
+    for (let x = 13 - w; x < 13 + w; x++) {
+      g.fillStyle = Math.floor((x - (13 - w)) / 4) % 2 ? color : "#ffffff";
+      g.fillRect(x, r, 1, 1);
+    }
+  }
+  g.fillStyle = "#444";
+  for (let k = 0; k < 16; k++) {
+    g.fillRect(1 + Math.round((k * 11) / 15), 9 + k, 1, 1);
+    g.fillRect(24 - Math.round((k * 11) / 15), 9 + k, 1, 1);
+  }
+  tex.addCanvas(key, c);
+  return key;
+}
+
+/** Abgestürztes Flugzeug (ohne Logo) */
+function addWreck(tex: Phaser.Textures.TextureManager) {
+  const [c, g] = canvas(112, 64);
+  // Trümmer und verbrannter Boden
+  g.fillStyle = "rgba(40,36,28,0.35)";
+  g.beginPath();
+  g.ellipse(56, 46, 54, 16, 0, 0, Math.PI * 2);
+  g.fill();
+  // Rumpf (diagonal, isometrisch)
+  for (let k = 0; k < 64; k++) {
+    const x = 18 + k;
+    const y = 44 - k * 0.42;
+    g.fillStyle = "#d9dde2";
+    g.fillRect(x, y - 7, 2, 12);
+    g.fillStyle = "#a9b0b8";
+    g.fillRect(x, y + 3, 2, 3);
+    if (k % 6 === 2 && k > 8 && k < 52) {
+      g.fillStyle = "#2c3e50";
+      g.fillRect(x, y - 4, 2, 2);
+    }
+  }
+  // Abgebrochene Bruchkante vorn
+  g.fillStyle = "#555";
+  g.fillRect(16, 36, 4, 14);
+  // Leitwerk
+  g.fillStyle = "#c7ccd2";
+  for (let r = 0; r < 14; r++) g.fillRect(78 + r * 0.3, 10 + r, 8 - r * 0.4, 1);
+  // Abgebrochener Flügel daneben
+  g.fillStyle = "#bfc5cc";
+  for (let r = 0; r < 8; r++) g.fillRect(30 + r * 3, 52 + r * 0.5, 26, 2);
+  g.fillStyle = "#8c939b";
+  g.fillRect(30, 52, 2, 6);
+  // Kleine Trümmerteile
+  g.fillStyle = "#9aa0a6";
+  for (const [x, y] of [
+    [8, 50],
+    [96, 40],
+    [100, 52],
+    [70, 56],
+    [86, 30],
+  ])
+    g.fillRect(x!, y!, 4, 2);
+  tex.addCanvas("wreck", c);
+}
+
 export function addPlayerTex(tex: Phaser.Textures.TextureManager, color: string) {
   const key = `player${color}`;
   if (tex.exists(key)) return key;
@@ -251,6 +326,7 @@ export function addTextures(tex: Phaser.Textures.TextureManager) {
   addBush(tex);
   addFire(tex);
   addAnimals(tex);
+  addWreck(tex);
   const [c, g] = canvas(TW, TH);
   diamond(g, 0, "rgba(255,255,255,0.45)");
   tex.addCanvas("ghost", c);

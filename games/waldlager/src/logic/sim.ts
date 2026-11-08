@@ -9,6 +9,10 @@ export const COLORS = ["#e74c3c", "#3498db", "#f1c40f", "#9b59b6", "#e67e22", "#
 export const ANIMALS: readonly string[] = SPECIES.map((x) => x.id);
 export type AnimalKind = string;
 export const UNICORN_CHANCE = 0.15;
+export const LANDING = { seconds: 3, minPlaneDist: 120, bushDist: 6 };
+export const RADIO_REACH = 2;
+/** Hai: taucht in jedem 90-s-Zyklus 30 s lang auf */
+export const SHARK = { cycle: 90, up: 30, max: 2 };
 export const SIGHT = { day: 5, night: 3, fire: 6 };
 
 export const LIMITS = { wood: 30, berries: 20 };
@@ -37,6 +41,12 @@ export interface Player {
   moving: boolean;
   running: boolean;
   chop: { tree: number; hits: number } | null;
+  /** Landeplatz (Zuhause ohne Zelt) */
+  home: { x: number; y: number };
+  /** Funkgerät aus dem Flugzeug (pro Welt) */
+  radio: boolean;
+  /** Restzeit der Fallschirm-Landung in Sekunden */
+  landing: number;
 }
 
 export interface Fire {
@@ -99,11 +109,23 @@ export function habitatOk(w: World, kind: string, x: number, y: number, strict =
       return nearWater(w, x, y, 3);
     case "huegel":
       return w.height[i]! >= 2;
+    case "meer":
+      return w.terrain[i] === T.SEA && nearLand(w, x, y, 5);
     case "wald":
       return !strict || w.terrain[i] === T.FOREST;
     case "wiese":
       return !strict || w.terrain[i] === T.GRASS || w.terrain[i] === T.SAND;
   }
+}
+
+function nearLand(w: World, x: number, y: number, r: number): boolean {
+  for (let dy = -r; dy <= r; dy++)
+    for (let dx = -r; dx <= r; dx++) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (inside(w, nx, ny) && w.terrain[idx(w, nx, ny)] !== T.SEA) return true;
+    }
+  return false;
 }
 
 function nearWater(w: World, x: number, y: number, r: number): boolean {
@@ -119,6 +141,7 @@ function nearWater(w: World, x: number, y: number, r: number): boolean {
 
 /** Nachtaktive Tiere sind am Morgen und tagsüber versteckt (WL-AK-19) */
 export function hiddenAt(kind: string, total: number): boolean {
+  if (kind === "hai") return ((total % SHARK.cycle) + SHARK.cycle) % SHARK.cycle >= SHARK.up;
   const ph = phaseOf(total);
   return speciesById(kind)?.time === "nacht" && (ph === "tag" || ph === "morgen");
 }
@@ -127,7 +150,8 @@ function spawn(w: World, s: State, kind: string, far: (x: number, y: number) => 
   for (let tries = 0; tries < 400; tries++) {
     const x = Math.floor(nextRand(s) * w.size);
     const y = Math.floor(nextRand(s) * w.size);
-    if (!free(w, s, x, y) || !habitatOk(w, kind, x, y) || !far(x, y)) continue;
+    const sea = speciesById(kind)?.habitat === "meer";
+    if ((!sea && !free(w, s, x, y)) || !habitatOk(w, kind, x, y) || !far(x, y)) continue;
     s.animals.push({ kind, x: x + 0.5, y: y + 0.5, tx: x + 0.5, ty: y + 0.5, fleeing: false });
     return true;
   }
@@ -148,10 +172,17 @@ export function createState(w: World): State {
     day: -1,
   };
   const awayFromStart = (x: number, y: number) => Math.hypot(x - w.start.x, y - w.start.y) >= 6;
+  const scale = Math.max(1, Math.min(4, Math.round(w.size / 128)));
   for (const sp of SPECIES) {
     if (sp.id === UNICORN) continue;
     const n =
-      sp.rarity === "selten" ? 1 + Math.floor(nextRand(s) * COUNT.selten) : COUNT[sp.rarity];
+      sp.id === "hai"
+        ? SHARK.max
+        : sp.rarity === "selten"
+          ? 1 + Math.floor(nextRand(s) * COUNT.selten)
+          : sp.rarity === "haeufig"
+            ? COUNT.haeufig * scale
+            : COUNT[sp.rarity];
     for (let k = 0; k < n; k++)
       if (!spawn(w, s, sp.id, awayFromStart) && k === 0) spawn(w, s, sp.id, () => true);
   }
@@ -172,13 +203,37 @@ export function newDay(w: World, s: State) {
   spawn(w, s, UNICORN, far);
 }
 
-export function addPlayer(w: World, s: State, id: string, name: string, color: string): Player {
+/** Zufälliger Landeplatz: frei, weit weg vom Flugzeug, Beeren in der Nähe (WL-AK-23) */
+export function landingSpot(w: World, s: State): { x: number; y: number } {
+  const minDist = Math.min(LANDING.minPlaneDist, w.size * 0.23);
+  let fallback: { x: number; y: number } | null = null;
+  for (let tries = 0; tries < 5000; tries++) {
+    const x = Math.floor(nextRand(s) * w.size);
+    const y = Math.floor(nextRand(s) * w.size);
+    if (!free(w, s, x, y)) continue;
+    const t = w.terrain[idx(w, x, y)];
+    if (t === T.FORD || t === T.BRIDGE) continue;
+    if (Math.hypot(x - w.plane.x, y - w.plane.y) < minDist) continue;
+    fallback ??= { x, y };
+    if (w.bushes.some((b) => Math.hypot(b.x - x, b.y - y) <= LANDING.bushDist)) return { x, y };
+  }
+  return fallback ?? { x: w.start.x, y: w.start.y };
+}
+
+export function addPlayer(
+  w: World,
+  s: State,
+  id: string,
+  name: string,
+  color: string,
+  home = landingSpot(w, s),
+): Player {
   const p: Player = {
     id,
     name: name.trim().slice(0, 12) || "Wanderer",
     color,
-    x: w.start.x + 0.5,
-    y: w.start.y + 0.5,
+    x: home.x + 0.5,
+    y: home.y + 0.5,
     fx: 1,
     fy: 0,
     needs: { ...FULL },
@@ -190,6 +245,9 @@ export function addPlayer(w: World, s: State, id: string, name: string, color: s
     moving: false,
     running: false,
     chop: null,
+    home,
+    radio: false,
+    landing: LANDING.seconds,
   };
   s.players[id] = p;
   return p;
@@ -241,6 +299,11 @@ export function screenToTile(sx: number, sy: number): [number, number] {
 
 export function movePlayer(w: World, s: State, p: Player, input: Input, dt: number) {
   const len = Math.hypot(input.x, input.y);
+  if (p.landing > 0) {
+    p.moving = false;
+    p.running = false;
+    return;
+  }
   p.moving = len > 0.15 && !p.sleeping;
   if (len > 0.15 && p.sleeping) wake(p);
   if (!p.moving) {
@@ -291,6 +354,12 @@ export function stepWorld(w: World, s: State, dt: number): GameEvent[] {
     }
   stepAnimals(w, s, dt, night);
   for (const p of players) {
+    if (p.landing > 0) p.landing = Math.max(0, p.landing - dt);
+    // Funkgerät im Flugzeug (WL-AK-24)
+    if (!p.radio && nearPlane(w, p)) {
+      p.radio = true;
+      events.push({ player: p.id, text: "📻 Du hast im Flugzeug ein Funkgerät gefunden!" });
+    }
     p.needs = stepNeeds(p.needs, dt, {
       night,
       running: p.running,
@@ -306,7 +375,9 @@ export function stepWorld(w: World, s: State, dt: number): GameEvent[] {
     }
     if (p.needs.rest <= 0 && !p.sleeping) {
       // WL-AK-04: einschlafen, am Zelt bzw. Startpunkt aufwachen
-      const home = p.tent ? nearFree(w, s, p.tent.x, p.tent.y) : { x: w.start.x, y: w.start.y };
+      const home = p.tent
+        ? nearFree(w, s, p.tent.x, p.tent.y)
+        : nearFree(w, s, p.home.x, p.home.y, true);
       p.x = home.x + 0.5;
       p.y = home.y + 0.5;
       p.needs = { ...p.needs, rest: 50 };
@@ -317,7 +388,15 @@ export function stepWorld(w: World, s: State, dt: number): GameEvent[] {
   return events;
 }
 
-function nearFree(w: World, s: State, x: number, y: number) {
+/** Abstand zum nächsten Wrack-Feld */
+export function nearPlane(w: World, p: { x: number; y: number }): boolean {
+  return w.plane.cells.some(
+    ([cx, cy]) => Math.max(Math.abs(cx + 0.5 - p.x), Math.abs(cy + 0.5 - p.y)) <= RADIO_REACH + 0.5,
+  );
+}
+
+function nearFree(w: World, s: State, x: number, y: number, self = false) {
+  if (self && free(w, s, x, y)) return { x, y };
   for (let r = 1; r < 6; r++)
     for (let dy = -r; dy <= r; dy++)
       for (let dx = -r; dx <= r; dx++)
@@ -331,6 +410,7 @@ function stepAnimals(w: World, s: State, dt: number, night: boolean) {
     if (hiddenAt(a.kind, s.total)) continue;
     const sp = speciesById(a.kind);
     const ok = (x: number, y: number) => habitatOk(w, a.kind, x, y, false);
+    const sea = sp?.habitat === "meer";
     const near = players.find((p) => Math.hypot(p.x - a.x, p.y - a.y) < 4);
     if (near) {
       const d = Math.hypot(a.x - near.x, a.y - near.y) || 1;
@@ -357,7 +437,12 @@ function stepAnimals(w: World, s: State, dt: number, night: boolean) {
     const step = Math.min(d, (a.fleeing ? 4 : 1.2) * dt);
     const bx = a.x;
     const by = a.y;
-    moveBody(w, s, a, (dx / d) * step, (dy / d) * step, ok);
+    if (sea) {
+      const nx = a.x + (dx / d) * step;
+      const ny = a.y + (dy / d) * step;
+      if (ok(Math.floor(nx), Math.floor(a.y))) a.x = nx;
+      if (ok(Math.floor(a.x), Math.floor(ny))) a.y = ny;
+    } else moveBody(w, s, a, (dx / d) * step, (dy / d) * step, ok);
     if (a.x === bx && a.y === by) {
       a.tx = a.x;
       a.ty = a.y;

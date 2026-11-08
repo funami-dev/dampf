@@ -1,3 +1,4 @@
+import type { World } from "./world.ts";
 import { ANIMALS, COLORS, type Animal, type Fire, type Player, type State } from "./sim.ts";
 
 /** Netzwerk-Protokoll (WL-AK-12): JSON mit Versionsnummer, ungültige Nachrichten → null. */
@@ -33,15 +34,20 @@ export interface PlayerSnap {
   needs: { hunger: number; rest: number; fitness: number };
   wood: number;
   berries: number;
+  radio: boolean;
+  landing: number;
 }
+
+/** Nur was in der Nähe der Gäste liegt wird geschickt (große Insel, max. 16 KB je Nachricht) */
+export const SNAP_RADIUS = 30;
 
 export interface Snap {
   v: 1;
   k: "snap";
   total: number;
   stumps: number[];
-  /** Beeren je Strauch als Ziffernfolge */
-  berries: string;
+  /** [Strauch-Index, Beeren] der Sträucher in der Nähe */
+  berries: [number, number][];
   fires: Fire[];
   /** [Art-Index, x, y] */
   animals: [number, number, number][];
@@ -105,7 +111,9 @@ function playerSnap(p: unknown): p is PlayerSnap {
     num(p.needs.rest) &&
     num(p.needs.fitness) &&
     num(p.wood) &&
-    num(p.berries)
+    num(p.berries) &&
+    bool(p.radio) &&
+    num(p.landing)
   );
 }
 
@@ -118,8 +126,8 @@ export function parseHost(d: unknown): HostMsg | null {
     !num(d.total) ||
     !Array.isArray(d.stumps) ||
     !d.stumps.every(num) ||
-    !str(d.berries, 5000) ||
-    !/^\d*$/.test(d.berries) ||
+    !Array.isArray(d.berries) ||
+    !d.berries.every((b) => Array.isArray(b) && b.length === 2 && b.every(num)) ||
     !Array.isArray(d.fires) ||
     !d.fires.every((f) => obj(f) && num(f.id) && num(f.x) && num(f.y) && num(f.until)) ||
     !Array.isArray(d.animals) ||
@@ -134,16 +142,27 @@ export function parseHost(d: unknown): HostMsg | null {
   return d as unknown as Snap;
 }
 
-/** Gastgeber: Zustand → Schnappschuss */
-export function toSnap(s: State): Snap {
+/** Gastgeber: Zustand → Schnappschuss (nur rund um die angegebenen Orte, meist die Gäste) */
+export function toSnap(w: World, s: State, focus: { x: number; y: number }[]): Snap {
+  const near = (x: number, y: number) =>
+    focus.some((f) => Math.abs(f.x - x) <= SNAP_RADIUS && Math.abs(f.y - y) <= SNAP_RADIUS);
   return {
     v: 1,
     k: "snap",
     total: s.total,
-    stumps: Object.keys(s.stumps).map(Number),
-    berries: s.berries.join(""),
-    fires: s.fires.map((f) => ({ ...f })),
-    animals: s.animals.map((a) => [ANIMALS.indexOf(a.kind), +a.x.toFixed(2), +a.y.toFixed(2)]),
+    stumps: Object.keys(s.stumps)
+      .map(Number)
+      .filter((k) => {
+        const t = w.trees[k];
+        return !!t && near(t.x, t.y);
+      }),
+    berries: w.bushes.flatMap((b, i): [number, number][] =>
+      near(b.x, b.y) ? [[i, s.berries[i]!]] : [],
+    ),
+    fires: s.fires.filter((f) => near(f.x, f.y)).map((f) => ({ ...f })),
+    animals: s.animals
+      .filter((a) => near(a.x, a.y))
+      .map((a) => [ANIMALS.indexOf(a.kind), +a.x.toFixed(2), +a.y.toFixed(2)]),
     players: Object.values(s.players).map((p) => ({
       id: p.id,
       name: p.name,
@@ -158,6 +177,8 @@ export function toSnap(s: State): Snap {
       needs: p.needs,
       wood: p.wood,
       berries: p.berries,
+      radio: p.radio,
+      landing: +p.landing.toFixed(2),
     })),
   };
 }
@@ -166,7 +187,7 @@ export function toSnap(s: State): Snap {
 export function applySnap(s: State, snap: Snap, me: string, first: boolean) {
   s.total = snap.total;
   s.stumps = Object.fromEntries(snap.stumps.map((k) => [k, Infinity]));
-  s.berries = [...snap.berries].map(Number);
+  for (const [i, n] of snap.berries) if (i >= 0 && i < s.berries.length) s.berries[i] = n;
   s.fires = snap.fires;
   s.animals = snap.animals.map(([k, x, y], i): Animal => {
     const prev = s.animals[i];
@@ -184,6 +205,7 @@ export function applySnap(s: State, snap: Snap, me: string, first: boolean) {
         exhausted: false,
         running: false,
         chop: null,
+        home: { x: Math.floor(q.x), y: Math.floor(q.y) },
       });
     const local = q.id === me && !first;
     Object.assign(p, {
@@ -193,6 +215,8 @@ export function applySnap(s: State, snap: Snap, me: string, first: boolean) {
       needs: q.needs,
       wood: q.wood,
       berries: q.berries,
+      radio: q.radio,
+      landing: q.landing,
       sleeping: local ? p.sleeping && q.sleeping : q.sleeping,
     });
     if (!local) Object.assign(p, { x: q.x, y: q.y, fx: q.fx, fy: q.fy, moving: q.moving });
