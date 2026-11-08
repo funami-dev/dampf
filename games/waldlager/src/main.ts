@@ -12,6 +12,7 @@ import {
   addPlayer,
   build,
   buildSpot,
+  canBridgeAt,
   canBuildAt,
   createState,
   eat,
@@ -21,6 +22,7 @@ import {
   visibleAnimals,
   movePlayer,
   stepWorld,
+  type BuildKind,
   type Player,
   type State,
 } from "./logic/sim.ts";
@@ -73,6 +75,7 @@ layer.innerHTML = `
   <div class="wl-buildbar" hidden>
     <button class="wl-btn" type="button" data-b="tent">Zelt (${COSTS.tent} Holz)</button>
     <button class="wl-btn" type="button" data-b="fire">Lagerfeuer (${COSTS.fire} Holz)</button>
+    <button class="wl-btn" type="button" data-b="bridge">Brücke (${COSTS.bridge} Holz)</button>
     <button class="wl-btn" type="button" data-b="cancel">✕</button>
   </div>
   <div class="wl-bottom">
@@ -198,7 +201,7 @@ function toggleBuild(on = !building) {
   building = on;
   buildBar.hidden = !on;
 }
-function doBuild(kind: "tent" | "fire") {
+function doBuild(kind: BuildKind) {
   if (!canPlay()) return;
   if (mode === "guest") {
     guestSend({ v: 1, k: "build", kind });
@@ -208,7 +211,8 @@ function doBuild(kind: "tent" | "fire") {
   if (kind === "tent") addTent(game.textures, me().color);
   const msg = build(world, state, me(), kind);
   toast(msg);
-  if (/steht|brennt/.test(msg)) toggleBuild(false);
+  // Brücken baut man Stück für Stück: Bau-Leiste bleibt offen
+  if (kind !== "bridge" && /steht|brennt/.test(msg)) toggleBuild(false);
 }
 
 actBtn.addEventListener("click", () => doAct());
@@ -217,6 +221,7 @@ $('[data-b="radio"]').addEventListener("click", () => openRadio());
 $('[data-b="build"]').addEventListener("click", () => toggleBuild());
 $('[data-b="tent"]').addEventListener("click", () => doBuild("tent"));
 $('[data-b="fire"]').addEventListener("click", () => doBuild("fire"));
+$('[data-b="bridge"]').addEventListener("click", () => doBuild("bridge"));
 $('[data-b="cancel"]').addEventListener("click", () => toggleBuild(false));
 $('[data-b="menu"]').addEventListener("click", () => openMenu());
 
@@ -243,6 +248,7 @@ window.addEventListener("keydown", (e) => {
   if (e.code === "KeyB") toggleBuild();
   if (building && e.code === "Digit1") doBuild("tent");
   if (building && e.code === "Digit2") doBuild("fire");
+  if (building && e.code === "Digit3") doBuild("bridge");
   if (e.code === "Escape") {
     if (building) toggleBuild(false);
     else openMenu();
@@ -783,6 +789,16 @@ function netTick(dt: number) {
 }
 
 // --- Darstellung (Phaser) ----------------------------------------------
+let debrisAt: Map<number, number> | null = null;
+let debrisWorld: World | null = null;
+const debrisIndex = () => {
+  if (!debrisAt || debrisWorld !== world) {
+    debrisAt = new Map();
+    debrisWorld = world;
+    world.debris.forEach((d, i) => debrisAt!.set(idx(world, d.x, d.y), i));
+  }
+  return debrisAt;
+};
 const bushIndex = () => {
   if (!bushAt) {
     bushAt = new Map();
@@ -878,7 +894,7 @@ class WorldScene extends Phaser.Scene {
         if (sx < v.x - 20 || sx > v.right + 20 || sy < v.y - 50 || sy > v.bottom + 10) continue;
         const t = world.terrain[i]!;
         this.pool(this.ground, gi++)
-          .setTexture(tileKey(t, hash(x, y) % 3))
+          .setTexture(tileKey(state.bridges[i] ? T.BRIDGE : t, hash(x, y) % 3))
           .setOrigin(0.5, 0)
           .setPosition(sx, sy)
           .setDepth(-1e6 + (x + y) * 4 + h);
@@ -893,6 +909,13 @@ class WorldScene extends Phaser.Scene {
             .setPosition(cx, cy)
             .setDepth((x + y + 1) * 10);
         }
+        const db = debrisIndex().get(i);
+        if (db !== undefined)
+          this.pool(this.objects, oi++)
+            .setTexture(`debris${db % 3}`)
+            .setOrigin(0.5, 0.7)
+            .setPosition(cx, cy)
+            .setDepth((x + y + 1) * 10);
         const b = bushes.get(i);
         if (b !== undefined)
           this.pool(this.objects, oi++)
@@ -978,7 +1001,8 @@ class WorldScene extends Phaser.Scene {
     // Bauplatz anzeigen
     if (building && screen === "play") {
       const spot = buildSpot(p);
-      const ok = canBuildAt(world, state, spot.x, spot.y);
+      const ok =
+        canBuildAt(world, state, spot.x, spot.y) || canBridgeAt(world, state, spot.x, spot.y);
       this.ghost
         .setTexture(ok ? "ghost" : "ghostBad")
         .setPosition(isoX(spot.x, spot.y), isoY(spot.x, spot.y, hAt(spot.x, spot.y)))
@@ -1186,6 +1210,8 @@ if (debugEnabled) {
         })),
         stumpList: Object.keys(state.stumps).map(Number),
         book: [...book],
+        debris: world.debris,
+        bridges: Object.keys(state.bridges).map(Number),
         plane: { x: world.plane.x, y: world.plane.y, cells: world.plane.cells },
         size: world.size,
         lobby,
@@ -1201,6 +1227,33 @@ if (debugEnabled) {
         p.fx = fx;
         p.fy = fy;
       }
+    },
+    riverSpot: () => {
+      // freies Ufer-Feld mit Flusswasser direkt daneben, möglichst nah: [x, y, fx, fy]
+      const p = me();
+      let best: [number, number, number, number] | null = null;
+      let bd = Infinity;
+      for (let y = 1; y < world.size - 1; y++)
+        for (let x = 1; x < world.size - 1; x++) {
+          if (world.terrain[idx(world, x, y)] !== T.WATER) continue;
+          for (const [dx, dy] of [
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1],
+          ] as const) {
+            const bx = x + dx;
+            const by = y + dy;
+            if (!free(world, state, bx, by) || world.terrain[idx(world, bx, by)] === T.WATER)
+              continue;
+            const d = Math.hypot(bx - p.x, by - p.y);
+            if (d < bd) {
+              bd = d;
+              best = [bx, by, -dx, -dy];
+            }
+          }
+        }
+      return best;
     },
     nearestAnimal: () => {
       const p = me();

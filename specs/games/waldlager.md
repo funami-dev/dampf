@@ -16,7 +16,7 @@ gegen Tiere. Rehe und andere Waldtiere laufen nur herum. Man kann nicht sterben.
 
 ## Welt: eine Insel
 
-- **Isometrische Kachelkarte** (2D, Phaser), **512 × 512 Felder**, aus einem **Seed**
+- **Isometrische Kachelkarte** (2D, Phaser), **256 × 256 Felder**, aus einem **Seed**
   deterministisch erzeugt. Alle Grafiken werden per Code gezeichnet, es gibt keine Bilddateien.
 - **Immer eine Insel:**
   - Rundum liegt **Meer**: mindestens 12 Felder breit an jedem Rand, danach erst Land.
@@ -28,16 +28,20 @@ gegen Tiere. Rehe und andere Waldtiere laufen nur herum. Man kann nicht sterben.
   - Strand (Sand) an der Küste.
   - Wiese und Waldboden.
   - **Wald** mit vielen Bäumen.
-  - **Flüsse**, 3 bis 5, laufen vom Inland zum Meer. Sie sind nicht begehbar; jeder Fluss hat
-    mindestens zwei **Furten oder Brücken**.
+  - **Flüsse**, 3 bis 5, laufen vom Inland zum Meer. Sie sind nicht begehbar, und es gibt
+    **keine fertigen Brücken oder Furten**: Brücken muss man **selbst bauen** (siehe Tätigkeiten).
   - **Hügel** in 2–3 Höhenstufen, als erhöhte Kacheln mit Kanten dargestellt und begehbar.
   - **Einige Berge** (Fels): nicht begehbar und nicht abbaubar.
 - **Meer und Fluss sehen verschieden aus:** Das Meer ist dunkler und hat Wellen am Strand.
-- **Erreichbarkeit:** Alle begehbaren Felder der Insel hängen zusammen.
+- **Erreichbarkeit:**
+  - Zwischen zwei Flüssen hängen alle begehbaren Felder zusammen.
+  - Mit selbst gebauten Brücken über die Flüsse ist jede Stelle der Insel erreichbar, auch das
+    Flugzeug.
+  - Am Landeplatz gibt es genug Bäume für Holz: mindestens 10 im Umkreis von 15 Feldern.
 - **Leistung:** Das Erzeugen der Welt dauert auf einem normalen Rechner höchstens 3 Sekunden.
   Während dessen steht „Die Insel entsteht …“. Gezeichnet wird nur der sichtbare Ausschnitt.
-- **Alte Spielstände:** Spielstände mit der alten, kleinen Welt (96 × 96) werden nicht
-  übernommen. Man startet in einer neuen Insel-Welt. Das Tierbuch bleibt erhalten.
+- **Alte Spielstände:** Spielstände mit einer anderen Kartengröße (96 × 96, 512 × 512) werden
+  nicht übernommen. Man startet in einer neuen Insel-Welt. Das Tierbuch bleibt erhalten.
 
 ## Fallschirm-Landung
 
@@ -47,7 +51,7 @@ gegen Tiere. Rehe und andere Waldtiere laufen nur herum. Man kann nicht sterben.
 - **Landeplatz:**
   - Für jede Spielerin und jeden Spieler ein **eigener, zufälliger** Ort.
   - Immer auf freiem, begehbarem Land, nicht im Wasser und nicht in Bäumen.
-  - Mindestens 120 Felder vom Flugzeug entfernt.
+  - Mindestens 60 Felder vom Flugzeug entfernt.
   - Beerensträucher sind immer in der Nähe (höchstens 6 Felder).
 - Der Landeplatz ist das „Zuhause“, solange man kein Zelt hat: Dort wacht man auf, wenn man vor
   Müdigkeit eingeschlafen ist.
@@ -58,6 +62,18 @@ gegen Tiere. Rehe und andere Waldtiere laufen nur herum. Man kann nicht sterben.
   - ein großes Wrack aus Rumpf, abgebrochenem Flügel und Trümmerteilen über mehrere Felder,
   - auf ebenem Land, ohne Logo oder echte Fluggesellschaft.
   - Die Wrack-Felder sind nicht begehbar, man kann aber direkt daneben stehen.
+- **Trümmerteile verraten den Weg:**
+  - Beim Absturz sind **Trümmerteile** über die Insel verstreut: 15–25 Stück entlang einer Spur,
+    die zum Wrack führt.
+  - Die Teile liegen zwischen 10 und 90 Feldern vom Wrack entfernt, nahe am Wrack dichter. Sie
+    liegen immer auf begehbarem Land.
+  - Steht man an einem Trümmerteil, zeigt die Aktion „Trümmer ansehen“ einen Hinweis mit der
+    **Himmelsrichtung** und der **ungefähren Entfernung**, z. B. „Ein Stück Flugzeug! Die Spur
+    führt nach Nordosten – noch weit weg.“
+  - Himmelsrichtungen beziehen sich auf den Bildschirm: Norden ist oben.
+  - Entfernungen: „ganz nah“ (unter 20 Felder), „nicht mehr weit“ (unter 50), „noch weit weg“
+    (darüber).
+  - Trümmerteile blockieren den Weg nicht.
 - **Funkgerät finden:**
   - Wer bis auf 2 Felder an das Wrack herankommt, findet ein **Funkgerät**.
   - Es erscheint einmal die Meldung „📻 Du hast im Flugzeug ein Funkgerät gefunden!“.
@@ -66,10 +82,10 @@ gegen Tiere. Rehe und andere Waldtiere laufen nur herum. Man kann nicht sterben.
   man das Flugzeug erst finden. Nach Neuladen bleibt es erhalten.
 - **Funk** (Button „Funk“ bzw. Taste F, nur mit Funkgerät sichtbar):
   - **Liste** aller Spieler in der Welt mit Namen und **Koordinaten**, z. B.
-    „Ben · X 213 · Y 377“; die eigene Zeile ist hervorgehoben.
+    „Ben · X 113 · Y 177“; die eigene Zeile ist hervorgehoben.
   - **Kleine Inselkarte** mit Küste, farbigen Punkten für alle Spieler und einem Symbol für das
     Flugzeug.
-  - Koordinaten sind die Feldnummern: X und Y von 0 bis 511.
+  - Koordinaten sind die Feldnummern: X und Y von 0 bis 255.
 - Ohne Funkgerät gibt es keine Koordinaten und keine Karte. Man muss sich am Gelände orientieren.
 
 ## Tiere entdecken (nie verletzbar)
@@ -191,6 +207,12 @@ Drei Leisten von 0 bis 100 % stehen immer oben im Bild:
   Taste bzw. Button „Essen“. Leere Sträucher füllen sich nach einem halben Spieltag wieder.
 - **Zelt aufbauen:** kostet 8 Holz, auf einem freien, ebenen Feld. Jeder Spieler hat **ein**
   Zelt, ein neues ersetzt das alte. Im Zelt kann man schlafen.
+- **Brücke bauen:** kostet **3 Holz je Brückenfeld**.
+  - Gebaut wird auf dem Flussfeld vor der Figur, also auf Wasser im Fluss, nicht im Meer.
+  - Die Flüsse sind 2–3 Felder breit, eine Brücke braucht also 2–3 Stücke. Man baut Stück für
+    Stück und läuft dabei auf die schon gebaute Brücke hinaus.
+  - Brücken bleiben stehen und gehören allen; im Mehrspieler sehen alle sie.
+  - Im Bau-Menü steht „Brücke (3 Holz)“, Taste 3.
 - **Lagerfeuer bauen:** kostet 3 Holz. Es brennt 3 Minuten, jedes nachgelegte Holz gibt
   +2 Minuten. Am Feuer sitzen erholt Fitness und Müdigkeit. Das Feuer **leuchtet nachts**.
 - **Inventar:** Holz (max. 30), Beeren (max. 20).
@@ -304,14 +326,15 @@ Figur steht.
 ## Akzeptanzkriterien
 
 - **WL-AK-01** Welt:
-  - Gleicher Seed ergibt die gleiche Welt, und sie ist 512 × 512 Felder groß.
-  - Es ist eine Insel: Alle Randfelder in 12 Feldern Breite sind Meer, ohne Furt oder Brücke,
-    und mindestens 35 % der Karte sind Land.
-  - Es gibt Strand, Wiese, Wald, 3–5 Flüsse mit je mindestens zwei Furten oder Brücken, Hügel
-    und Berge.
-  - Alle begehbaren Felder hängen zusammen.
+  - Gleicher Seed ergibt die gleiche Welt, und sie ist 256 × 256 Felder groß.
+  - Es ist eine Insel: Alle Randfelder in 12 Feldern Breite sind Meer, und mindestens 35 % der
+    Karte sind Land.
+  - Es gibt Strand, Wiese, Wald, 3–5 Flüsse, Hügel und Berge.
+  - Es gibt keine fertigen Brücken oder Furten.
+  - Zählt man Flussfelder als überbrückbar, hängen alle begehbaren Felder zusammen.
   - Das Erzeugen dauert höchstens 3 Sekunden.
-- **WL-AK-02** Kollision: Wasser (außer Furt/Brücke), Berge, Bäume und Zelte sind nicht begehbar.
+- **WL-AK-02** Kollision: Wasser (außer gebauten Brücken), Berge, Bäume und Zelte sind nicht
+  begehbar.
   Man gleitet an Hindernissen entlang.
 - **WL-AK-03** Leisten: Hunger, Müdigkeit und Fitness sinken und steigen wie in der Tabelle und
   bleiben zwischen 0 und 100.
@@ -381,7 +404,7 @@ Figur steht.
 
 - **WL-AK-23** Fallschirm:
   - Jede Spielerin und jeder Spieler, auch ein Gast, landet auf einem eigenen, zufälligen,
-    freien Landfeld mit mindestens 120 Feldern Abstand zum Flugzeug und Beeren in höchstens
+    freien Landfeld mit mindestens 60 Feldern Abstand zum Flugzeug und Beeren in höchstens
     6 Feldern.
   - Die Landung dauert etwa 3 Sekunden mit sichtbarem Schirm; währenddessen kann man nicht
     laufen.
@@ -393,7 +416,7 @@ Figur steht.
 - **WL-AK-25** Funk:
   - Ohne Funkgerät gibt es keinen Funk-Button.
   - Mit Funkgerät zeigt „Funk“ (Taste F) alle Spieler der Welt mit Namen und Koordinaten (X/Y
-    0–511) und eine Inselkarte mit Punkten für die Spieler und das Flugzeug.
+    0–255) und eine Inselkarte mit Punkten für die Spieler und das Flugzeug.
 - **WL-AK-26** Hai:
   - Haie sind nur im Meer, verlassen es nie, und es gibt höchstens zwei.
   - Die Flosse ist zeitweise abgetaucht und dann weder sichtbar noch entdeckbar.
@@ -403,6 +426,20 @@ Figur steht.
   - Mit Test-Hilfe zum Flugzeug: Meldung und Funk-Button erscheinen.
   - Der Funk zeigt den eigenen Namen mit Koordinaten und die Karte.
   - Auf Mobile ist „Funk“ sichtbar und bedienbar.
+
+- **WL-AK-28** Brücke bauen:
+  - Ein Brückenfeld kostet 3 Holz und geht nur auf ein Flussfeld vor der Figur, nicht auf Meer
+    oder Land.
+  - Danach ist das Feld begehbar; mit 2–3 Stücken kommt man über einen Fluss.
+  - Brücken übersteht Neuladen, und im Mehrspieler sehen alle sie.
+  - Am Landeplatz stehen mindestens 10 Bäume im Umkreis von 15 Feldern.
+- **WL-AK-29** Trümmer:
+  - Es gibt 15–25 Trümmerteile auf begehbarem Land, 10–90 Felder vom Wrack entfernt.
+  - „Trümmer ansehen“ zeigt die richtige Himmelsrichtung (8 Richtungen, Norden = oben) und die
+    passende Entfernungsstufe.
+- **WL-AK-30** (E2E) An einen Fluss gehen und Holz sammeln, zwei bis drei Brückenstücke bauen
+  (Taste B, 3), über den Fluss laufen. Ein Trümmerteil ansehen ergibt einen Hinweis mit
+  Himmelsrichtung.
 
 ## Nicht-Ziele (MVP)
 

@@ -1,7 +1,7 @@
 import { DAY, START_TIME, isNight, phaseOf } from "./daytime.ts";
 import { SPECIES, UNICORN, speciesById } from "./species.ts";
 import { FULL, RATES, eatBerry, stepNeeds, type Needs } from "./needs.ts";
-import { T, idx, inside, terrainWalkable, type World } from "./world.ts";
+import { T, debrisHint, idx, inside, terrainWalkable, type World } from "./world.ts";
 
 /** Spielstand einer Welt (Spec: specs/games/waldlager.md). Reine Daten, serialisierbar. */
 export const COLORS = ["#e74c3c", "#3498db", "#f1c40f", "#9b59b6", "#e67e22", "#1abc9c"] as const;
@@ -9,14 +9,14 @@ export const COLORS = ["#e74c3c", "#3498db", "#f1c40f", "#9b59b6", "#e67e22", "#
 export const ANIMALS: readonly string[] = SPECIES.map((x) => x.id);
 export type AnimalKind = string;
 export const UNICORN_CHANCE = 0.15;
-export const LANDING = { seconds: 3, minPlaneDist: 120, bushDist: 6 };
+export const LANDING = { seconds: 3, minPlaneDist: 60, bushDist: 6, trees: 10, treeDist: 15 };
 export const RADIO_REACH = 2;
 /** Hai: taucht in jedem 90-s-Zyklus 30 s lang auf */
 export const SHARK = { cycle: 90, up: 30, max: 2 };
 export const SIGHT = { day: 5, night: 3, fire: 6 };
 
 export const LIMITS = { wood: 30, berries: 20 };
-export const COSTS = { tent: 8, fire: 3 };
+export const COSTS = { tent: 8, fire: 3, bridge: 3 };
 export const TREE = { hits: 4, wood: 3, regrow: DAY };
 export const BUSH = { berries: 4, refill: DAY / 2 };
 export const FIRE = { burn: 180, stoke: 120, max: 600, warm: 2.5 };
@@ -80,6 +80,8 @@ export interface State {
   rand: number;
   /** aktueller Spieltag (für das Einhorn) */
   day: number;
+  /** gebaute Brückenfelder (Feld-Index → 1) */
+  bridges: Record<number, 1>;
 }
 
 export interface Input {
@@ -170,6 +172,7 @@ export function createState(w: World): State {
     players: {},
     rand: w.seed ^ 0x5eed,
     day: -1,
+    bridges: {},
   };
   const awayFromStart = (x: number, y: number) => Math.hypot(x - w.start.x, y - w.start.y) >= 6;
   const scale = Math.max(1, Math.min(4, Math.round(w.size / 128)));
@@ -206,6 +209,18 @@ export function newDay(w: World, s: State) {
 /** Zufälliger Landeplatz: frei, weit weg vom Flugzeug, Beeren in der Nähe (WL-AK-23) */
 export function landingSpot(w: World, s: State): { x: number; y: number } {
   const minDist = Math.min(LANDING.minPlaneDist, w.size * 0.23);
+  const treesNear = (x: number, y: number) => {
+    let n = 0;
+    for (let dy = -LANDING.treeDist; dy <= LANDING.treeDist; dy++)
+      for (let dx = -LANDING.treeDist; dx <= LANDING.treeDist; dx++)
+        if (
+          inside(w, x + dx, y + dy) &&
+          w.treeAt[idx(w, x + dx, y + dy)] &&
+          dx * dx + dy * dy <= LANDING.treeDist ** 2
+        )
+          n++;
+    return n;
+  };
   let fallback: { x: number; y: number } | null = null;
   for (let tries = 0; tries < 5000; tries++) {
     const x = Math.floor(nextRand(s) * w.size);
@@ -214,6 +229,7 @@ export function landingSpot(w: World, s: State): { x: number; y: number } {
     const t = w.terrain[idx(w, x, y)];
     if (t === T.FORD || t === T.BRIDGE) continue;
     if (Math.hypot(x - w.plane.x, y - w.plane.y) < minDist) continue;
+    if (treesNear(x, y) < LANDING.trees) continue;
     fallback ??= { x, y };
     if (w.bushes.some((b) => Math.hypot(b.x - x, b.y - y) <= LANDING.bushDist)) return { x, y };
   }
@@ -262,7 +278,7 @@ const tentAt = (s: State, x: number, y: number) =>
 export function free(w: World, s: State, x: number, y: number): boolean {
   if (!inside(w, x, y)) return false;
   const i = idx(w, x, y);
-  if (!terrainWalkable(w.terrain[i]!)) return false;
+  if (!terrainWalkable(w.terrain[i]!) && !(w.terrain[i] === T.WATER && s.bridges[i])) return false;
   const tree = w.treeAt[i]!;
   if (tree && !isStump(s, tree - 1)) return false;
   return !tentAt(s, x, y) && !fireAt(s, x, y);
@@ -466,7 +482,7 @@ export function visibleAnimals(s: State, p: { x: number; y: number }): Animal[] 
   });
 }
 
-export type ActionKind = "chop" | "pick" | "sleep" | "wake" | "stoke";
+export type ActionKind = "chop" | "pick" | "sleep" | "wake" | "stoke" | "inspect";
 
 /** Was die Aktionstaste gerade tun würde (für Button-Beschriftung). */
 export function actionFor(
@@ -502,6 +518,10 @@ export function actionFor(
         d,
       });
   }
+  w.debris.forEach((b, i) => {
+    const d = Math.hypot(b.x + 0.5 - p.x, b.y + 0.5 - p.y);
+    if (d <= REACH) opts.push({ kind: "inspect", label: "Trümmer ansehen", target: i, d });
+  });
   if (p.tent) {
     const d = Math.hypot(p.tent.x + 0.5 - p.x, p.tent.y + 0.5 - p.y);
     if (d <= REACH + 0.3) opts.push({ kind: "sleep", label: "Schlafen", target: -1, d });
@@ -547,6 +567,10 @@ export function act(w: World, s: State, p: Player): string | null {
       if (s.berries[a.target] === 0) s.refill[a.target] = s.total + BUSH.refill;
       return `+${n} Beeren`;
     }
+    case "inspect": {
+      const b = w.debris[a.target]!;
+      return debrisHint(w, b.x, b.y).text;
+    }
     case "stoke": {
       const f = s.fires.find((x) => x.id === a.target)!;
       p.wood--;
@@ -573,7 +597,8 @@ export function buildSpot(p: Player) {
 export function canBuildAt(w: World, s: State, x: number, y: number): boolean {
   if (!free(w, s, x, y)) return false;
   const i = idx(w, x, y);
-  if (w.terrain[i] === T.FORD || w.terrain[i] === T.BRIDGE || w.treeAt[i]) return false;
+  if (w.terrain[i] === T.FORD || w.terrain[i] === T.BRIDGE || w.treeAt[i] || s.bridges[i])
+    return false;
   if (w.bushes.some((b) => b.x === x && b.y === y)) return false;
   const h = w.height[i];
   for (const [dx, dy] of [
@@ -586,10 +611,25 @@ export function canBuildAt(w: World, s: State, x: number, y: number): boolean {
   return !Object.values(s.players).some((q) => Math.floor(q.x) === x && Math.floor(q.y) === y);
 }
 
-export function build(w: World, s: State, p: Player, kind: "tent" | "fire"): string {
+/** Brücke: nur auf ein Flussfeld (nicht Meer), das noch keine Brücke hat (WL-AK-28) */
+export function canBridgeAt(w: World, s: State, x: number, y: number): boolean {
+  if (!inside(w, x, y)) return false;
+  const i = idx(w, x, y);
+  return w.terrain[i] === T.WATER && !s.bridges[i];
+}
+
+export type BuildKind = "tent" | "fire" | "bridge";
+
+export function build(w: World, s: State, p: Player, kind: BuildKind): string {
   const cost = COSTS[kind];
   if (p.wood < cost) return `Dafür brauchst du ${cost} Holz.`;
   const { x, y } = buildSpot(p);
+  if (kind === "bridge") {
+    if (!canBridgeAt(w, s, x, y)) return "Brücken baut man auf das Flusswasser vor dir.";
+    p.wood -= cost;
+    s.bridges[idx(w, x, y)] = 1;
+    return "Ein Stück Brücke steht!";
+  }
   if (!canBuildAt(w, s, x, y)) return "Hier ist kein Platz – such ein freies, ebenes Feld.";
   p.wood -= cost;
   if (kind === "tent") {

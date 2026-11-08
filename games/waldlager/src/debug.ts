@@ -2,6 +2,8 @@ export interface DebugHooks {
   state(): Record<string, unknown>;
   /** Figur versetzen (Kachel-Koordinaten) */
   teleport(x: number, y: number, fx?: number, fy?: number): void;
+  /** Ufer-Feld mit Flusswasser daneben: [x, y, Blickrichtung fx, fy] */
+  riverSpot(): [number, number, number, number] | null;
   /** nächstes sichtbares, noch nicht entdecktes Tier: [x, y, Art] */
   nearestAnimal(): [number, number, string] | null;
   /** Weltzeit setzen (Sekunden, 600 = ein Tag) */

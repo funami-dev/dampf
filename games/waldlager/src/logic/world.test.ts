@@ -1,12 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { SEA_MARGIN, SIZE, T, generateWorld, idx, reachable, terrainWalkable } from "./world.ts";
+import {
+  DEBRIS,
+  SEA_MARGIN,
+  SIZE,
+  T,
+  debrisHint,
+  generateWorld,
+  idx,
+  reachable,
+  terrainWalkable,
+} from "./world.ts";
 
 describe("WL-AK-01: Insel", () => {
   it("gleicher Seed ergibt die gleiche Welt, anderer Seed eine andere", () => {
     const a = generateWorld(7);
     const b = generateWorld(7);
     const c = generateWorld(8);
-    expect(a.size).toBe(512);
+    expect(a.size).toBe(256);
     expect(Array.from(a.terrain)).toEqual(Array.from(b.terrain));
     expect(a.trees).toEqual(b.trees);
     expect(a.plane).toEqual(b.plane);
@@ -27,13 +37,14 @@ describe("WL-AK-01: Insel", () => {
             expect(w.terrain[idx(w, x, y)]).toBe(T.SEA);
       const land = w.terrain.length - count(T.SEA);
       expect(land / w.terrain.length).toBeGreaterThanOrEqual(0.35);
-      expect(count(T.SAND)).toBeGreaterThan(500);
-      expect(count(T.GRASS)).toBeGreaterThan(5000);
-      expect(count(T.FOREST)).toBeGreaterThan(5000);
+      expect(count(T.SAND)).toBeGreaterThan(300);
+      expect(count(T.GRASS)).toBeGreaterThan(2000);
+      expect(count(T.FOREST)).toBeGreaterThan(2000);
       expect(count(T.ROCK)).toBeGreaterThan(10);
       expect(w.rivers).toBeGreaterThanOrEqual(3);
       expect(w.rivers).toBeLessThanOrEqual(5);
-      expect(count(T.FORD) + count(T.BRIDGE)).toBeGreaterThanOrEqual(2 * w.rivers);
+      // keine fertigen Übergänge
+      expect(count(T.FORD) + count(T.BRIDGE)).toBe(0);
       expect(w.height.reduce((m, h) => Math.max(m, h), 0)).toBeGreaterThanOrEqual(2);
       // Keine Klippen
       for (let y = 0; y < w.size; y++)
@@ -41,15 +52,8 @@ describe("WL-AK-01: Insel", () => {
           expect(
             Math.abs(w.height[idx(w, x, y)]! - w.height[idx(w, x - 1, y)]!),
           ).toBeLessThanOrEqual(1);
-      // Kein Übergang über das Meer
-      for (let i = 0; i < w.terrain.length; i++)
-        if (w.terrain[i] === T.FORD || w.terrain[i] === T.BRIDGE) {
-          const x = i % w.size;
-          const y = Math.floor(i / w.size);
-          expect(Math.min(x, y, w.size - 1 - x, w.size - 1 - y)).toBeGreaterThanOrEqual(SEA_MARGIN);
-        }
-      // Alle begehbaren Felder hängen zusammen
-      const seen = reachable(w);
+      // Mit Brücken über die Flüsse hängen alle begehbaren Felder zusammen
+      const seen = reachable(w, true);
       for (let i = 0; i < w.size * w.size; i++)
         if (terrainWalkable(w.terrain[i]!) && !w.treeAt[i]) expect(seen[i]).toBe(1);
     });
@@ -78,4 +82,41 @@ describe("WL-AK-24: Flugzeugwrack", () => {
       expect(around.some(([x, y]) => seen[idx(w, x!, y!)] === 1)).toBe(true);
     });
   }
+});
+
+describe("WL-AK-29: Trümmerspur", () => {
+  for (const seed of [1, 2, 42, 7]) {
+    it(`Seed ${seed}: 15–25 Teile auf begehbarem Land, 10–90 Felder vom Wrack`, () => {
+      const w = generateWorld(seed);
+      expect(w.debris.length).toBeGreaterThanOrEqual(DEBRIS.min);
+      expect(w.debris.length).toBeLessThanOrEqual(DEBRIS.max);
+      for (const d of w.debris) {
+        const i = idx(w, d.x, d.y);
+        expect(terrainWalkable(w.terrain[i]!)).toBe(true);
+        expect(w.terrain[i]).not.toBe(T.WATER);
+        expect(w.treeAt[i]).toBe(0);
+        const dist = Math.hypot(d.x - w.plane.x, d.y - w.plane.y);
+        expect(dist).toBeGreaterThanOrEqual(10);
+        expect(dist).toBeLessThanOrEqual(90);
+      }
+    });
+  }
+
+  it("Hinweis: Himmelsrichtung (Norden = oben) und Entfernungsstufe", () => {
+    const w = generateWorld(3);
+    const { x, y } = w.plane;
+    // Bildschirm-oben = Kachelrichtung (−1, −1): Wrack liegt „oben“ → Norden
+    expect(debrisHint(w, x + 10, y + 10).dir).toBe("Norden");
+    expect(debrisHint(w, x - 10, y - 10).dir).toBe("Süden");
+    // Bildschirm-rechts = (+1, −1)
+    expect(debrisHint(w, x - 10, y + 10).dir).toBe("Osten");
+    expect(debrisHint(w, x + 10, y - 10).dir).toBe("Westen");
+    expect(debrisHint(w, x, y + 15).dir).toBe("Nordosten");
+    expect(debrisHint(w, x + 10, y).dist).toBe("ganz nah");
+    expect(debrisHint(w, x + 35, y).dist).toBe("nicht mehr weit");
+    expect(debrisHint(w, x + 70, y).dist).toBe("noch weit weg");
+    expect(debrisHint(w, x + 70, y).text).toMatch(
+      /^Ein Stück Flugzeug! Die Spur führt nach \S+ – noch weit weg\.$/,
+    );
+  });
 });

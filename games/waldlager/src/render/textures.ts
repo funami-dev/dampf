@@ -224,6 +224,38 @@ export function addChute(tex: Phaser.Textures.TextureManager, color: string) {
 }
 
 /** Abgestürztes Flugzeug (ohne Logo) */
+/** Kleine Trümmerteile (drei Varianten) */
+function addDebris(tex: Phaser.Textures.TextureManager) {
+  const shapes = [
+    (g: Ctx) => {
+      g.fillStyle = "#c7ccd2";
+      g.fillRect(2, 4, 10, 3);
+      g.fillStyle = "#8c939b";
+      g.fillRect(2, 7, 10, 1);
+      g.fillStyle = "#2c3e50";
+      g.fillRect(5, 5, 2, 1);
+    },
+    (g: Ctx) => {
+      g.fillStyle = "#bfc5cc";
+      for (let r = 0; r < 5; r++) g.fillRect(3 + r, 2 + r, 8 - r, 1);
+      g.fillStyle = "#7d848c";
+      g.fillRect(3, 7, 8, 1);
+    },
+    (g: Ctx) => {
+      g.fillStyle = "#9aa0a6";
+      g.fillRect(3, 5, 4, 3);
+      g.fillRect(8, 4, 3, 2);
+      g.fillStyle = "#d9dde2";
+      g.fillRect(4, 3, 6, 2);
+    },
+  ];
+  shapes.forEach((fn, i) => {
+    const [c, g] = canvas(14, 10);
+    fn(g);
+    tex.addCanvas(`debris${i}`, c);
+  });
+}
+
 function addWreck(tex: Phaser.Textures.TextureManager) {
   const [c, g] = canvas(112, 64);
   // Trümmer und verbrannter Boden
@@ -327,6 +359,7 @@ export function addTextures(tex: Phaser.Textures.TextureManager) {
   addFire(tex);
   addAnimals(tex);
   addWreck(tex);
+  addDebris(tex);
   const [c, g] = canvas(TW, TH);
   diamond(g, 0, "rgba(255,255,255,0.45)");
   tex.addCanvas("ghost", c);

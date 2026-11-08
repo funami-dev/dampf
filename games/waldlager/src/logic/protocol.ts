@@ -18,7 +18,7 @@ export type GuestMsg =
     }
   | { v: 1; k: "act" }
   | { v: 1; k: "eat" }
-  | { v: 1; k: "build"; kind: "tent" | "fire" };
+  | { v: 1; k: "build"; kind: "tent" | "fire" | "bridge" };
 
 export interface PlayerSnap {
   id: string;
@@ -49,6 +49,8 @@ export interface Snap {
   /** [Strauch-Index, Beeren] der Sträucher in der Nähe */
   berries: [number, number][];
   fires: Fire[];
+  /** gebaute Brückenfelder (Feld-Index) */
+  bridges: number[];
   /** [Art-Index, x, y] */
   animals: [number, number, number][];
   players: PlayerSnap[];
@@ -87,7 +89,9 @@ export function parseGuest(d: unknown): GuestMsg | null {
     case "eat":
       return { v: 1, k: d.k };
     case "build":
-      return d.kind === "tent" || d.kind === "fire" ? { v: 1, k: "build", kind: d.kind } : null;
+      return d.kind === "tent" || d.kind === "fire" || d.kind === "bridge"
+        ? { v: 1, k: "build", kind: d.kind }
+        : null;
     default:
       return null;
   }
@@ -128,6 +132,8 @@ export function parseHost(d: unknown): HostMsg | null {
     !d.stumps.every(num) ||
     !Array.isArray(d.berries) ||
     !d.berries.every((b) => Array.isArray(b) && b.length === 2 && b.every(num)) ||
+    !Array.isArray(d.bridges) ||
+    !d.bridges.every(num) ||
     !Array.isArray(d.fires) ||
     !d.fires.every((f) => obj(f) && num(f.id) && num(f.x) && num(f.y) && num(f.until)) ||
     !Array.isArray(d.animals) ||
@@ -160,6 +166,7 @@ export function toSnap(w: World, s: State, focus: { x: number; y: number }[]): S
       near(b.x, b.y) ? [[i, s.berries[i]!]] : [],
     ),
     fires: s.fires.filter((f) => near(f.x, f.y)).map((f) => ({ ...f })),
+    bridges: Object.keys(s.bridges).map(Number),
     animals: s.animals
       .filter((a) => near(a.x, a.y))
       .map((a) => [ANIMALS.indexOf(a.kind), +a.x.toFixed(2), +a.y.toFixed(2)]),
@@ -189,6 +196,7 @@ export function applySnap(s: State, snap: Snap, me: string, first: boolean) {
   s.stumps = Object.fromEntries(snap.stumps.map((k) => [k, Infinity]));
   for (const [i, n] of snap.berries) if (i >= 0 && i < s.berries.length) s.berries[i] = n;
   s.fires = snap.fires;
+  s.bridges = Object.fromEntries(snap.bridges.map((i) => [i, 1 as const]));
   s.animals = snap.animals.map(([k, x, y], i): Animal => {
     const prev = s.animals[i];
     return prev && prev.kind === ANIMALS[k]
