@@ -14,6 +14,7 @@
    Zwei getrennte Regeln: Ältere Safari-Versionen kennen :has() nicht und würden sonst die ganze
    Regel verwerfen. */
 html:has(> body.dampf-game) {
+  touch-action: manipulation;
   margin: 0;
   height: 100%;
   background: var(--dampf-bg);
@@ -21,6 +22,7 @@ html:has(> body.dampf-game) {
   overscroll-behavior: none;
 }
 body.dampf-game {
+  touch-action: manipulation;
   margin: 0;
   height: 100%;
   background: var(--dampf-bg);

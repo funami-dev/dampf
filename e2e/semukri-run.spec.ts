@@ -111,8 +111,8 @@ test("SR-AK-12: Desktop – Rennen, Rekord, Neuladen, Geist", async ({ page }) =
   // Zweites Rennen: der Geist läuft mit
   await page.keyboard.press("Enter");
   await expect.poll(async () => (await state(page))?.phase).toBe("running");
-  await page.waitForTimeout(500);
-  expect((await state(page))?.ghostPos).toBeGreaterThan(0);
+  // Der Geist läuft los (unter Last kann das erste Bild etwas dauern)
+  await expect.poll(async () => (await state(page))?.ghostPos ?? 0).toBeGreaterThan(0);
   await expectNoErrors(errors);
 });
 

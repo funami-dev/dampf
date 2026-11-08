@@ -18,7 +18,7 @@ Dieses Repo wird **spec-driven** entwickelt:
 | ------------------------------------------------ | ------------------------------------------- | --------- |
 | [000-vision.md](000-vision.md)                   | Vision, Ziele, Nicht-Ziele                  | Umgesetzt |
 | [001-repo-und-build.md](001-repo-und-build.md)   | Monorepo, Build, Deployment (Vercel)        | Umgesetzt |
-| [002-game-manifest.md](002-game-manifest.md)     | `game.json`-Format & Pflichten eines Spiels | Entwurf   |
+| [002-game-manifest.md](002-game-manifest.md)     | `game.json`-Format & Pflichten eines Spiels | Umgesetzt |
 | [003-portal.md](003-portal.md)                   | Startseite / Spieleliste (Astro)            | Umgesetzt |
 | [games/snake.md](games/snake.md)                 | Spiel 1: Snake (Referenz-Template)          | Umgesetzt |
 | [games/himmelhuepfer.md](games/himmelhuepfer.md) | Spiel 2: Himmelhüpfer (Endlos-Hüpfspiel)    | Umgesetzt |

@@ -28,3 +28,80 @@ test.describe("Spiel-Rahmen", () => {
     });
   }
 });
+
+test.describe("Kein Zoom", () => {
+  for (const game of games) {
+    test(`MANIFEST-AK-09: ${game.slug} – kein Doppeltipp- und Gesten-Zoom`, async ({ page }) => {
+      await page.goto(`/games/${game.slug}/`);
+      await expect(page.locator("#game > canvas").first()).toBeVisible();
+      const r = await page.evaluate(() => {
+        const ev = new Event("gesturestart", { cancelable: true });
+        document.dispatchEvent(ev);
+        return {
+          html: getComputedStyle(document.documentElement).touchAction,
+          body: getComputedStyle(document.body).touchAction,
+          gesture: ev.defaultPrevented,
+        };
+      });
+      expect(r.body).toBe("manipulation");
+      expect(r.html).toBe("manipulation");
+      expect(r.gesture).toBe(true);
+    });
+  }
+
+  test("MANIFEST-AK-09: Doppeltipp auf einen Button – kein Zoom, aber beide Klicks kommen an", async ({
+    page,
+  }) => {
+    test.skip((page.viewportSize()?.width ?? 1000) >= 600, "nur Mobile (Touch)");
+    await page.goto("/games/waldlager/?e2e&relay=");
+    await page.getByRole("button", { name: "Los geht's" }).tap();
+    const btn = page.getByRole("button", { name: "Essen" });
+    await expect(btn).toBeVisible();
+    await page.evaluate(() => {
+      const w = window as unknown as { clicks: number; ends: { t: number; p: boolean }[] };
+      w.clicks = 0;
+      w.ends = [];
+      document.querySelector('[data-b="eat"]')!.addEventListener("click", () => (w.clicks += 1));
+      window.addEventListener("touchend", (e) =>
+        w.ends.push({ t: e.timeStamp, p: e.defaultPrevented }),
+      );
+    });
+    const b = (await btn.boundingBox())!;
+    const pt = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+    const cdp = await page.context().newCDPSession(page);
+    type W = { clicks: number; ends: { t: number; p: boolean }[] };
+    // Unter Last können zwei simulierte Tipps weiter als 350 ms auseinanderliegen; dann zählt es
+    // nicht als Doppeltipp. Deshalb bis zu 5 Versuche, bis ein echter Doppeltipp gelingt.
+    let checked = false;
+    for (let attempt = 0; attempt < 5 && !checked; attempt++) {
+      await page.waitForTimeout(500);
+      await page.evaluate(() => {
+        const w = window as unknown as W;
+        w.clicks = 0;
+        w.ends = [];
+      });
+      for (let i = 0; i < 2; i++) {
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [pt] });
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      }
+      await expect.poll(() => page.evaluate(() => (window as unknown as W).clicks)).toBe(2);
+      const ends = await page.evaluate(() => (window as unknown as W).ends);
+      expect(ends).toHaveLength(2);
+      if (ends[1]!.t - ends[0]!.t >= 300) continue;
+      expect(ends.map((e) => e.p)).toEqual([false, true]);
+      checked = true;
+    }
+    expect(checked).toBe(true);
+  });
+
+  test("MANIFEST-AK-09: die Startseite bleibt zoombar", async ({ page }) => {
+    await page.goto("/");
+    const r = await page.evaluate(() => {
+      const ev = new Event("gesturestart", { cancelable: true });
+      document.dispatchEvent(ev);
+      return { body: getComputedStyle(document.body).touchAction, gesture: ev.defaultPrevented };
+    });
+    expect(r.body).toBe("auto");
+    expect(r.gesture).toBe(false);
+  });
+});

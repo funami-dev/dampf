@@ -1,6 +1,7 @@
 // Nur über @dampf/game-kit/shell importieren: bringt das Spielseiten-CSS mit.
 import "./compat.ts";
 import "./shell.css";
+import { installNoZoom } from "./nozoom.ts";
 
 export interface ShellOptions {
   title: string;
@@ -31,6 +32,7 @@ export function mountGameShell({ title }: ShellOptions): HTMLElement {
   stage.id = "game";
 
   document.body.classList.add("dampf-game");
+  installNoZoom();
   document.body.append(bar, stage);
   return stage;
 }
