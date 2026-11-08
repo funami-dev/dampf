@@ -13,6 +13,9 @@ eigenständige Vollbild-Seite.
 - **Ein Repo, viele Spiele:** Ein neues Spiel hinzuzufügen heißt: Ordner unter `games/` anlegen
   (aus dem Snake-Template), `game.json` ausfüllen – es erscheint automatisch auf der Startseite.
 - **Statisch & schnell:** Komplett statischer Build, gehostet auf Vercel, kein Backend.
+  Ausnahme: ein kleiner WebSocket-Raum-Server auf Cloudflare Workers für Mehrspieler-Spiele
+  (zuerst Waldlager). Er leitet nur Nachrichten weiter, ohne Konten und ohne gespeicherte Daten.
+  Portal und Spiele bleiben statisch und funktionieren auch ohne ihn.
 - **Mobile-first spielbar:** Portal und Spiele funktionieren auf Smartphone (Touch) und Desktop
   (Tastatur/Maus).
 - **Spec-driven:** Verhalten ist in `specs/` beschrieben und durch Tests abgesichert.
@@ -30,7 +33,8 @@ eigenständige Vollbild-Seite.
 
 ## Nicht-Ziele (MVP)
 
-- Keine Benutzerkonten, kein Backend, keine Online-Highscores.
+- Keine Benutzerkonten, keine Online-Highscores, kein eigenes Backend außer dem
+  Raum-Server für Mehrspieler (siehe oben).
 - Keine Tags/Filter/Suche auf der Startseite (kommt ggf. später).
 - Keine plattformweiten Highscores. Einzelne Spiele dürfen lokal (im Browser) Bestzeiten und
   Rekorde speichern, wenn ihre Spec das festlegt (z. B. SemUkri Run).

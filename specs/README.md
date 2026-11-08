@@ -27,3 +27,4 @@ Dieses Repo wird **spec-driven** entwickelt:
 | [games/hilden.md](games/hilden.md)               | Spiel 5: Mein Hilden (3D-Stadt, Berufe)     | Umgesetzt |
 | [games/juist-faehre.md](games/juist-faehre.md)   | Spiel 6: Juist-Fähre (3D-Schiffssimulator)  | Umgesetzt |
 | [games/kasse.md](games/kasse.md)                 | Spiel 7: Kassen-Held (3D-Supermarktkasse)   | Umgesetzt |
+| [games/waldlager.md](games/waldlager.md)         | Spiel 8: Waldlager (Iso-Wald, Mehrspieler)  | Entwurf   |
