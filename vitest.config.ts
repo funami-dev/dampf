@@ -6,7 +6,11 @@ export default defineConfig({
       {
         test: {
           name: "unit",
-          include: ["packages/*/src/**/*.test.ts", "games/*/src/**/*.test.ts"],
+          include: [
+            "packages/*/src/**/*.test.ts",
+            "games/*/src/**/*.test.ts",
+            "services/*/src/**/*.test.ts",
+          ],
         },
       },
       "apps/portal",

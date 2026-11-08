@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 4321;
+export const RELAY_PORT = 8787;
 /** Mit DAMPF_URL laufen die Tests gegen eine echte Seite (z. B. Production) statt lokal. */
 const remote = process.env.DAMPF_URL;
 
@@ -21,9 +22,17 @@ export default defineConfig({
   ],
   webServer: remote
     ? undefined
-    : {
-        command: "tsx scripts/serve.ts",
-        port: PORT,
-        reuseExistingServer: !process.env.CI,
-      },
+    : [
+        {
+          command: "tsx scripts/serve.ts",
+          port: PORT,
+          reuseExistingServer: !process.env.CI,
+        },
+        // Lokaler Raum-Server für Mehrspieler-Tests (WL-AK-15)
+        {
+          command: "tsx services/relay/src/node.ts",
+          port: RELAY_PORT,
+          reuseExistingServer: !process.env.CI,
+        },
+      ],
 });

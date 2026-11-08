@@ -8,7 +8,8 @@
   "workspaces": [
     "packages/*",
     "games/*",
-    "apps/*"
+    "apps/*",
+    "services/*"
   ],
   "scripts": {
     "dev": "npm run dev -w apps/portal",
