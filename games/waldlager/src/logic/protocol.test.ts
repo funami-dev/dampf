@@ -44,7 +44,7 @@ describe("WL-AK-12: Protokoll", () => {
         stumps: [],
         berries: "4",
         fires: [],
-        animals: [[9, 1, 1]],
+        animals: [[99, 1, 1]],
         players: [],
       },
       {

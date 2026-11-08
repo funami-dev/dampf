@@ -16,7 +16,9 @@ import {
   createState,
   eat,
   free,
+  hiddenAt,
   isStump,
+  visibleAnimals,
   movePlayer,
   stepWorld,
   type Player,
@@ -24,9 +26,11 @@ import {
 } from "./logic/sim.ts";
 import { browserStore, load, save } from "./logic/save.ts";
 import { applySnap, parseGuest, parseHost, toSnap, type GuestMsg } from "./logic/protocol.ts";
+import { HABITAT_TEXT, SPECIES, TIME_TEXT, UNICORN, speciesById } from "./logic/species.ts";
+import { discover, loadBook, saveBook } from "./logic/tierbuch.ts";
 import { generateWorld, idx, inside, type World } from "./logic/world.ts";
 import { HS, isoX, isoY, tileX, tileY } from "./render/iso.ts";
-import { addPlayerTex, addTent, addTextures, tileKey } from "./render/textures.ts";
+import { addPlayerTex, addTent, addTextures, speciesCanvas, tileKey } from "./render/textures.ts";
 import { debugEnabled } from "./debug.ts";
 
 const store = browserStore();
@@ -99,6 +103,15 @@ let ws: WebSocket | null = null;
 let roomCode: string | null = null;
 let netTimer = 0;
 let gotSnap = false;
+let nextOpenTry = 0;
+let metaTimer = 0;
+let lobby: { code: string; host: string; players: string[]; count: number; max: number }[] | null =
+  null;
+let lobbyError = false;
+let lobbyTimer: ReturnType<typeof setInterval> | null = null;
+// Tierbuch
+const book = loadBook(store);
+let seeTimer = 0;
 const me = (): Player => state.players[meId]!;
 
 let profile = { name: "", color: COLORS[1] as string };
@@ -210,6 +223,10 @@ window.addEventListener("keydown", (e) => {
     chopTimer = 0.45;
   }
   if (e.code === "KeyQ") doEat();
+  if (e.code === "KeyT" && screen === "play") {
+    toggleBuild(false);
+    openBook(() => resume());
+  }
   if (e.code === "KeyB") toggleBuild();
   if (building && e.code === "Digit1") doBuild("tent");
   if (building && e.code === "Digit2") doBuild("fire");
@@ -270,17 +287,20 @@ function openStart() {
   screen = "menu";
   const hasSave = !!saved;
   const el = panel(`<h2>Waldlager</h2>
-    <p>Hack Holz, bau dein Zelt und ein Lagerfeuer und such Beeren, bevor es dunkel wird. Die Tiere im Wald tun dir nichts – und du ihnen auch nicht.</p>
+    <p>Hack Holz, bau dein Zelt und ein Lagerfeuer, such Beeren – und entdecke alle Tiere des Waldes. Die Tiere tun dir nichts, und du ihnen auch nicht.</p>
     <label class="wl-field">Dein Name <input type="text" maxlength="12" value="${escapeHtml(profile.name)}" placeholder="Wanderer" autocomplete="off" /></label>
+    ${RELAY_URL ? `<p class="wl-hint">Dein Name ist für alle sichtbar – nimm einen Spitznamen.</p>` : ""}
     <div class="wl-colors" role="group" aria-label="Farbe">${COLORS.map(
       (c) =>
         `<button type="button" class="wl-color" data-c="${c}" style="background:${c}" aria-label="Farbe ${c}" aria-pressed="${c === profile.color}"></button>`,
     ).join("")}</div>
     <button class="wl-btn primary" type="button" data-a="play">${hasSave ? "Weiterspielen" : "Los geht's"}</button>
     ${hasSave ? `<button class="wl-btn" type="button" data-a="new">Neue Welt</button>` : ""}
-    ${RELAY_URL ? `<button class="wl-btn" type="button" data-a="join">Einer Welt beitreten</button>` : ""}
-    <p><small>Laufen: WASD/Pfeile · Rennen: Umschalt · Aktion: E · Essen: Q · Bauen: B</small></p>`);
+    <button class="wl-btn" type="button" data-a="book">Tierbuch</button>
+    ${RELAY_URL ? `<section class="wl-lobby" aria-label="Offene Welten"><h3>Offene Welten</h3><div class="wl-rooms" role="list"></div></section>` : ""}
+    <p><small>Laufen: WASD/Pfeile · Rennen: Umschalt · Aktion: E · Essen: Q · Bauen: B · Tierbuch: T</small></p>`);
   const input = el.querySelector("input")!;
+  const takeName = () => (profile.name = input.value.trim().slice(0, 12) || "Wanderer");
   el.querySelectorAll<HTMLButtonElement>(".wl-color").forEach((b) =>
     b.addEventListener("click", () => {
       profile.color = b.dataset.c!;
@@ -290,7 +310,7 @@ function openStart() {
     }),
   );
   const start = (fresh: boolean) => {
-    profile.name = input.value.trim().slice(0, 12) || "Wanderer";
+    takeName();
     if (fresh) newWorld();
     const p = me();
     p.name = profile.name;
@@ -301,63 +321,111 @@ function openStart() {
   };
   el.querySelector('[data-a="play"]')!.addEventListener("click", () => start(false));
   el.querySelector('[data-a="new"]')?.addEventListener("click", () => start(true));
-  el.querySelector('[data-a="join"]')?.addEventListener("click", () => {
-    profile.name = input.value.trim().slice(0, 12) || "Wanderer";
-    openJoin();
+  el.querySelector('[data-a="book"]')!.addEventListener("click", () => {
+    takeName();
+    openBook(() => openStart());
   });
+  const rooms = el.querySelector<HTMLElement>(".wl-rooms");
+  if (rooms) {
+    rooms.addEventListener("click", (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>("[data-room]");
+      if (!b || b.disabled) return;
+      takeName();
+      joinWorld(b.dataset.room!);
+    });
+    startLobby(rooms);
+  }
 }
 
-function openJoin() {
-  const el = panel(`<h2>Einer Welt beitreten</h2>
-    <p>Gib den Raum-Code ein, den dir der Gastgeber zeigt.</p>
-    <label class="wl-field">Raum-Code <input type="text" maxlength="4" autocomplete="off" autocapitalize="characters" placeholder="ABCD" /></label>
-    <button class="wl-btn primary" type="button" data-a="go">Beitreten</button>
-    <button class="wl-btn" type="button" data-a="back">Zurück</button>`);
-  const input = el.querySelector("input")!;
-  const go = () => {
-    const code = input.value.trim().toUpperCase();
-    if (/^[A-Z]{4}$/.test(code)) joinWorld(code);
-    else toast("Der Code hat 4 Buchstaben.");
+/** Liste offener Welten: alle 5 Sekunden neu laden (WL-AK-15) */
+function startLobby(list: HTMLElement) {
+  stopLobby();
+  const render = () => {
+    if (!list.isConnected) return stopLobby();
+    const rooms = (lobby ?? []).filter((r) => r.code !== roomCode);
+    list.innerHTML = lobbyError
+      ? `<p class="wl-muted">${OFFLINE}</p>`
+      : !lobby
+        ? `<p class="wl-muted">Suche offene Welten …</p>`
+        : !rooms.length
+          ? `<p class="wl-muted">Gerade ist keine andere Welt offen.</p>`
+          : rooms
+              .map((r) => {
+                const full = r.count >= r.max;
+                return `<div class="wl-room-item" role="listitem">
+                  <div><b>${escapeHtml(r.host)}s Welt</b><br><small>${r.players.map(escapeHtml).join(", ")} · ${r.count} / ${r.max}</small></div>
+                  <button class="wl-btn" type="button" data-room="${escapeHtml(r.code)}" ${full ? "disabled" : ""} aria-label="${escapeHtml(r.host)}s Welt beitreten">${full ? "Voll" : "Beitreten"}</button>
+                </div>`;
+              })
+              .join("");
   };
-  el.querySelector('[data-a="go"]')!.addEventListener("click", go);
-  input.addEventListener("keydown", (e) => e.key === "Enter" && go());
-  el.querySelector('[data-a="back"]')!.addEventListener("click", () => openStart());
+  const load = async () => {
+    try {
+      const res = await fetch(`${RELAY_URL.replace(/^ws/, "http")}/rooms`, { cache: "no-store" });
+      lobby = (await res.json()) as typeof lobby;
+      lobbyError = !Array.isArray(lobby);
+    } catch {
+      lobbyError = true;
+    }
+    render();
+  };
+  render();
+  void load();
+  lobbyTimer = setInterval(() => void load(), 5000);
+}
+function stopLobby() {
+  if (lobbyTimer) clearInterval(lobbyTimer);
+  lobbyTimer = null;
+}
+
+/** Tierbuch (WL-AK-21/22) */
+function openBook(back: () => void) {
+  const items = SPECIES.map((sp) => {
+    const seen = book.has(sp.id);
+    const img = speciesCanvas(sp, 3).toDataURL();
+    const hint =
+      sp.id === UNICORN ? "Sehr selten …" : `${TIME_TEXT[sp.time]} ${HABITAT_TEXT[sp.habitat]}`;
+    return `<li class="wl-animal${seen ? "" : " unseen"}">
+      <img src="${img}" alt="${seen ? sp.name : "unbekanntes Tier"}" />
+      <div><b>${seen ? sp.name : "???"}</b><br><small>${seen ? `${TIME_TEXT[sp.time]} ${HABITAT_TEXT[sp.habitat]} · ${sp.fact}` : hint}</small></div>
+    </li>`;
+  }).join("");
+  const el = panel(`<h2>Tierbuch</h2>
+    <p class="wl-count">${book.size} / ${SPECIES.length} entdeckt</p>
+    <ul class="wl-book">${items}</ul>
+    <button class="wl-btn primary" type="button" data-a="back">Zurück</button>`);
+  el.classList.add("wl-panel-scroll");
+  el.querySelector('[data-a="back"]')!.addEventListener("click", back);
 }
 
 function openMenu() {
   if (screen !== "play") return;
   toggleBuild(false);
-  const online =
-    mode === "host"
-      ? `<p>Raum-Code: <b class="wl-code">${roomCode ?? "…"}</b> – andere können damit beitreten.</p>
-         <button class="wl-btn" type="button" data-a="close">Welt schließen</button>`
-      : mode === "guest"
-        ? `<button class="wl-btn" type="button" data-a="leave">Welt verlassen</button>`
-        : RELAY_URL
-          ? `<button class="wl-btn" type="button" data-a="open">Welt öffnen</button>`
-          : "";
   const el = panel(`<h2>Menü</h2>
     <button class="wl-btn primary" type="button" data-a="resume">Weiterspielen</button>
-    ${online}
-    ${mode === "solo" ? `<button class="wl-btn" type="button" data-a="new">Neue Welt</button>` : ""}
-    <p><small>Laufen: WASD/Pfeile oder Joystick · Rennen: Umschalt · Aktion: E · Essen: Q · Bauen: B (1 Zelt, 2 Feuer)</small></p>`);
+    <button class="wl-btn" type="button" data-a="book">Tierbuch</button>
+    ${mode === "guest" ? `<button class="wl-btn" type="button" data-a="leave">Welt verlassen</button>` : ""}
+    ${mode !== "guest" ? `<button class="wl-btn" type="button" data-a="new">Neue Welt</button>` : ""}
+    <button class="wl-btn" type="button" data-a="main">Hauptmenü</button>
+    <p><small>Laufen: WASD/Pfeile oder Joystick · Rennen: Umschalt · Aktion: E · Essen: Q · Bauen: B (1 Zelt, 2 Feuer) · Tierbuch: T</small></p>`);
   el.querySelector('[data-a="resume"]')!.addEventListener("click", () => resume());
+  el.querySelector('[data-a="book"]')!.addEventListener("click", () => openBook(() => openMenu()));
   el.querySelector('[data-a="new"]')?.addEventListener("click", () => {
+    closeWorld();
     newWorld();
     persist();
     resume();
     toast("Eine neue Welt!");
   });
-  el.querySelector('[data-a="open"]')?.addEventListener("click", () => {
-    resume();
-    openWorld();
-  });
-  el.querySelector('[data-a="close"]')?.addEventListener("click", () => {
-    closeWorld();
-    resume();
-    toast("Deine Welt ist wieder nur für dich.");
-  });
   el.querySelector('[data-a="leave"]')?.addEventListener("click", () => leaveGuest(null));
+  el.querySelector('[data-a="main"]')!.addEventListener("click", () => {
+    if (mode === "guest") leaveGuest(null);
+    else {
+      closeWorld();
+      persist();
+      openStart();
+    }
+  });
 }
 
 // --- Mehrspieler über WebSocket (Raum-Server) ----------------------------
@@ -408,6 +476,7 @@ function dropGuests() {
 }
 
 /** Gastgeber: eigene Welt für andere öffnen */
+/** Gastgeber: die eigene Welt ist immer offen (automatisch, sobald man spielt) */
 function openWorld() {
   if (!RELAY_URL || mode !== "solo") return;
   mode = "host";
@@ -417,12 +486,13 @@ function openWorld() {
     (m) => {
       if (m.t === "room" && typeof m.code === "string") {
         roomCode = m.code;
-        toast(`Deine Welt ist offen! Raum-Code: ${m.code}`, 6);
+        sendMeta();
       } else if (m.t === "from" && typeof m.id === "string") onGuestMsg(m.id, m.d);
       else if (m.t === "peer-leave" && typeof m.id === "string") {
         const p = state.players[m.id];
         if (p) toast(`${p.name} ist gegangen.`);
         delete state.players[m.id];
+        sendMeta();
       }
     },
     (opened) => {
@@ -430,11 +500,21 @@ function openWorld() {
       mode = "solo";
       roomCode = null;
       dropGuests();
-      toast(
-        opened ? "Verbindung zum Raum-Server verloren – du spielst allein weiter." : OFFLINE,
-        4,
-      );
+      nextOpenTry = now() + 30_000;
+      if (opened) toast("Verbindung zum Raum-Server verloren – du spielst allein weiter.", 4);
     },
+  );
+}
+
+/** Name und Spieler für die Liste offener Welten melden */
+function sendMeta() {
+  if (mode !== "host" || ws?.readyState !== WebSocket.OPEN) return;
+  ws.send(
+    JSON.stringify({
+      t: "meta",
+      host: me().name,
+      players: Object.values(state.players).map((p) => p.name),
+    }),
   );
 }
 
@@ -456,6 +536,7 @@ function onGuestMsg(id: string, d: unknown) {
       if (Object.keys(state.players).length >= 6) return;
       addPlayer(world, state, id, g.name, g.color);
       toast(`${state.players[id]!.name} ist in deine Welt gekommen!`, 3);
+      sendMeta();
     }
     hostSend(id, { v: 1, k: "welcome", seed: world.seed });
     hostSend(id, toSnap(state));
@@ -494,6 +575,8 @@ function onGuestMsg(id: string, d: unknown) {
 /** Gast: einer fremden Welt beitreten */
 function joinWorld(code: string) {
   if (!RELAY_URL) return;
+  stopLobby();
+  closeWorld();
   persist();
   let myId = "";
   mode = "guest";
@@ -562,6 +645,11 @@ function netTick(dt: number) {
   if (netTimer < 0.1) return;
   netTimer = 0;
   if (mode === "host" && guests().length) hostSend(undefined, toSnap(state));
+  metaTimer += 0.1;
+  if (metaTimer >= 10) {
+    metaTimer = 0;
+    sendMeta();
+  }
   if (mode === "guest" && gotSnap) {
     const p = me();
     guestSend({
@@ -740,7 +828,13 @@ class WorldScene extends Phaser.Scene {
       }
     }
     state.animals.forEach((a, k) => {
-      const s = place(`a:${k}`, a.kind, a.x, a.y);
+      if (hiddenAt(a.kind, state.total)) return;
+      const s = place(`a:${k}`, `animal:${a.kind}`, a.x, a.y);
+      if (a.kind === UNICORN) {
+        s.setAlpha(0.85 + Math.sin(time / 200) * 0.15);
+        const sp = place(`sp:${k}`, "sparkle", a.x + Math.sin(time / 300) * 0.6, a.y - 0.4);
+        sp.setAlpha(0.5 + 0.5 * Math.sin(time / 150)).setDepth(s.depth + 1);
+      } else s.setAlpha(1);
       const prev = this.prevX.get(a);
       const sx = isoX(a.x, a.y);
       if (prev !== undefined && Math.abs(sx - prev) > 0.01) s.setFlipX(sx < prev);
@@ -830,6 +924,25 @@ function tick(dt: number) {
       for (const ev of stepWorld(world, state, dt)) onEvent(ev);
   }
   if (mode !== "solo") netTick(dt);
+  // Welt immer offen: im Hintergrund verbinden bzw. alle 30 s neu versuchen
+  if (RELAY_URL && mode === "solo" && screen === "play" && now() >= nextOpenTry) {
+    nextOpenTry = now() + 30_000;
+    openWorld();
+  }
+  // Tiere entdecken
+  seeTimer += dt;
+  if (screen === "play" && seeTimer >= 0.25 && (mode !== "guest" || gotSnap)) {
+    seeTimer = 0;
+    const fresh = discover(
+      book,
+      visibleAnimals(state, me()).map((a) => a.kind),
+    );
+    if (fresh.length) {
+      saveBook(store, book);
+      const sp = speciesById(fresh[fresh.length - 1]!)!;
+      toast(sp.id === UNICORN ? "✨ Ein Einhorn! ✨" : `Neu entdeckt: ${sp.name}!`, 3.5);
+    }
+  }
   updateHud();
 }
 const now = () => performance.now();
@@ -852,10 +965,10 @@ function updateHud() {
   hud("clock").textContent =
     `${phaseOf(state.total) === "nacht" ? "🌙" : "☀️"} ${clockOf(state.total)}`;
   const room = hud("room");
-  room.hidden = mode === "solo";
+  room.hidden = mode === "solo" || (mode === "host" && !roomCode);
   room.textContent =
     mode === "host"
-      ? `Raum ${roomCode ?? "…"} · ${Object.keys(state.players).length}`
+      ? `Online · ${Object.keys(state.players).length}`
       : `Gast · ${Object.keys(state.players).length}`;
   const a = screen === "play" ? actionFor(world, state, p) : null;
   actBtn.textContent = a ? a.label : "Aktion";
@@ -917,6 +1030,10 @@ if (debugEnabled) {
           y: q.y,
         })),
         stumpList: Object.keys(state.stumps).map(Number),
+        book: [...book],
+        lobby,
+        lobbyError,
+        visible: visibleAnimals(state, p).map((a) => a.kind),
       };
     },
     teleport: (x, y, fx, fy) => {
@@ -927,6 +1044,20 @@ if (debugEnabled) {
         p.fx = fx;
         p.fy = fy;
       }
+    },
+    nearestAnimal: () => {
+      const p = me();
+      let best: [number, number, string] | null = null;
+      let bd = Infinity;
+      for (const a of state.animals) {
+        if (hiddenAt(a.kind, state.total) || book.has(a.kind)) continue;
+        const d = Math.hypot(a.x - p.x, a.y - p.y);
+        if (d < bd) {
+          bd = d;
+          best = [a.x, a.y, a.kind];
+        }
+      }
+      return best;
     },
     setTime: (t) => {
       state.total = t;

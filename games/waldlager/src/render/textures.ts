@@ -1,6 +1,7 @@
 import type Phaser from "phaser";
 import { T } from "../logic/world.ts";
 import { HS, TH, TW } from "./iso.ts";
+import { SPECIES, type Species } from "../logic/species.ts";
 
 /** Pixel-Grafiken, alle per Code gezeichnet (keine Bilddateien). */
 type Ctx = CanvasRenderingContext2D;
@@ -220,62 +221,28 @@ export function addPlayerTex(tex: Phaser.Textures.TextureManager, color: string)
   return key;
 }
 
+/** Pixel-Raster einer Tierart als Canvas (für Phaser und das Tierbuch) */
+export function speciesCanvas(sp: Species, scale = 1): HTMLCanvasElement {
+  const w = Math.max(...sp.pixels.map((r) => r.length));
+  const [c, g] = canvas(w * scale, sp.pixels.length * scale);
+  sp.pixels.forEach((row, y) =>
+    [...row].forEach((ch, x) => {
+      if (ch === ".") return;
+      g.fillStyle = sp.palette[ch]!;
+      g.fillRect(x * scale, y * scale, scale, scale);
+    }),
+  );
+  return c;
+}
+
 function addAnimals(tex: Phaser.Textures.TextureManager) {
-  const draw = (key: string, w: number, h: number, fn: (g: Ctx) => void) => {
-    const [c, g] = canvas(w, h);
-    fn(g);
-    tex.addCanvas(key, c);
-  };
-  draw("reh", 18, 16, (g) => {
-    g.fillStyle = "#a0662e";
-    g.fillRect(3, 6, 11, 5);
-    g.fillRect(13, 2, 3, 6);
-    g.fillRect(14, 1, 3, 3);
-    g.fillStyle = "#7a4a1f";
-    for (const x of [3, 6, 10, 12]) g.fillRect(x, 11, 1, 5);
-    g.fillStyle = "#f3e5c8";
-    g.fillRect(2, 6, 2, 2);
-    g.fillRect(5, 7, 1, 1);
-    g.fillRect(8, 7, 1, 1);
-    g.fillStyle = "#222";
-    g.fillRect(16, 2, 1, 1);
-  });
-  draw("hase", 10, 9, (g) => {
-    g.fillStyle = "#9e8a74";
-    g.fillRect(1, 4, 7, 4);
-    g.fillRect(6, 2, 3, 3);
-    g.fillRect(6, 0, 1, 3);
-    g.fillRect(8, 0, 1, 3);
-    g.fillStyle = "#fff";
-    g.fillRect(0, 4, 2, 2);
-    g.fillStyle = "#222";
-    g.fillRect(8, 3, 1, 1);
-  });
-  draw("fuchs", 16, 10, (g) => {
-    g.fillStyle = "#e67e22";
-    g.fillRect(4, 3, 8, 4);
-    g.fillRect(11, 1, 4, 4);
-    g.fillRect(0, 2, 5, 2);
-    g.fillStyle = "#fff";
-    g.fillRect(0, 2, 1, 2);
-    g.fillRect(13, 4, 2, 1);
-    g.fillStyle = "#222";
-    g.fillRect(11, 0, 1, 1);
-    g.fillRect(14, 0, 1, 1);
-    g.fillRect(13, 2, 1, 1);
-    g.fillStyle = "#5b3a1e";
-    for (const x of [5, 7, 9, 11]) g.fillRect(x, 7, 1, 3);
-  });
-  draw("eichhoernchen", 9, 9, (g) => {
-    g.fillStyle = "#b5541c";
-    g.fillRect(3, 4, 4, 4);
-    g.fillRect(5, 2, 3, 3);
-    g.fillRect(0, 1, 3, 6);
-    g.fillStyle = "#e8a46c";
-    g.fillRect(5, 5, 2, 2);
-    g.fillStyle = "#222";
-    g.fillRect(7, 3, 1, 1);
-  });
+  for (const sp of SPECIES) tex.addCanvas(`animal:${sp.id}`, speciesCanvas(sp));
+  // Funkeln für das Einhorn
+  const [c, g] = canvas(5, 5);
+  g.fillStyle = "#fff6b0";
+  g.fillRect(2, 0, 1, 5);
+  g.fillRect(0, 2, 5, 1);
+  tex.addCanvas("sparkle", c);
 }
 
 export function addTextures(tex: Phaser.Textures.TextureManager) {

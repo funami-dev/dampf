@@ -1,13 +1,24 @@
 /** Lokaler Raum-Server (Entwicklung und E2E): gleiche Logik wie auf Cloudflare. */
+import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
-import { Hub, route } from "./hub.ts";
+import { CORS, Hub, route } from "./hub.ts";
 
 const port = Number(process.env.PORT ?? 8787);
 const hub = new Hub();
-const wss = new WebSocketServer({ port });
+const server = createServer((req, res) => {
+  const r = route(new URL(req.url ?? "/", "http://x").pathname);
+  if (r?.kind === "list") {
+    res.writeHead(200, CORS);
+    res.end(JSON.stringify(hub.list()));
+    return;
+  }
+  res.writeHead(r ? 426 : 404, { "Content-Type": "text/plain" });
+  res.end(r ? "WebSocket erwartet" : "Nicht gefunden");
+});
+const wss = new WebSocketServer({ server });
 wss.on("connection", (ws, req) => {
   const r = route(new URL(req.url ?? "/", "http://x").pathname);
-  if (!r) return ws.close(4004, "bad-path");
+  if (!r || r.kind === "list") return ws.close(4004, "bad-path");
   const conn = {
     send: (t: string) => ws.send(t),
     close: (c?: number, why?: string) => ws.close(c, why),
@@ -17,4 +28,4 @@ wss.on("connection", (ws, req) => {
   if (r.kind === "host") hub.host(conn);
   else hub.join(conn, r.code);
 });
-console.log(`Raum-Server läuft auf ws://localhost:${port}`);
+server.listen(port, () => console.log(`Raum-Server läuft auf ws://localhost:${port}`));

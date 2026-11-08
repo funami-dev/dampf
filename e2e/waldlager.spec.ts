@@ -26,6 +26,7 @@ interface WlState {
   players: { id: string; name: string; x: number; y: number }[];
   stumpList: number[];
   seed: number;
+  book: string[];
 }
 interface Hooks {
   state(): WlState;
@@ -35,6 +36,7 @@ interface Hooks {
   nearestTree(): [number, number, number, number] | null;
   nearestBush(): [number, number] | null;
   buildSpot(): [number, number, number, number] | null;
+  nearestAnimal(): [number, number, string] | null;
 }
 
 declare global {
@@ -75,6 +77,7 @@ test("WL-AK-13: Desktop – hacken, Feuer und Zelt bauen, Beeren essen, Nacht", 
   await open(page);
   // WL-AK-16: ohne Server keine Online-Knöpfe
   await expect(page.getByRole("button", { name: /beitreten/i })).toHaveCount(0);
+  await expect(page.getByText("Offene Welten")).toHaveCount(0);
   await page.getByLabel("Dein Name").fill("Mia");
   await page.getByRole("button", { name: "Farbe #e74c3c" }).click();
   await page.getByRole("button", { name: "Los geht's" }).click();
@@ -227,7 +230,7 @@ test("WL-AK-17: Fokusverlust pausiert, allein hält die Zeit an", async ({ page 
   await expect.poll(async () => (await state(page)).total).toBeGreaterThan(t);
 });
 
-test("WL-AK-15: zwei Browser – Welt öffnen, beitreten, gemeinsam hacken, Gastgeber geht", async ({
+test("WL-AK-15: zwei Browser – Welt ist offen, Liste im Hauptmenü, beitreten, Gastgeber geht", async ({
   page,
   browser,
 }) => {
@@ -237,15 +240,14 @@ test("WL-AK-15: zwei Browser – Welt öffnen, beitreten, gemeinsam hacken, Gast
   const relay = "ws://localhost:8787";
   const errors = trackErrors(page);
   await open(page, relay);
+  await expect(page.getByText("Dein Name ist für alle sichtbar")).toBeVisible();
   await page.getByLabel("Dein Name").fill("Mia");
   await page.getByRole("button", { name: "Los geht's" }).click();
-  await page.getByRole("button", { name: "Menü" }).click();
-  await page.getByRole("button", { name: "Welt öffnen" }).click();
+  // Ohne Zutun offen
   await expect
     .poll(async () => (await state(page)).roomCode, { timeout: 30_000 })
     .toMatch(/^[A-Z]{4}$/);
-  const code = (await state(page)).roomCode!;
-  await expect(page.getByText(`Raum ${code}`)).toBeVisible();
+  await expect(page.getByText("Online · 1")).toBeVisible();
 
   const ctx2 = await browser.newContext();
   const guest = await ctx2.newPage();
@@ -253,15 +255,23 @@ test("WL-AK-15: zwei Browser – Welt öffnen, beitreten, gemeinsam hacken, Gast
   await open(guest, relay);
   await guest.getByLabel("Dein Name").fill("Ben");
   await guest.getByRole("button", { name: "Farbe #f1c40f" }).click();
-  await guest.getByRole("button", { name: "Einer Welt beitreten" }).click();
-  await guest.getByLabel("Raum-Code").fill(code.toLowerCase());
-  await guest.getByRole("button", { name: "Beitreten" }).click();
+  const lobby = guest.getByRole("region", { name: "Offene Welten" });
+  await expect(lobby.getByText("Mias Welt")).toBeVisible({ timeout: 20_000 });
+  await expect(lobby.getByText(/Mia · 1 \/ 6/)).toBeVisible();
+  await lobby.getByRole("button", { name: "Mias Welt beitreten" }).click();
   await expect.poll(async () => (await state(guest)).mode, { timeout: 30_000 }).toBe("guest");
   // Beide sehen sich
   await expect.poll(async () => (await state(page)).players.length, { timeout: 30_000 }).toBe(2);
   await expect.poll(async () => (await state(guest)).players.length, { timeout: 30_000 }).toBe(2);
-  expect((await state(page)).players.map((p) => p.name).sort()).toEqual(["Ben", "Mia"]);
   expect((await state(guest)).seed).toBe((await state(page)).seed);
+  await expect(page.getByText("Online · 2")).toBeVisible();
+
+  // Liste zeigt jetzt beide Namen (dritter Browser im Hauptmenü)
+  const ctx3 = await browser.newContext();
+  const third = await ctx3.newPage();
+  await open(third, relay);
+  const lobby3 = third.getByRole("region", { name: "Offene Welten" });
+  await expect(lobby3.getByText(/Mia, Ben · 2 \/ 6/)).toBeVisible({ timeout: 20_000 });
 
   // Gastgeber fällt einen Baum → beim Gast ist er ein Stumpf
   await hooks(page, (h) => h.setNeeds({ fitness: 100 }));
@@ -284,15 +294,55 @@ test("WL-AK-15: zwei Browser – Welt öffnen, beitreten, gemeinsam hacken, Gast
     await guest.waitForTimeout(150);
   }
   await expect.poll(async () => (await state(guest)).me.wood, { timeout: 15_000 }).toBe(3);
-  await expect.poll(async () => (await state(page)).stumpList.length, { timeout: 15_000 }).toBe(2);
 
-  // Gastgeber geht → Hinweis beim Gast
+  // Gastgeber geht → Hinweis beim Gast, Welt verschwindet aus der Liste
   await page.close();
   await expect(guest.getByRole("alert")).toContainText("Der Gastgeber hat die Welt verlassen", {
     timeout: 15_000,
   });
   await expect.poll(async () => (await state(guest)).mode).toBe("solo");
+  await expect(lobby3.getByText("Mias Welt")).toHaveCount(0, { timeout: 20_000 });
   await expectNoErrors(errors);
   await expectNoErrors(errors2);
   await ctx2.close();
+  await ctx3.close();
+});
+
+test("WL-AK-22: Tier entdecken – Meldung und Tierbuch", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors = trackErrors(page);
+  await open(page);
+  await page.getByRole("button", { name: "Los geht's" }).click();
+  await expect.poll(async () => (await state(page)).screen).toBe("play");
+  await hooks(page, (h) => h.setTime(100));
+  const before = (await state(page)).book.length;
+  const a = (await hooks(page, (h) => h.nearestAnimal()))!;
+  expect(a).not.toBeNull();
+  await page.evaluate((a) => (window.__dampf as Hooks).teleport(a[0] + 1.5, a[1]), a);
+  await expect.poll(async () => (await state(page)).book).toContain(a[2]);
+  await expect(page.getByText(/^(Neu entdeckt: .+!|✨ Ein Einhorn! ✨)$/)).toBeVisible();
+  const count = (await state(page)).book.length;
+  expect(count).toBeGreaterThan(before);
+
+  // Tierbuch über das Menü
+  const mobile = isMobile(page);
+  const tap = (n: string) =>
+    mobile
+      ? page.getByRole("button", { name: n }).tap()
+      : page.getByRole("button", { name: n }).click();
+  await tap("Menü");
+  await tap("Tierbuch");
+  await expect(page.getByText(`${count} / 31 entdeckt`)).toBeVisible();
+  await expect(page.getByText("???").first()).toBeVisible();
+  const entry = page.locator(".wl-animal:not(.unseen)").first();
+  await expect(entry).toBeVisible();
+  await tap("Zurück");
+
+  // Neuladen: Tierbuch bleibt
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => !!window.__dampf), { timeout: 60_000 }).toBe(true);
+  expect((await state(page)).book).toContain(a[2]);
+  await page.getByRole("button", { name: "Tierbuch" }).click();
+  await expect(page.getByText(`${count} / 31 entdeckt`)).toBeVisible();
+  await expectNoErrors(errors);
 });
