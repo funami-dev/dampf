@@ -1,0 +1,41 @@
+---
+import { formatDate, gameUrl, type NewsItem } from "@dampf/game-kit";
+
+interface Props {
+  n: NewsItem;
+}
+const { n } = Astro.props;
+---
+
+<li data-news={`${n.slug}@${n.version}`}>
+  <p class="meta">
+    <time datetime={n.date}>{formatDate(n.date)}</time> · <a href={gameUrl(n.slug)}>{n.title}</a>{" "}
+    <span class="version">v{n.version}</span>
+  </p>
+  <ul>
+    {n.items.map((item) => (
+      <li>{item}</li>
+    ))}
+  </ul>
+</li>
+
+<style>
+  .meta {
+    margin: 0 0 0.35rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .meta a {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .version {
+    font-variant-numeric: tabular-nums;
+  }
+  ul {
+    margin: 0;
+    padding-left: 1.2rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+</style>

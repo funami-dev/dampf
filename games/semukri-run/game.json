@@ -3,8 +3,23 @@
   "title": "SemUkri Run",
   "description": "100-Meter-Sprint mit Ukri, Semlaki oder Billy: Tippe abwechselnd links und rechts, schlag deinen Geist und lauf in die Top 10.",
   "thumbnail": "thumbnail.png",
-  "controls": { "keyboard": true, "touch": true },
+  "controls": {
+    "keyboard": true,
+    "touch": true
+  },
   "status": "published",
   "order": 30,
-  "addedAt": "2026-11-01"
+  "addedAt": "2026-11-01",
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-08",
+      "items": [
+        "100-m-Sprint mit Ukri, Semlaki und Billy",
+        "Schnell abwechselnd tippen: links, rechts!",
+        "Bestzeiten, Rekordliste und ein Geist deiner besten Runde"
+      ]
+    }
+  ]
 }

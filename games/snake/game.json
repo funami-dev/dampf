@@ -3,8 +3,23 @@
   "title": "Snake",
   "description": "Friss Pixel, werde länger und beiß dir bloß nicht in den eigenen Schwanz. Am Rand geht's auf der anderen Seite weiter.",
   "thumbnail": "thumbnail.png",
-  "controls": { "keyboard": true, "touch": true },
+  "controls": {
+    "keyboard": true,
+    "touch": true
+  },
   "status": "published",
   "order": 10,
-  "addedAt": "2026-11-01"
+  "addedAt": "2026-11-01",
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-08",
+      "items": [
+        "Klassisches Snake im Retro-Look",
+        "Steuerung mit Pfeiltasten oder Wischen",
+        "Pause, wenn du das Fenster verlässt"
+      ]
+    }
+  ]
 }

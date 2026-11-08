@@ -28,7 +28,7 @@ let data: SaveData = load(store);
 const persist = () => save(store, data);
 
 // --- DOM / Renderer ---
-const stage = mountGameShell({ title: manifest.title });
+const stage = mountGameShell({ title: manifest.title, version: manifest.version });
 stage.style.background = "#a9d4f5";
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));

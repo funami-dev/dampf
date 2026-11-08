@@ -3,8 +3,25 @@
   "title": "Waldlager",
   "description": "Im isometrischen Pixel-Wald Holz hacken, Zelt und Lagerfeuer bauen, Beeren suchen – bis es dämmert. Tiere laufen frei herum.",
   "thumbnail": "thumbnail.png",
-  "controls": { "keyboard": true, "touch": true },
+  "controls": {
+    "keyboard": true,
+    "touch": true
+  },
   "status": "published",
   "order": 80,
-  "addedAt": "2026-11-08"
+  "addedAt": "2026-11-08",
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-08",
+      "items": [
+        "Fallschirm-Landung auf einer Insel mit Wald, Flüssen und Hügeln",
+        "Holz hacken, Zelt, Lagerfeuer und Brücken bauen",
+        "Tierbuch mit 32 Tieren – sogar ein Einhorn!",
+        "Folge der Trümmerspur zum Flugzeug und finde das Funkgerät",
+        "Andere Spieler können deiner Welt beitreten"
+      ]
+    }
+  ]
 }

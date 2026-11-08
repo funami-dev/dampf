@@ -1,6 +1,6 @@
 # 003 – Portal / Startseite
 
-**Status:** Entwurf (Änderung: Version auf Karten, Neuigkeiten, PORTAL-AK-10/11)
+**Status:** Umgesetzt
 
 ## Zweck
 
@@ -14,10 +14,13 @@ Die Startseite (`/`) zeigt alle veröffentlichten Spiele als Karten. Ein Klick a
   für Überschriften, gut lesbare Schrift für Fließtext).
 - Raster aus Spielkarten. Je Karte: Thumbnail, Titel, **Version** (klein, z. B. „v1.0.0“),
   Beschreibung, Steuerungs-Icons (Tastatur / Touch).
-- **Neuigkeiten** (unter den Spielkarten), aus den `changelog`-Einträgen aller veröffentlichten
+- **Neuigkeiten** (oben, über den Spielkarten), aus den `changelog`-Einträgen aller veröffentlichten
   Spiele:
   - die neuesten Einträge zuerst (nach Datum, bei gleichem Datum nach der Sortierung der Spiele),
     höchstens 10.
+  - Die 3 neuesten stehen direkt da, die weiteren unter „Weitere Neuigkeiten“ zum Aufklappen
+    (`<details>`, geht ohne JavaScript). Der Bereich scrollt nicht in sich selbst, damit man auf
+    dem Handy die Seite weiter wischen kann.
   - Je Eintrag: Datum (z. B. „8. November 2026“), Spieltitel als Link zum Spiel, Version und die
     Punkte als Liste.
   - Ohne Einträge entfällt der Bereich.

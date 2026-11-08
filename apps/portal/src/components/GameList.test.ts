@@ -11,6 +11,8 @@ const game: GameManifest = {
   controls: { keyboard: true, touch: false },
   status: "published",
   addedAt: "2026-11-01",
+  version: "1.2.3",
+  changelog: [{ version: "1.2.3", date: "2026-11-08", items: ["Neu"] }],
 };
 
 describe("GameList", () => {
@@ -29,5 +31,7 @@ describe("GameList", () => {
     expect(html).toContain('alt="Snake"');
     expect(html).toContain("Tastatur");
     expect(html).not.toContain("Touch");
+    // PORTAL-AK-10: Version auf der Karte
+    expect(html).toContain("v1.2.3");
   });
 });

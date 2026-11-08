@@ -3,8 +3,23 @@
   "title": "Mein Hilden",
   "description": "Lauf mit Matti in 3D durch Hilden, such dir ein Haus aus und arbeite als Postbote, Bäcker, Polizist oder bei der Feuerwehr.",
   "thumbnail": "thumbnail.png",
-  "controls": { "keyboard": true, "touch": true },
+  "controls": {
+    "keyboard": true,
+    "touch": true
+  },
   "status": "published",
   "order": 50,
-  "addedAt": "2026-11-01"
+  "addedAt": "2026-11-01",
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-08",
+      "items": [
+        "Lauf mit Matti durch das nachgebaute Hilden",
+        "Such dir ein eigenes Haus aus und geh hinein",
+        "Vier Berufe: Post, Bäckerei, Polizei und Feuerwehr"
+      ]
+    }
+  ]
 }

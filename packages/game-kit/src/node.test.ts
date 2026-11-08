@@ -26,6 +26,8 @@ const manifest = (slug: string, title = slug) => ({
   controls: { keyboard: true, touch: false },
   status: "published",
   addedAt: "2026-11-01",
+  version: "1.0.0",
+  changelog: [{ version: "1.0.0", date: "2026-11-01", items: ["Erste Version"] }],
 });
 
 describe("loadManifests", () => {
