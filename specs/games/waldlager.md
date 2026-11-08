@@ -1,6 +1,6 @@
 # Spiel: Waldlager
 
-**Status:** Entwurf (Änderung: Entdecken und Tierbuch, WL-AK-18 bis 22)
+**Status:** Entwurf (Änderung: Entdecken und Tierbuch, WL-AK-18 bis 22; Welten immer offen mit Liste, WL-AK-11/15/16)
 **Slug:** `waldlager`
 **Name:** „Waldlager“ (Arbeitstitel)
 
@@ -154,13 +154,24 @@ Drei Leisten von 0 bis 100 % stehen immer oben im Bild:
 - **Schlafen** im Zelt erholt die Müdigkeit schnell. Allein läuft die Nacht beim Schlafen
   4-mal so schnell. Mit anderen Spielern läuft die Zeit nur schneller, wenn alle schlafen.
 
-## Mehrspieler: andere kommen in deine Welt
+## Mehrspieler: jede Welt ist offen
 
 - **Allein spielen geht immer**, auch ohne Internet bzw. ohne Server.
-- **Welt öffnen:** Im Menü „Welt öffnen“. Man bekommt einen **Raum-Code** aus 4 Buchstaben
-  (z. B. „WALD“ + Zahl, eindeutig) und ist **Gastgeber**.
-- **Beitreten:** Auf der Startseite „Einer Welt beitreten“ den Code eingeben. Bis zu **6 Spieler**
-  sind in einer Welt.
+- **Jede Welt ist automatisch offen:**
+  - Sobald man spielt und der Server erreichbar ist, ist die eigene Welt für alle anderen
+    sichtbar. Man ist dort **Gastgeber**.
+  - Es gibt keinen Knopf „Welt öffnen“ mehr.
+  - Oben rechts steht klein „Online · 2“, also die Zahl der Spieler in der Welt.
+- **Liste offener Welten im Hauptmenü:**
+  - Unter „Offene Welten“ stehen alle laufenden Welten.
+  - Jeder Eintrag zeigt den Namen des Gastgebers, z. B. „Mias Welt“, und die Namen aller
+    Spieler darin, z. B. „Mia, Ben“ mit „2 / 6“.
+  - Die Liste aktualisiert sich alle 5 Sekunden.
+  - Volle Welten (6 Spieler) sind sichtbar, aber nicht wählbar. Die eigene Welt erscheint nicht
+    in der Liste.
+  - Antippen und „Beitreten“ wählen; einen Code muss man nicht mehr eingeben.
+- **Hinweis zum Namen:** Unter dem Namensfeld steht „Dein Name ist für alle sichtbar – nimm
+  einen Spitznamen.“
 - **Gastgeber führt die Welt:**
   - Sein Browser berechnet Zeit, Bäume, Sträucher, Tiere, Zelte und Feuer und schickt den Stand
     an alle.
@@ -170,18 +181,26 @@ Drei Leisten von 0 bis 100 % stehen immer oben im Bild:
   Inventar und eigene Leisten.
 - Verlässt der Gastgeber die Welt, sehen die Gäste den Hinweis „Der Gastgeber hat die Welt
   verlassen“ und kommen zurück zum Menü.
-- **Ohne Server:** Ist kein Server eingerichtet, sind „Welt öffnen“ und „Beitreten“ ausgeblendet.
-  Ist der Server nicht erreichbar, erscheint der Hinweis „Online gerade nicht möglich – spiel
-  einfach allein weiter.“
+- **Als Gast** ist die eigene Welt solange nicht offen. Im Menü gibt es „Welt verlassen“; danach
+  spielt man in der eigenen Welt weiter, und die ist wieder offen.
+- **Ohne Server:** Ist kein Server eingerichtet, gibt es keine Liste und keine Online-Anzeige. Ist
+  der Server nicht erreichbar, steht in der Liste „Online gerade nicht möglich – spiel einfach
+  allein weiter.“ Das Spiel versucht es im Hintergrund alle 30 Sekunden erneut.
 
 ## Online-Server (WebSocket)
 
 - Ein kleiner **Raum-Server** liegt im Repo unter `services/relay` und wird auf **Cloudflare
   Workers** betrieben (je Raum ein Durable Object).
 - **Aufgaben des Servers:**
-  - Raum-Codes vergeben.
+  - Raum-Codes vergeben (intern, als Kennung der Welt).
   - Nachrichten zwischen Gastgeber und Gästen weiterleiten.
   - Räume schließen, wenn der Gastgeber geht.
+  - **Liste offener Welten:**
+    - `GET /rooms` liefert Code, Gastgeber-Name, Spieler-Namen und Anzahl.
+    - Die Namen meldet der Gastgeber selbst (`meta`-Nachricht), höchstens 12 Zeichen je Name,
+      Steuerzeichen werden entfernt.
+    - Höchstens 50 Welten, die neuesten zuerst.
+    - Eine Welt erscheint erst, wenn ihr Gastgeber den Namen gemeldet hat.
 - **Keine Spiellogik** auf dem Server, keine Konten, keine gespeicherten Daten.
 - **Grenzen:**
   - max. 6 Verbindungen je Raum,
@@ -256,20 +275,30 @@ Figur steht.
 - **WL-AK-09** Tiere wandern nur auf begehbaren Feldern und fliehen vor Spielern. Es gibt keine Aktion, die ein Tier verletzt oder entfernt.
 - **WL-AK-10** Speichern: Welt, Inventar und Leisten überstehen Neuladen. Kaputte Daten führen zu
   einer neuen Welt ohne Absturz.
-- **WL-AK-11** Raum-Server-Logik: Ein Raum-Code ist eindeutig, es gibt höchstens 6 Spieler, und
-  Nachrichten werden zwischen Gastgeber und Gästen weitergeleitet. Die Grenzen für Rate und Größe
-  werden durchgesetzt. Geht der Gastgeber, wird der Raum geschlossen.
+- **WL-AK-11** Raum-Server-Logik:
+  - Ein Raum-Code ist eindeutig, es gibt höchstens 6 Spieler, und Nachrichten werden zwischen
+    Gastgeber und Gästen weitergeleitet.
+  - Die Grenzen für Rate und Größe werden durchgesetzt. Geht der Gastgeber, wird der Raum
+    geschlossen.
+  - Die Liste offener Welten enthält nur Räume mit gemeldetem Namen und zeigt Gastgeber,
+    Spieler-Namen und Anzahl. Namen werden gekürzt und bereinigt. Geschlossene Räume
+    verschwinden aus der Liste.
 - **WL-AK-12** Protokoll: Nachrichten mit falscher Version oder ungültigem Inhalt werden
   ignoriert, ohne Absturz.
 - **WL-AK-13** (E2E Desktop) Name und Farbe wählen, Holz hacken, Feuer und Zelt bauen, Beeren
   pflücken und essen. Die Leisten ändern sich, und Test-Hilfen spulen die Zeit bis zur Nacht vor.
 - **WL-AK-14** (E2E Mobile 375×667) Joystick, „Aktion“, „Essen“, „Bauen“ und „Menü“ sind sichtbar
   und bedienbar. Der Joystick bewegt die Figur.
-- **WL-AK-15** (E2E, lokaler Raum-Server) Zwei Browser: Einer öffnet eine Welt, der andere tritt
-  mit dem Code bei. Beide sehen sich, und ein gefällter Baum ist bei beiden ein Stumpf. Verlässt
-  der Gastgeber die Welt, sieht der Gast den Hinweis.
-- **WL-AK-16** Ohne `VITE_RELAY_URL` sind „Welt öffnen“ und „Beitreten“ ausgeblendet. Allein
-  spielen geht vollständig.
+- **WL-AK-15** (E2E, lokaler Raum-Server) Zwei Browser:
+  - Browser A spielt, und seine Welt ist ohne weiteres Zutun offen.
+  - Browser B sieht im Hauptmenü unter „Offene Welten“ den Eintrag mit A's Namen und Spielern
+    und tritt per Antippen bei.
+  - Danach zeigt die Liste beide Namen, beide sehen sich, und ein gefällter Baum ist bei beiden
+    ein Stumpf.
+  - Verlässt der Gastgeber die Welt, sieht der Gast den Hinweis, und die Welt verschwindet aus
+    der Liste.
+- **WL-AK-16** Ohne `VITE_RELAY_URL` gibt es keine Liste offener Welten und keine
+  Online-Anzeige. Allein spielen geht vollständig.
 - **WL-AK-17** Fokusverlust pausiert: Allein hält die Zeit an, online bleibt die eigene Figur
   stehen.
 
