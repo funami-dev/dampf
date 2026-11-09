@@ -20,7 +20,7 @@ Dieses Repo wird **spec-driven** entwickelt:
 | [001-repo-und-build.md](001-repo-und-build.md)   | Monorepo, Build, Deployment (Vercel)        | Umgesetzt |
 | [002-game-manifest.md](002-game-manifest.md)     | `game.json`-Format & Pflichten eines Spiels | Umgesetzt |
 | [003-portal.md](003-portal.md)                   | Startseite / Spieleliste (Astro)            | Umgesetzt |
-| [004-feedback.md](004-feedback.md)               | Feedback aus Spielen → Spec-Entwürfe        | Entwurf   |
+| [004-feedback.md](004-feedback.md)               | Feedback, Admin-Dashboard, Spec-Entwürfe    | Entwurf   |
 | [games/snake.md](games/snake.md)                 | Spiel 1: Snake (Referenz-Template)          | Umgesetzt |
 | [games/himmelhuepfer.md](games/himmelhuepfer.md) | Spiel 2: Himmelhüpfer (Endlos-Hüpfspiel)    | Umgesetzt |
 | [games/semukri-run.md](games/semukri-run.md)     | Spiel 3: SemUkri Run (100-m-Sprint)         | Umgesetzt |
