@@ -27,6 +27,7 @@ Die Startseite (`/`) zeigt alle veröffentlichten Spiele als Karten. Ein Klick a
 - Sortierung: `order` aufsteigend, danach `title` alphabetisch.
 - Leerer Zustand: Gibt es keine veröffentlichten Spiele, wird ein Hinweistext angezeigt.
 - Fußbereich: Link zum GitHub-Repo.
+- Kopfbereich: Knopf „💬 Feedback“ (nur mit JavaScript), siehe [004-feedback](004-feedback.md).
 
 ## Nicht-funktionale Anforderungen
 
