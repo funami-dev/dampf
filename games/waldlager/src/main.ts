@@ -9,6 +9,7 @@ import {
   FIRE,
   act,
   actionFor,
+  activeAt,
   addPlayer,
   isColor,
   build,
@@ -431,9 +432,23 @@ function openBook(back: () => void) {
     const img = speciesCanvas(sp, 3).toDataURL();
     const hint =
       sp.id === UNICORN ? "Sehr selten …" : `${TIME_TEXT[sp.time]} ${HABITAT_TEXT[sp.habitat]}`;
-    return `<li class="wl-animal${seen ? "" : " unseen"}">
+    // WL-AK-35/36: ist die Art gerade unterwegs? (nicht beim unentdeckten Einhorn)
+    const on = activeAt(sp.id, state.total);
+    const now =
+      !seen && sp.id === UNICORN
+        ? ""
+        : `<br><span class="wl-active${on ? " on" : ""}">${
+            sp.id === "hai"
+              ? on
+                ? "🟢 Flosse ist gerade zu sehen"
+                : "🌊 Gerade abgetaucht"
+              : on
+                ? "🟢 Jetzt unterwegs"
+                : "💤 Schläft gerade"
+          }</span>`;
+    return `<li class="wl-animal${seen ? "" : " unseen"}" data-id="${sp.id}">
       <img src="${img}" alt="${seen ? sp.name : "unbekanntes Tier"}" />
-      <div><b>${seen ? sp.name : "???"}</b><br><small>${seen ? `${TIME_TEXT[sp.time]} ${HABITAT_TEXT[sp.habitat]} · ${sp.fact}` : hint}</small></div>
+      <div><b>${seen ? sp.name : "???"}</b><br><small>${seen ? `${TIME_TEXT[sp.time]} ${HABITAT_TEXT[sp.habitat]} · ${sp.fact}` : hint}</small>${now}</div>
     </li>`;
   }).join("");
   const el = panel(`<h2>Tierbuch</h2>

@@ -612,3 +612,34 @@ test("WL-AK-33: Tierbuch-Suche", async ({ page }) => {
   await tap("Zurück");
   await expectNoErrors(errors);
 });
+
+test("WL-AK-36: Tierbuch zeigt, wer gerade unterwegs ist", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors = trackErrors(page);
+  await open(page);
+  await page.getByRole("button", { name: "Los geht's" }).click();
+  await expect.poll(async () => (await state(page)).screen).toBe("play");
+  await landed(page);
+  const day = SPECIES.find((s) => s.time === "tag" && s.id !== "hai" && s.id !== "einhorn")!;
+  const night = SPECIES.find((s) => s.time === "nacht")!;
+  const mobile = isMobile(page);
+  const tap = (n: string) =>
+    mobile
+      ? page.getByRole("button", { name: n }).tap()
+      : page.getByRole("button", { name: n }).click();
+  const check = async (t: number, dayText: string, nightText: string) => {
+    await page.evaluate((t) => (window.__dampf as Hooks).setTime(t), t);
+    await tap("Menü");
+    await tap("Tierbuch");
+    await expect(page.locator(`.wl-animal[data-id="${day.id}"] .wl-active`)).toHaveText(dayText);
+    await expect(page.locator(`.wl-animal[data-id="${night.id}"] .wl-active`)).toHaveText(
+      nightText,
+    );
+    await tap("Zurück");
+    await tap("Weiterspielen");
+    await expect.poll(async () => (await state(page)).screen).toBe("play");
+  };
+  await check(100, "🟢 Jetzt unterwegs", "💤 Schläft gerade");
+  await check(500, "💤 Schläft gerade", "🟢 Jetzt unterwegs");
+  await expectNoErrors(errors);
+});

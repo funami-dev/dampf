@@ -170,6 +170,13 @@ bei Gefahr zu einer stacheligen Kugel zusammen.“).
   - **Entdeckte Arten:** Bild, Name, Lebensraum, Tageszeit und der kurze Satz.
   - **Unentdeckte Arten:** dunkle Silhouette und „???“, dazu nur ein Hinweis auf Lebensraum und
     Tageszeit (z. B. „Nachts im Wald“). Beim Einhorn steht nur „Sehr selten …“.
+  - **Gerade aktiv?** (Feedback `fb_axcsy5zh`) Jeder Eintrag (außer dem unentdeckten Einhorn)
+    zeigt, ob die Art **jetzt** unterwegs ist, passend zur Tageszeit im Spiel:
+    - Tagaktive Tiere sind morgens, tagsüber und in der Dämmerung unterwegs, nachtaktive in der
+      Dämmerung und nachts.
+    - Text: „🟢 Jetzt unterwegs“ bzw. „💤 Schläft gerade“.
+    - Beim Hai zählt, ob die Flosse gerade über Wasser ist: „🟢 Flosse ist gerade zu sehen“ bzw.
+      „🌊 Gerade abgetaucht“.
   - **Suchfeld** „Tier suchen“ über der Liste (Feedback `fb_jmxcmomo`): Beim Tippen zeigt die
     Liste nur noch entdeckte Arten, deren Name den Text enthält (Groß-/Kleinschreibung egal,
     z. B. „hase“ → Hase). Unentdeckte Arten werden beim Suchen ausgeblendet, damit die Suche
@@ -205,6 +212,13 @@ Drei Leisten von 0 bis 100 % stehen immer oben im Bild:
 - **Müdigkeit 0:** Man schläft ein und wacht am eigenen Zelt auf, oder am Startpunkt, wenn es
   noch kein Zelt gibt. Die Müdigkeit steht danach bei 50 %. Nichts geht verloren.
 - **Fitness 0:** Rennen und Hacken gehen nicht, bis Fitness wieder 20 % erreicht.
+
+**Schwäche** (Feedback `fb_xqyh0ytu`):
+
+- **Wenig Fitness macht langsam:** unter 25 % läuft man mit 80 % des Tempos, unter 10 % mit 60 %.
+  Hunger 0 ergibt ebenfalls 60 %. Es zählt die stärkere Bremse, nicht beides zusammen.
+- **Hunger zehrt an der Fitness:** Ist Hunger unter 25 %, kosten Rennen und Holzhacken doppelt so
+  viel Fitness, und Fitness erholt sich nur halb so schnell.
 
 ## Tätigkeiten
 
@@ -459,6 +473,14 @@ Figur steht.
   Namens nur dieses Tier, unentdeckte („???“) sind ausgeblendet; ein unpassender Text zeigt
   „Kein entdecktes Tier heißt so.“; leeres Feld zeigt wieder alle 32. Tippen im Suchfeld löst
   keine Spieltasten aus. Auf Mobile bedienbar.
+
+- **WL-AK-34** Schwäche: Tempo 100 % ab 25 % Fitness, 80 % darunter, 60 % unter 10 % Fitness
+  oder bei Hunger 0 (nicht multipliziert). Bei Hunger unter 25 % kosten Rennen und Hacken doppelt
+  so viel Fitness und Erholung ist halb so schnell; sonst unverändert.
+- **WL-AK-35** Aktivität: Tagaktive sind morgens, tagsüber und in der Dämmerung aktiv,
+  nachtaktive in Dämmerung und Nacht; der Hai ist aktiv, wenn seine Flosse zu sehen ist.
+- **WL-AK-36** (E2E) Tierbuch zeigt tagsüber bei einem tagaktiven Tier „🟢 Jetzt unterwegs“ und
+  bei einem nachtaktiven „💤 Schläft gerade“, nachts umgekehrt.
 
 ## Nicht-Ziele (MVP)
 
