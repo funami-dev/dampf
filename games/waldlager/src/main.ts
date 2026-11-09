@@ -12,6 +12,7 @@ import {
   activeAt,
   addPlayer,
   isColor,
+  markTrail,
   build,
   buildSpot,
   canBridgeAt,
@@ -1032,6 +1033,18 @@ class WorldScene extends Phaser.Scene {
           .setVisible(true);
       }
     }
+    // Regenbogenspur des Einhorns (WL-AK-37), nur in der Nähe der Figur
+    for (const [k, until] of Object.entries(state.trail)) {
+      const left = until - state.total;
+      const i = Number(k);
+      const tx = i % world.size;
+      const ty = Math.floor(i / world.size);
+      if (left <= 0 || Math.abs(tx - p.x) > TRAIL_VIEW || Math.abs(ty - p.y) > TRAIL_VIEW) continue;
+      place(`tr:${k}`, "rainbow", tx + 0.5, ty + 0.5, 0.5)
+        .setDepth((tx + ty) * 10 - 2)
+        .setScale(1.4)
+        .setAlpha(Math.min(1, left / 60) * (0.75 + 0.25 * Math.sin(time / 250 + i)));
+    }
     state.animals.forEach((a, k) => {
       if (hiddenAt(a.kind, state.total)) return;
       const s = place(`a:${k}`, `animal:${a.kind}`, a.x, a.y);
@@ -1097,7 +1110,22 @@ function drawNight(cam: Phaser.Cameras.Scene2D.Camera, time: number) {
   for (const f of state.fires)
     if (f.until > state.total) light(f.x + 0.5, f.y + 0.5, 6 + Math.sin(time / 90) * 0.3);
   for (const q of Object.values(state.players)) if (!q.sleeping) light(q.x, q.y, 2.4);
+  // die Regenbogenspur leuchtet auch nachts (WL-AK-37)
+  const me0 = state.players[meId];
+  if (me0)
+    for (const [k, until] of Object.entries(state.trail)) {
+      const i = Number(k);
+      const tx = i % world.size;
+      const ty = Math.floor(i / world.size);
+      if (
+        until > state.total &&
+        Math.abs(tx - me0.x) <= TRAIL_VIEW &&
+        Math.abs(ty - me0.y) <= TRAIL_VIEW
+      )
+        light(tx + 0.5, ty + 0.5, 0.9);
+    }
 }
+const TRAIL_VIEW = 24;
 let lastDark = 0;
 
 // --- Spielschleife ---------------------------------------------------------
@@ -1220,6 +1248,7 @@ if (debugEnabled) {
       return {
         screen: paused ? "paused" : overlay && screen === "play" ? "menu" : screen,
         total: state.total,
+        trail: Object.keys(state.trail).length,
         clock: clockOf(state.total),
         phase: phaseOf(state.total),
         dark: lastDark,
@@ -1281,6 +1310,7 @@ if (debugEnabled) {
     finishLanding: () => {
       me().landing = 0;
     },
+    markTrail: (x, y) => markTrail(world, state, x, y),
     cell: (x, y) => ({
       terrain: inside(world, x, y) ? world.terrain[idx(world, x, y)]! : -1,
       free: free(world, state, x, y),

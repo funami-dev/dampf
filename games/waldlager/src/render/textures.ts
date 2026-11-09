@@ -350,6 +350,18 @@ function addAnimals(tex: Phaser.Textures.TextureManager) {
   g.fillRect(2, 0, 1, 5);
   g.fillRect(0, 2, 5, 1);
   tex.addCanvas("sparkle", c);
+  // Regenbogenspur (WL-AK-37): kleiner Bogen in Regenbogenfarben mit Glitzerpunkt
+  const [r, rg] = canvas(14, 7);
+  ["#e74c3c", "#e67e22", "#f1c40f", "#2ecc71", "#3498db", "#9b59b6"].forEach((col, i) => {
+    rg.fillStyle = col;
+    const y = 1 + i;
+    const half = 6 - Math.floor(i / 2);
+    rg.fillRect(7 - half, y, half * 2, 1);
+  });
+  rg.fillStyle = "#ffffff";
+  rg.fillRect(3, 0, 1, 1);
+  rg.fillRect(10, 2, 1, 1);
+  tex.addCanvas("rainbow", r);
 }
 
 export function addTextures(tex: Phaser.Textures.TextureManager) {

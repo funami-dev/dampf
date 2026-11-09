@@ -12,8 +12,8 @@ export const RATES = {
   restPerSec: 100 / 960, // tagsüber 16 Min., nachts doppelt so schnell
   sleepPerSec: 100 / 40, // Schlafen im Zelt
   firePerSec: 100 / 180, // am Feuer sitzen (Müdigkeit)
-  runPerSec: 100 / 15, // Rennen kostet Fitness
-  chopCost: 5, // pro Axthieb
+  runPerSec: 100 / 30, // Rennen kostet Fitness (WL-AK-38: hält doppelt so lange wie früher)
+  chopCost: 2.5, // pro Axthieb
   fitStand: 6,
   fitWalk: 2,
   fitFire: 12,

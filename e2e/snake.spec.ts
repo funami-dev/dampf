@@ -44,13 +44,19 @@ test("SNAKE-AK-08: Desktop – starten, steuern, Game Over, neu starten", async 
   await expect.poll(() => scene(page)).toBe("play");
   expect((await state(page))?.dir).toBe("right");
 
-  // Schlange verlängern und dann in sich selbst steuern: hoch, links, runter.
-  await dampf(page, "grow(4)");
+  // Schlange stark verlängern und dann in sich selbst steuern: hoch, links, runter, rechts.
+  // Egal wie viele Schritte zwischen den Tasten vergehen (langsame Rechner): spätestens beim
+  // Rechtsabbiegen oder beim Herunterlaufen trifft die Schlange ihren eigenen Körper.
+  await dampf(page, "grow(20)");
   await page.keyboard.press("ArrowUp");
   await expect.poll(async () => (await state(page))?.dir).toBe("up");
   await page.keyboard.press("ArrowLeft");
   await expect.poll(async () => (await state(page))?.dir).toBe("left");
   await page.keyboard.press("ArrowDown");
+  await expect
+    .poll(async () => ((await scene(page)) === "gameover" ? "down" : (await state(page))?.dir))
+    .toBe("down");
+  if ((await scene(page)) !== "gameover") await page.keyboard.press("ArrowRight");
 
   await expect.poll(() => scene(page)).toBe("gameover");
   const texts = await dampf<string[]>(page, "texts()");
