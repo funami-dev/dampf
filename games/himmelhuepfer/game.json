@@ -10,8 +10,15 @@
   "status": "published",
   "order": 20,
   "addedAt": "2026-11-01",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-11-09",
+      "items": [
+        "Neu: Mit dem 💬-Knopf oben kannst du uns sagen, was dir gefällt oder was nicht klappt."
+      ]
+    },
     {
       "version": "1.0.0",
       "date": "2026-11-08",

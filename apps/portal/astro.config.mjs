@@ -2,6 +2,7 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, normalize } from "node:path";
 import { defineConfig } from "astro/config";
+import { dampfFeedbackEnv } from "@dampf/game-kit/vite";
 
 const gamesDir = fileURLToPath(new URL("../../games/", import.meta.url));
 
@@ -25,7 +26,8 @@ export default defineConfig({
   trailingSlash: "ignore",
   build: { format: "directory" },
   vite: {
-    plugins: [devGameAssets],
+    // Zentrale Feedback-Adresse wie in den Spielen (Spec 004)
+    plugins: [devGameAssets, dampfFeedbackEnv()],
     define: { "import.meta.env.DAMPF_GAMES_DIR": JSON.stringify(gamesDir) },
   },
 });

@@ -12,7 +12,11 @@ import { SelectScene } from "./scenes/SelectScene.ts";
 import { PlayScene } from "./scenes/PlayScene.ts";
 import { GameOverScene } from "./scenes/GameOverScene.ts";
 
-const parent = mountGameShell({ title: manifest.title, version: manifest.version });
+const parent = mountGameShell({
+  title: manifest.title,
+  slug: manifest.slug,
+  version: manifest.version,
+});
 parent.style.background = "linear-gradient(#4fb8f2, #c6ecff)";
 
 await Promise.all(

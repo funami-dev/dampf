@@ -1,0 +1,133 @@
+/* Feedback-Knopf und -Formular (Spec 004), für Spiele und Startseite */
+.dampf-fb-open {
+  flex: 0 0 auto;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  font: inherit;
+  font-weight: 700;
+  color: #66c0f4;
+  background: transparent;
+  border: 2px solid #66c0f4;
+  cursor: pointer;
+}
+.dampf-fb-open:hover,
+.dampf-fb-open:focus-visible {
+  background: #66c0f4;
+  color: #121a26;
+  outline: none;
+}
+@media (max-width: 599px) {
+  .dampf-fb-open .dampf-fb-word {
+    display: none;
+  }
+}
+
+.dampf-fb {
+  box-sizing: border-box;
+  width: min(32rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  padding: 0;
+  color: #c7d5e0;
+  background: #1b2838;
+  border: 3px solid #66c0f4;
+  box-shadow: 6px 6px 0 #000;
+  font-family: system-ui, sans-serif;
+  touch-action: manipulation;
+}
+.dampf-fb::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
+.dampf-fb-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+}
+.dampf-fb h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #66c0f4;
+}
+.dampf-fb p {
+  margin: 0;
+  line-height: 1.4;
+}
+.dampf-fb-hint {
+  font-weight: 600;
+}
+.dampf-fb-label {
+  font-size: 0.9rem;
+}
+.dampf-fb textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 7rem;
+  resize: vertical;
+  padding: 0.5rem;
+  font: inherit;
+  font-size: 16px;
+  color: #121a26;
+  background: #fff;
+  border: 2px solid #000;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.dampf-fb-row {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 0.8rem;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+.dampf-fb-msg:empty {
+  display: none;
+}
+.dampf-fb-msg {
+  color: #ffcf6b;
+  font-weight: 600;
+}
+.dampf-fb-thanks {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.dampf-fb-privacy,
+.dampf-fb-foot {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+.dampf-fb-hp {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.dampf-fb-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.dampf-fb-actions button {
+  padding: 0.5rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  border: 2px solid #66c0f4;
+}
+.dampf-fb-send {
+  color: #121a26;
+  background: #66c0f4;
+}
+.dampf-fb-send:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.dampf-fb-cancel {
+  color: #66c0f4;
+  background: transparent;
+}

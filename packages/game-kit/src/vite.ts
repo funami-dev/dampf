@@ -1,4 +1,23 @@
-import type { Plugin } from "vite";
+import { fileURLToPath } from "node:url";
+import { loadEnv, type Plugin } from "vite";
+
+/** Repo-Hauptordner: dort stehen `.env.production` / `.env.development` (Spec 004) */
+const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
+
+/** Feedback-Adresse für einen Vite-Modus, zentral aus dem Repo-Hauptordner (Spec 004) */
+export function feedbackUrlFor(mode: string): string {
+  return loadEnv(mode, repoRoot, "VITE_FEEDBACK_URL").VITE_FEEDBACK_URL ?? "";
+}
+
+/** Setzt `import.meta.env.VITE_FEEDBACK_URL` für Spiele und Portal aus einer zentralen Stelle */
+export function dampfFeedbackEnv(): Plugin {
+  return {
+    name: "dampf-feedback-env",
+    config: (_config, { mode }) => ({
+      define: { "import.meta.env.VITE_FEEDBACK_URL": JSON.stringify(feedbackUrlFor(mode)) },
+    }),
+  };
+}
 
 /** Mindest-Browser aller Spiele (Spec 001, Browser-Unterstützung). */
 export const BROWSER_TARGET = ["es2020", "safari15"];
@@ -49,12 +68,15 @@ export function loaderScript(src: string, crossorigin: boolean, opts: CompatOpti
 /**
  * Vite-Plugin für alle Spiele: setzt das Build-Ziel für ältere Safari-Versionen (BUILD-AK-11)
  * und ersetzt das Spiel-Modul durch einen Lader, der zu alten Geräten statt einer weißen Seite
- * einen Hinweis zeigt (BUILD-AK-13).
+ * einen Hinweis zeigt (BUILD-AK-13). Setzt außerdem die zentrale Feedback-Adresse (Spec 004).
  */
 export function dampfCompat(opts: CompatOptions = {}): Plugin {
   return {
     name: "dampf-compat",
-    config: () => ({ build: { target: BROWSER_TARGET } }),
+    config: (_config, { mode }) => ({
+      build: { target: BROWSER_TARGET },
+      define: { "import.meta.env.VITE_FEEDBACK_URL": JSON.stringify(feedbackUrlFor(mode)) },
+    }),
     transformIndexHtml: {
       order: "post",
       handler(html) {

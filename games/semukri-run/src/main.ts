@@ -11,7 +11,11 @@ import { RaceScene } from "./scenes/RaceScene.ts";
 import { FinishScene } from "./scenes/FinishScene.ts";
 import { RecordsScene } from "./scenes/RecordsScene.ts";
 
-const parent = mountGameShell({ title: manifest.title, version: manifest.version });
+const parent = mountGameShell({
+  title: manifest.title,
+  slug: manifest.slug,
+  version: manifest.version,
+});
 parent.style.background = "#29366f";
 
 await document.fonts.load(`16px ${FONT}`).catch(() => undefined);

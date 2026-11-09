@@ -1,4 +1,6 @@
 # Raum-Server für Mehrspieler (Spec: specs/games/waldlager.md, Online-Server)
+# und Feedback-Speicher (Spec: specs/004-feedback.md). Admin-Token nur als Secret:
+#   npx wrangler secret put FEEDBACK_ADMIN_TOKEN
 name = "dampf"
 main = "src/worker.ts"
 compatibility_date = "2026-10-01"
@@ -9,6 +11,14 @@ preview_urls = false
 name = "HUB"
 class_name = "Hub"
 
+[[durable_objects.bindings]]
+name = "FEEDBACK"
+class_name = "FeedbackStore"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Hub"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["FeedbackStore"]

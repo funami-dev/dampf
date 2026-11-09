@@ -4,6 +4,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./feedback": "./src/feedback.ts",
     "./node": "./src/node.ts",
     "./shell": "./src/shell.ts",
     "./shell.css": "./src/shell.css",
