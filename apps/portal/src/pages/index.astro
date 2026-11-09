@@ -38,6 +38,8 @@ const news = getNews();
     <main class="wrap">
       <News news={news} />
       <GameList games={games} />
+      <!-- Spielideen-Banner (Spec 004, FEEDBACK-AK-28), nur mit JavaScript -->
+      <div id="dampf-ideas"></div>
     </main>
     <footer class="wrap">
       <a href="https://github.com/funami-dev/dampf">Quellcode auf GitHub</a>
@@ -46,10 +48,12 @@ const news = getNews();
 </html>
 
 <script>
-  import { createFeedbackButton } from "@dampf/game-kit/feedback";
+  import { createFeedbackButton, createIdeaBanner } from "@dampf/game-kit/feedback";
 
   const button = createFeedbackButton({ game: "portal", gameVersion: null, title: "Dampf" });
   if (button) document.getElementById("dampf-feedback")?.append(button);
+  const ideas = createIdeaBanner();
+  if (ideas) document.getElementById("dampf-ideas")?.append(ideas);
 </script>
 
 <style>

@@ -28,6 +28,8 @@ Die Startseite (`/`) zeigt alle veröffentlichten Spiele als Karten. Ein Klick a
 - Leerer Zustand: Gibt es keine veröffentlichten Spiele, wird ein Hinweistext angezeigt.
 - Fußbereich: Link zum GitHub-Repo.
 - Kopfbereich: Knopf „💬 Feedback“ (nur mit JavaScript), siehe [004-feedback](004-feedback.md).
+- Unter der Spieleliste: **Spielideen-Banner** „💡 Hast du eine Idee für ein neues Spiel?“ mit
+  Textfeld (nur mit JavaScript), siehe [004-feedback](004-feedback.md).
 
 ## Nicht-funktionale Anforderungen
 

@@ -46,6 +46,7 @@ if (total === 0) {
 const title = (slug) => {
   if (!/^[a-z0-9-]{1,40}$/.test(slug)) return null;
   if (slug === "portal") return "Startseite";
+  if (slug === "spielidee") return "Spielidee";
   try {
     return JSON.parse(fs.readFileSync(`${root}/games/${slug}/game.json`, "utf8")).title || slug;
   } catch {

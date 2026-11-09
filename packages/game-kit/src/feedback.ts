@@ -22,6 +22,50 @@ export const FEEDBACK_TEXT = {
   ok: "OK",
 };
 
+/** Texte des Spielideen-Banners auf der Startseite (FEEDBACK-AK-28) */
+export const IDEA_TEXT = {
+  heading: "💡 Hast du eine Idee für ein neues Spiel?",
+  lead: "Erzähl sie uns!",
+  label: "Deine Spielidee",
+  placeholder: "Wovon soll das Spiel handeln? Was macht man darin?",
+  send: "Idee abschicken",
+  thanks: "Danke für deine Idee! 🎉",
+};
+
+export type SendResult = "ok" | "tooMany" | "error";
+
+/** Schickt Feedback bzw. eine Spielidee an den Server (gemeinsam für Formular und Banner) */
+export async function sendFeedback(
+  url: string,
+  data: { game: string; gameVersion: string | null; text: string; website: string },
+): Promise<SendResult> {
+  const body = {
+    ...data,
+    device: deviceInfo(
+      navigator.userAgent,
+      window.innerWidth,
+      window.innerHeight,
+      navigator.maxTouchPoints > 0,
+    ),
+  };
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 10_000);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: ctl.signal,
+    });
+    if (res.status === 201) return "ok";
+    return res.status === 429 ? "tooMany" : "error";
+  } catch {
+    return "error";
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export const FEEDBACK_MIN = 3;
 export const FEEDBACK_MAX = 500;
 
@@ -203,35 +247,15 @@ export function createFeedbackButton(opts: FeedbackOptions): HTMLButtonElement |
       }
       send.disabled = true;
       msg.textContent = "";
-      const body = {
+      const r = await sendFeedback(url, {
         game: opts.game,
         gameVersion: opts.gameVersion,
         text: ta.value,
-        device: deviceInfo(
-          navigator.userAgent,
-          window.innerWidth,
-          window.innerHeight,
-          navigator.maxTouchPoints > 0,
-        ),
         website: hp.value,
-      };
-      const ctl = new AbortController();
-      const timer = setTimeout(() => ctl.abort(), 10_000);
-      try {
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-          signal: ctl.signal,
-        });
-        if (res.status === 201) return renderThanks();
-        msg.textContent = res.status === 429 ? FEEDBACK_TEXT.tooMany : FEEDBACK_TEXT.error;
-      } catch {
-        msg.textContent = FEEDBACK_TEXT.error;
-      } finally {
-        clearTimeout(timer);
-        send.disabled = false;
-      }
+      });
+      send.disabled = false;
+      if (r === "ok") return renderThanks();
+      msg.textContent = r === "tooMany" ? FEEDBACK_TEXT.tooMany : FEEDBACK_TEXT.error;
     });
     dialog.replaceChildren(form);
     return ta;
@@ -265,4 +289,82 @@ export function createFeedbackButton(opts: FeedbackOptions): HTMLButtonElement |
   });
 
   return button;
+}
+
+/**
+ * Spielideen-Banner für die Startseite (FEEDBACK-AK-28): direkt sichtbares Formular, gesendet
+ * wird `game = "spielidee"`. Ohne Adresse null (dann kein Banner).
+ */
+export function createIdeaBanner(url = defaultFeedbackUrl()): HTMLElement | null {
+  if (!url) return null;
+  const n = ++counter;
+  const ta = el("textarea", {
+    id: `dampf-idea-t-${n}`,
+    maxLength: FEEDBACK_MAX,
+    rows: 3,
+    placeholder: IDEA_TEXT.placeholder,
+  });
+  const count = el("span", { className: "dampf-fb-count" });
+  const msg = el("p", { className: "dampf-fb-msg" });
+  msg.setAttribute("role", "status");
+  const hp = el("input", {
+    type: "text",
+    name: "website",
+    tabIndex: -1,
+    autocomplete: "off",
+    className: "dampf-fb-hp",
+  });
+  hp.setAttribute("aria-hidden", "true");
+  const send = el("button", { type: "submit", className: "dampf-fb-send" }, IDEA_TEXT.send);
+  const updateCount = () => (count.textContent = `${ta.value.length} / ${FEEDBACK_MAX}`);
+  ta.addEventListener("input", () => {
+    updateCount();
+    msg.textContent = "";
+    msg.classList.remove("ok");
+  });
+  updateCount();
+  const form = el(
+    "form",
+    { className: "dampf-fb-form dampf-idea", noValidate: true },
+    el("h2", { id: `dampf-idea-h-${n}` }, IDEA_TEXT.heading),
+    el("p", { className: "dampf-idea-lead" }, IDEA_TEXT.lead),
+    el("p", { className: "dampf-fb-hint" }, FEEDBACK_TEXT.hint),
+    el("label", { htmlFor: ta.id, className: "dampf-fb-label" }, IDEA_TEXT.label),
+    ta,
+    el("div", { className: "dampf-fb-row" }, count),
+    msg,
+    hp,
+    el("p", { className: "dampf-fb-privacy" }, FEEDBACK_TEXT.privacy),
+    el("div", { className: "dampf-fb-actions" }, send),
+  );
+  const banner = el("section", { className: "dampf-fb dampf-idea-banner" }, form);
+  banner.setAttribute("aria-labelledby", `dampf-idea-h-${n}`);
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (send.disabled) return;
+    msg.classList.remove("ok");
+    if (feedbackLength(ta.value) < FEEDBACK_MIN) {
+      msg.textContent = FEEDBACK_TEXT.tooShort;
+      ta.focus();
+      return;
+    }
+    send.disabled = true;
+    msg.textContent = "";
+    const r = await sendFeedback(url, {
+      game: "spielidee",
+      gameVersion: null,
+      text: ta.value,
+      website: hp.value,
+    });
+    send.disabled = false;
+    if (r === "ok") {
+      ta.value = "";
+      updateCount();
+      msg.classList.add("ok");
+      msg.textContent = IDEA_TEXT.thanks;
+      return;
+    }
+    msg.textContent = r === "tooMany" ? FEEDBACK_TEXT.tooMany : FEEDBACK_TEXT.error;
+  });
+  return banner;
 }

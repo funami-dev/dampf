@@ -244,12 +244,70 @@ test.describe("Feedback auf der Startseite", () => {
     }
   });
 
+  test("FEEDBACK-AK-28: Spielideen-Banner unter der Spieleliste", async ({ page, request }) => {
+    test.skip(!local, "braucht den lokalen Server");
+    const text = `E2E-Idee ${uid()}: Ein Spiel mit fliegenden Fischen`;
+    const sent = await intercept(page, toLocalServer(`e2e-${uid()}`));
+    await page.goto("/");
+    const banner = page.getByRole("region", { name: "💡 Hast du eine Idee für ein neues Spiel?" });
+    await expect(banner).toBeVisible();
+    await expect(banner.getByText("Erzähl sie uns!")).toBeVisible();
+    // unter der Spieleliste
+    const listBottom = await page
+      .locator("[data-testid=games]")
+      .evaluate((e) => e.getBoundingClientRect().bottom);
+    const bannerTop = await banner.evaluate((e) => e.getBoundingClientRect().top);
+    expect(bannerTop).toBeGreaterThan(listBottom);
+
+    const box = banner.getByLabel("Deine Spielidee");
+    await box.fill("ab");
+    await banner.getByRole("button", { name: "Idee abschicken" }).click();
+    await expect(banner.getByText("Schreib noch ein bisschen mehr.")).toBeVisible();
+    expect(sent).toHaveLength(0);
+
+    await box.fill(text);
+    await expect(banner.getByText(`${text.length} / 500`)).toBeVisible();
+    await banner.getByRole("button", { name: "Idee abschicken" }).click();
+    await expect(banner.getByText("Danke für deine Idee! 🎉")).toBeVisible();
+    await expect(box).toHaveValue("");
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({ game: "spielidee", gameVersion: null, text });
+
+    const res = await request.get(`${LOCAL}/feedback?game=spielidee&status=neu&limit=200`, {
+      headers: { Authorization: `Bearer ${FEEDBACK_ADMIN_TOKEN_E2E}` },
+    });
+    expect(res.status()).toBe(200);
+    const list = (await res.json()) as { text: string; gameVersion: string | null }[];
+    expect(list.find((e) => e.text === text)).toMatchObject({ gameVersion: null });
+
+    if (isMobile(page)) {
+      const scroll = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      );
+      expect(scroll).toBeLessThanOrEqual(0);
+    }
+  });
+
+  test("FEEDBACK-AK-28: Banner bei Fehler – Text bleibt", async ({ page }) => {
+    await intercept(page, (route) => route.abort("internetdisconnected"));
+    await page.goto("/");
+    const banner = page.getByRole("region", { name: "💡 Hast du eine Idee für ein neues Spiel?" });
+    const box = banner.getByLabel("Deine Spielidee");
+    await box.fill("Ein Spiel mit Raketen");
+    await banner.getByRole("button", { name: "Idee abschicken" }).click();
+    await expect(
+      banner.getByText("Das hat gerade nicht geklappt. Versuch es später noch mal."),
+    ).toBeVisible();
+    await expect(box).toHaveValue("Ein Spiel mit Raketen");
+  });
+
   test.describe("ohne JavaScript", () => {
     test.use({ javaScriptEnabled: false });
-    test("FEEDBACK-AK-20: kein Knopf, Liste trotzdem da", async ({ page }) => {
+    test("FEEDBACK-AK-20/28: kein Knopf, kein Banner, Liste trotzdem da", async ({ page }) => {
       await page.goto("/");
       await expect(page.locator("[data-testid=games] > li").first()).toBeVisible();
       await expect(page.getByRole("button", { name: "Feedback geben" })).toHaveCount(0);
+      await expect(page.getByText("Hast du eine Idee für ein neues Spiel?")).toHaveCount(0);
     });
   });
 });

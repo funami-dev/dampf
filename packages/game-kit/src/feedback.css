@@ -131,3 +131,24 @@
   color: #66c0f4;
   background: transparent;
 }
+
+/* Spielideen-Banner auf der Startseite (FEEDBACK-AK-28) */
+.dampf-idea-banner {
+  width: 100%;
+  max-height: none;
+  overflow: visible;
+  margin: 2rem 0 1rem;
+  border-color: #ffcf6b;
+}
+.dampf-idea-banner h2 {
+  color: #ffcf6b;
+}
+.dampf-idea-banner textarea {
+  min-height: 5rem;
+}
+.dampf-idea-lead {
+  font-size: 1.05rem;
+}
+.dampf-idea-banner .dampf-fb-msg.ok {
+  color: #9be37a;
+}

@@ -35,6 +35,8 @@ entscheidet, und danach geht es weiter wie immer: Spec → Abnahme → Tests →
 - Nur Freitext, keine Art-Auswahl.
 - Der Knopf sitzt in Spielen **nur in der oberen Leiste**.
 - Auch die **Startseite** bekommt einen Feedback-Knopf (`game = "portal"`).
+- Die Startseite hat zusätzlich ein **Spielideen-Banner** unter der Spieleliste
+  (`game = "spielidee"`), gleicher Speicher und gleicher Ablauf.
 - Keine wöchentliche Zusammenfassung.
 
 ## Ablauf im Überblick
@@ -94,6 +96,21 @@ Spiel-Rahmen (`mountGameShell`) und von der Startseite. `mountGameShell` bekommt
   gemeinsame Vite-Plugin aus `game-kit` für alle Spiele und das Portal. Für `npm run dev` zeigt
   `.env.development` auf den lokalen Server (`http://localhost:8787/feedback`).
 
+### Spielideen-Banner auf der Startseite
+
+- Ein Banner **unter der Spieleliste**, direkt sichtbar (kein Dialog):
+  - Überschrift „💡 Hast du eine Idee für ein neues Spiel?“, darunter „Erzähl sie uns!“
+  - Textfeld (3–500 Zeichen, Zähler) mit Platzhalter „Wovon soll das Spiel handeln? Was macht man
+    darin?“, Knopf „Idee abschicken“, derselbe Hinweis und Datenschutz-Hinweis wie im Formular.
+  - Gesendet wird `game = "spielidee"`, `gameVersion = null`, über dieselbe Adresse und mit
+    demselben Honigtopf-Feld; Rate-Limits gelten gemeinsam mit dem Feedback.
+  - Erfolg: „Danke für deine Idee! 🎉“, das Feld wird geleert. Fehler, zu kurzer Text und zu viele
+    Nachrichten wie im Formular (Text bleibt bei Fehlern erhalten).
+  - Ohne JavaScript oder ohne Feedback-Adresse gibt es kein Banner.
+- **Sichtung:** Spielideen erscheinen beim Session-Start als „Spielidee“ (z. B. „2× Spielidee“).
+  Wird eine Idee umgesetzt, entsteht daraus eine neue Spiel-Spec unter `specs/games/`, die der
+  Nutzer abnimmt, bevor gebaut wird (sonst gleicher Ablauf wie beim Feedback).
+
 ### UI-Texte
 
 | Stelle                 | Text                                                                                                                              |
@@ -116,8 +133,8 @@ Ein Feedback-Eintrag (gespeichert im Worker):
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `id`          | vom Server vergeben, z. B. `fb_7k2m9q4x` (8 Zeichen a–z0–9), eindeutig                                                                             |
 | `createdAt`   | ISO-Zeitpunkt, vom Server gesetzt                                                                                                                  |
-| `game`        | Spiel-Slug `[a-z0-9-]{1,40}` oder `portal`                                                                                                         |
-| `gameVersion` | SemVer aus `game.json`; bei `portal` `null`                                                                                                        |
+| `game`        | Spiel-Slug `[a-z0-9-]{1,40}`, `portal` oder `spielidee`                                                                                                         |
+| `gameVersion` | SemVer aus `game.json`; bei `portal`/`spielidee` `null`                                                                                                        |
 | `text`        | 3–500 Zeichen nach Bereinigung (Steuerzeichen außer Zeilenumbruch entfernt, Leerraum am Rand gekürzt)                                              |
 | `device`      | `{ mobile, touch, viewport: "400x700", browser: "Safari 18", os: "iOS" }` – Größe auf 100 px gerundet, nur Familie + Hauptversion, kein User-Agent |
 | `status`      | `neu` \| `entwurf` \| `freigegeben` \| `umgesetzt` \| `abgelehnt` \| `archiviert`                                                                  |
@@ -196,7 +213,7 @@ wird der Absender für Tests aus `X-Forwarded-For` gelesen.
   - Es fragt `GET /feedback/stats` per `curl` ab (Adresse überschreibbar per `FEEDBACK_API`,
     damit es testbar ist), Zeitlimit **5 Sekunden**.
   - Es gibt eine Zeile als Kontext für Claude aus; Spieltitel kommen aus
-    `games/<slug>/game.json` („portal“ heißt „Startseite“), sonst der Slug.
+    `games/<slug>/game.json` („portal“ heißt „Startseite“, „spielidee“ heißt „Spielidee“), sonst der Slug.
   - Es **blockiert die Session nie**: immer Exit-Code 0, auch bei Fehler oder Zeitüberschreitung.
   - Es gibt nie das Token oder Feedback-Texte aus, nur Zahlen.
 - Dazu eine **Regel in CLAUDE.md** (Abschnitt „Feedback“): die Meldung des Hooks zu Beginn der
@@ -247,7 +264,7 @@ wird der Absender für Tests aus `X-Forwarded-For` gelesen.
 - **FEEDBACK-AK-01** Ein gültiges Feedback wird mit Status `neu`, eindeutiger `id`, `createdAt`
   und bereinigtem Text gespeichert; die Antwort ist `201 { id }`.
 - **FEEDBACK-AK-02** Ungültiges wird mit `400` und Feldname abgelehnt: Text unter 3 oder über 500
-  Zeichen (nach Bereinigung), falscher Slug, keine SemVer-Version (außer `null` bei `portal`),
+  Zeichen (nach Bereinigung), falscher Slug, keine SemVer-Version (außer `null` bei `portal` und `spielidee`),
   falsche `device`-Form. Unbekannte Felder werden nicht gespeichert, Steuerzeichen entfernt.
 - **FEEDBACK-AK-03** Anfragen über 4 KB ergeben `413`, ein anderer Content-Type `400`.
 - **FEEDBACK-AK-04** Rate-Limit: das 4. Feedback eines Absenders in 10 Minuten, das 21. am Tag
@@ -290,6 +307,14 @@ wird der Absender für Tests aus `X-Forwarded-For` gelesen.
   (Größe auf 100 px gerundet, nur Browser- und System-Familie mit Hauptversion).
 - **FEEDBACK-AK-20** (E2E) Die Startseite hat im Kopfbereich den Knopf „Feedback geben“; das
   Formular sendet `game = "portal"` und `gameVersion = null`. Ohne JavaScript fehlt der Knopf.
+
+- **FEEDBACK-AK-28** (E2E Desktop + Mobile) Die Startseite zeigt unter der Spieleliste das
+  Spielideen-Banner. Abschicken sendet `game = "spielidee"` und `gameVersion = null`; danach
+  „Danke für deine Idee! 🎉“, das Feld ist leer und der lokale Server hat den Eintrag. Zu kurzer
+  Text ergibt „Schreib noch ein bisschen mehr.“; Server-Fehler → Fehlertext, Text bleibt. Ohne
+  JavaScript fehlt das Banner; auf Mobile kein horizontales Scrollen.
+- **FEEDBACK-AK-29** (Vitest) Der Server nimmt `spielidee` mit `gameVersion = null` an und lehnt
+  eine Version dabei ab; das Hook-Skript nennt sie „Spielidee“.
 
 **Hook-Skript (Vitest, Skript gegen gemockten Server über `FEEDBACK_API`)**
 
