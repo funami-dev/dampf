@@ -102,6 +102,14 @@ describe("WL-AK-29: Trümmerspur", () => {
     });
   }
 
+  it("auf jeder Insel 15–25 Teile (viele Seeds, auch wenn das Wrack nah an der Küste liegt)", () => {
+    for (let k = 1; k <= 40; k++) {
+      const w = generateWorld(k * 7919 + 13);
+      expect(w.debris.length, `Seed ${k * 7919 + 13}`).toBeGreaterThanOrEqual(DEBRIS.min);
+      expect(w.debris.length).toBeLessThanOrEqual(DEBRIS.max);
+    }
+  });
+
   it("Hinweis: Himmelsrichtung (Norden = oben) und Entfernungsstufe", () => {
     const w = generateWorld(3);
     const { x, y } = w.plane;

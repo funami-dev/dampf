@@ -347,10 +347,12 @@ function placeDebris(w: World, rand: Rand): Debris[] {
     const t = w.terrain[i]!;
     return (t === T.GRASS || t === T.FOREST || t === T.SAND) && !w.treeAt[i] && !used.has(i);
   };
-  for (let k = 0; k < n * 8 && out.length < n; k++) {
+  // Erst entlang der Spur; liegt sie z. B. über dem Meer, mit immer breiterem Fächer weitersuchen
+  for (let k = 0; k < n * 200 && out.length < n; k++) {
     const f = Math.pow(rand(), 1.6); // mehr Teile nahe am Wrack
     const d = DEBRIS.near + f * (DEBRIS.far - DEBRIS.near);
-    const a = dir + (rand() - 0.5) * 0.7;
+    const spread = Math.min(Math.PI * 2, 0.7 + Math.floor(k / (n * 8)) * 0.6);
+    const a = dir + (rand() - 0.5) * spread;
     const x = Math.round(w.plane.x + Math.cos(a) * d);
     const y = Math.round(w.plane.y + Math.sin(a) * d);
     // nächstes passendes Feld in der Nähe suchen
