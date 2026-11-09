@@ -170,13 +170,21 @@ bei Gefahr zu einer stacheligen Kugel zusammen.“).
   - **Entdeckte Arten:** Bild, Name, Lebensraum, Tageszeit und der kurze Satz.
   - **Unentdeckte Arten:** dunkle Silhouette und „???“, dazu nur ein Hinweis auf Lebensraum und
     Tageszeit (z. B. „Nachts im Wald“). Beim Einhorn steht nur „Sehr selten …“.
+  - **Suchfeld** „Tier suchen“ über der Liste (Feedback `fb_jmxcmomo`): Beim Tippen zeigt die
+    Liste nur noch entdeckte Arten, deren Name den Text enthält (Groß-/Kleinschreibung egal,
+    z. B. „hase“ → Hase). Unentdeckte Arten werden beim Suchen ausgeblendet, damit die Suche
+    nichts verrät. Passt nichts: „Kein entdecktes Tier heißt so.“ Leeres Feld zeigt wieder alle.
+    Der Zähler „12 / 32 entdeckt“ bleibt unverändert.
 - **Das Tierbuch gehört der Spielerin bzw. dem Spieler, nicht der Welt.** Es bleibt bei „Neue Welt“
   erhalten und wird auch als Gast in fremden Welten weitergeführt. Im Mehrspieler entdeckt jeder
   für sich.
 
 ## Spielfigur
 
-- Beim Start wählt man **Name** (max. 12 Zeichen) und **Farbe** (6 Jacken-Farben).
+- Beim Start wählt man **Name** (max. 12 Zeichen) und **Farbe**: eine von 6 Jacken-Farben oder
+  über den **Farbwähler** „Eigene Farbe“ jede beliebige Farbe (Feedback `fb_1hogxvcy`).
+  - Farben sind immer `#rrggbb` (klein geschrieben). Andere Werte lehnen Spielstand und
+    Mehrspieler-Nachrichten ab (Spielstand: dann erste Jacken-Farbe).
 - Die Figur läuft in 8 Richtungen. **Rennen** ist schneller und kostet Fitness.
 
 ## Zustand („Health-Leiste“)
@@ -440,6 +448,17 @@ Figur steht.
 - **WL-AK-30** (E2E) An einen Fluss gehen und Holz sammeln, zwei bis drei Brückenstücke bauen
   (Taste B, 3), über den Fluss laufen. Ein Trümmerteil ansehen ergibt einen Hinweis mit
   Himmelsrichtung.
+- **WL-AK-31** Eigene Farbe:
+  - Gültig sind genau Farben im Format `#rrggbb`; Gäste mit anderer Farbe (z. B. `red`,
+    `url(…)`) werden abgewiesen, auch in Snapshots.
+  - Ein Spielstand mit eigener Farbe lädt mit dieser Farbe; ungültige Farbe ergibt die erste
+    Jacken-Farbe.
+- **WL-AK-32** (E2E) Im Startbildschirm über „Eigene Farbe“ eine Farbe wählen und spielen: Die
+  Figur hat diese Farbe, nach Neuladen auch.
+- **WL-AK-33** (E2E) Tierbuch-Suche: Mit einem entdeckten Tier zeigt „Tier suchen“ mit Teil des
+  Namens nur dieses Tier, unentdeckte („???“) sind ausgeblendet; ein unpassender Text zeigt
+  „Kein entdecktes Tier heißt so.“; leeres Feld zeigt wieder alle 32. Tippen im Suchfeld löst
+  keine Spieltasten aus. Auf Mobile bedienbar.
 
 ## Nicht-Ziele (MVP)
 

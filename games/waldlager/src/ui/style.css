@@ -355,3 +355,40 @@
   border-radius: 10px;
   border: 2px solid rgba(255, 255, 255, 0.5);
 }
+/* WL-AK-32: eigene Farbe */
+.wl-color-pick {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  background: conic-gradient(#e74c3c, #f1c40f, #1abc9c, #3498db, #9b59b6, #e74c3c);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 16px;
+}
+.wl-color-pick.on {
+  border-color: #fff;
+  box-shadow: 0 0 0 2px #000;
+}
+.wl-color-pick input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: 0;
+  padding: 0;
+}
+/* WL-AK-33: Tierbuch-Suche */
+.wl-search input {
+  width: min(300px, 100%);
+}
+.wl-empty {
+  margin: 8px 0;
+}
+.wl-animal[hidden] {
+  display: none;
+}

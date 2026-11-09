@@ -1,5 +1,5 @@
 import type { World } from "./world.ts";
-import { ANIMALS, COLORS, type Animal, type Fire, type Player, type State } from "./sim.ts";
+import { ANIMALS, isColor, type Animal, type Fire, type Player, type State } from "./sim.ts";
 
 /** Netzwerk-Protokoll (WL-AK-12): JSON mit Versionsnummer, ungültige Nachrichten → null. */
 export const VERSION = 1;
@@ -69,7 +69,7 @@ export function parseGuest(d: unknown): GuestMsg | null {
   if (!obj(d) || d.v !== VERSION) return null;
   switch (d.k) {
     case "hello":
-      return str(d.name, 12) && str(d.color, 9) && (COLORS as readonly string[]).includes(d.color)
+      return str(d.name, 12) && isColor(d.color)
         ? { v: 1, k: "hello", name: d.name, color: d.color }
         : null;
     case "move":
@@ -103,7 +103,7 @@ function playerSnap(p: unknown): p is PlayerSnap {
   return (
     str(p.id, 20) &&
     str(p.name, 12) &&
-    str(p.color, 9) &&
+    isColor(p.color) &&
     num(p.x) &&
     num(p.y) &&
     num(p.fx) &&

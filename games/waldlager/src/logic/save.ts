@@ -1,4 +1,4 @@
-import { COLORS, addPlayer, createState, type Player, type State } from "./sim.ts";
+import { COLORS, addPlayer, isColor, createState, type Player, type State } from "./sim.ts";
 import { SIZE, generateWorld, type World } from "./world.ts";
 
 /** Speicherstand (WL-AK-10), localStorage-Schlüssel dampf.waldlager.v1 */
@@ -95,7 +95,7 @@ export function load(store: Store): { world: World; state: State; me: string } |
       state,
       me.id,
       me.name,
-      COLORS.includes(me.color as never) ? me.color : COLORS[0],
+      isColor(me.color) ? me.color : COLORS[0],
       home,
     );
     Object.assign(p, {

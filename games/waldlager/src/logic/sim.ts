@@ -5,6 +5,9 @@ import { T, debrisHint, idx, inside, terrainWalkable, type World } from "./world
 
 /** Spielstand einer Welt (Spec: specs/games/waldlager.md). Reine Daten, serialisierbar. */
 export const COLORS = ["#e74c3c", "#3498db", "#f1c40f", "#9b59b6", "#e67e22", "#1abc9c"] as const;
+/** Gültige Spielerfarbe (WL-AK-31): genau `#rrggbb`, klein geschrieben */
+export const isColor = (c: unknown): c is string =>
+  typeof c === "string" && /^#[0-9a-f]{6}$/.test(c);
 /** Alle Tierarten-IDs (Reihenfolge = Index im Netzwerk-Protokoll) */
 export const ANIMALS: readonly string[] = SPECIES.map((x) => x.id);
 export type AnimalKind = string;
