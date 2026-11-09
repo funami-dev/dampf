@@ -392,3 +392,12 @@
 .wl-animal[hidden] {
   display: none;
 }
+/* WL-AK-36: gerade aktiv? */
+.wl-active {
+  font-size: 0.85em;
+  opacity: 0.85;
+}
+.wl-active.on {
+  opacity: 1;
+  font-weight: 700;
+}

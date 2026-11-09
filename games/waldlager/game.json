@@ -10,8 +10,17 @@
   "status": "published",
   "order": 80,
   "addedAt": "2026-11-08",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "changelog": [
+    {
+      "version": "1.3.0",
+      "date": "2026-11-09",
+      "items": [
+        "Neu: Im Tierbuch siehst du, welche Tiere gerade unterwegs sind und welche schlafen",
+        "Beim Hai siehst du, ob seine Flosse gerade zu sehen ist",
+        "Wer kaum noch Puste hat, läuft langsamer – und mit Hunger geht dir schneller die Puste aus"
+      ]
+    },
     {
       "version": "1.2.0",
       "date": "2026-11-09",

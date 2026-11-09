@@ -30,6 +30,18 @@ export interface NeedsCtx {
 
 const clamp = (v: number) => Math.max(0, Math.min(100, v));
 
+/** Schwäche (WL-AK-34): Tempo-Faktor; die stärkere Bremse zählt */
+export function speedFactor(n: Needs): number {
+  const fit = n.fitness < 10 ? 0.6 : n.fitness < 25 ? 0.8 : 1;
+  const food = n.hunger <= 0 ? 0.6 : 1;
+  return Math.min(fit, food);
+}
+
+/** Schwäche (WL-AK-34): Hunger unter 25 % → Fitness kostet doppelt, erholt sich halb so schnell */
+export function fitnessFactor(n: Needs): { cost: number; recover: number } {
+  return n.hunger < 25 ? { cost: 2, recover: 0.5 } : { cost: 1, recover: 1 };
+}
+
 export function stepNeeds(n: Needs, dt: number, c: NeedsCtx): Needs {
   let rest = n.rest;
   if (c.sleeping) rest += RATES.sleepPerSec * dt;
@@ -38,9 +50,10 @@ export function stepNeeds(n: Needs, dt: number, c: NeedsCtx): Needs {
     if (c.atFire && !c.moving) rest += RATES.firePerSec * dt;
   }
   let fitness = n.fitness;
-  if (c.running && c.moving) fitness -= RATES.runPerSec * dt;
-  else if (c.atFire && !c.moving) fitness += RATES.fitFire * dt;
-  else fitness += (c.moving ? RATES.fitWalk : RATES.fitStand) * dt;
+  const f = fitnessFactor(n);
+  if (c.running && c.moving) fitness -= RATES.runPerSec * f.cost * dt;
+  else if (c.atFire && !c.moving) fitness += RATES.fitFire * f.recover * dt;
+  else fitness += (c.moving ? RATES.fitWalk : RATES.fitStand) * f.recover * dt;
   return {
     hunger: clamp(n.hunger - RATES.hungerPerSec * dt),
     rest: clamp(rest),

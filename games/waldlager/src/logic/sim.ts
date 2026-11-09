@@ -1,6 +1,14 @@
 import { DAY, START_TIME, isNight, phaseOf } from "./daytime.ts";
 import { SPECIES, UNICORN, speciesById } from "./species.ts";
-import { FULL, RATES, eatBerry, stepNeeds, type Needs } from "./needs.ts";
+import {
+  FULL,
+  RATES,
+  eatBerry,
+  fitnessFactor,
+  speedFactor,
+  stepNeeds,
+  type Needs,
+} from "./needs.ts";
 import { T, debrisHint, idx, inside, terrainWalkable, type World } from "./world.ts";
 
 /** Spielstand einer Welt (Spec: specs/games/waldlager.md). Reine Daten, serialisierbar. */
@@ -23,7 +31,7 @@ export const COSTS = { tent: 8, fire: 3, bridge: 3 };
 export const TREE = { hits: 4, wood: 3, regrow: DAY };
 export const BUSH = { berries: 4, refill: DAY / 2 };
 export const FIRE = { burn: 180, stoke: 120, max: 600, warm: 2.5 };
-export const SPEED = { walk: 3, run: 5.5, hungry: 0.6 };
+export const SPEED = { walk: 3, run: 5.5 };
 const RADIUS = 0.3;
 const REACH = 1.3;
 
@@ -149,6 +157,15 @@ export function hiddenAt(kind: string, total: number): boolean {
   if (kind === "hai") return ((total % SHARK.cycle) + SHARK.cycle) % SHARK.cycle >= SHARK.up;
   const ph = phaseOf(total);
   return speciesById(kind)?.time === "nacht" && (ph === "tag" || ph === "morgen");
+}
+
+/** Ist die Art gerade unterwegs? (WL-AK-35, fürs Tierbuch) */
+export function activeAt(kind: string, total: number): boolean {
+  if (kind === "hai") return !hiddenAt(kind, total);
+  const ph = phaseOf(total);
+  return speciesById(kind)?.time === "nacht"
+    ? ph === "nacht" || ph === "daemmerung"
+    : ph !== "nacht";
 }
 
 function spawn(w: World, s: State, kind: string, far: (x: number, y: number) => boolean): boolean {
@@ -335,8 +352,7 @@ export function movePlayer(w: World, s: State, p: Player, input: Input, dt: numb
   p.fx = tx;
   p.fy = ty;
   p.running = input.run && !p.exhausted;
-  let speed = p.running ? SPEED.run : SPEED.walk;
-  if (p.needs.hunger <= 0) speed *= SPEED.hungry;
+  const speed = (p.running ? SPEED.run : SPEED.walk) * speedFactor(p.needs);
   const step = speed * n * dt;
   // kleine Schritte gegen Tunneln
   const parts = Math.ceil(step / 0.2);
@@ -554,7 +570,10 @@ export function act(w: World, s: State, p: Player): string | null {
       p.fy = t.y + 0.5 - p.y;
       if (!p.chop || p.chop.tree !== a.target) p.chop = { tree: a.target, hits: 0 };
       p.chop.hits++;
-      p.needs = { ...p.needs, fitness: Math.max(0, p.needs.fitness - RATES.chopCost) };
+      p.needs = {
+        ...p.needs,
+        fitness: Math.max(0, p.needs.fitness - RATES.chopCost * fitnessFactor(p.needs).cost),
+      };
       if (p.needs.fitness <= 0) p.exhausted = true;
       if (p.chop.hits < TREE.hits) return "Tock!";
       p.chop = null;
