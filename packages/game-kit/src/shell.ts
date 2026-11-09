@@ -2,11 +2,16 @@
 import "./compat.ts";
 import "./shell.css";
 import { installNoZoom } from "./nozoom.ts";
+import { createFeedbackButton } from "./feedback.ts";
 
 export interface ShellOptions {
   title: string;
+  /** Spiel-Slug aus game.json, wird beim Feedback mitgeschickt (Spec 004) */
+  slug: string;
   /** Version aus game.json, wird klein neben dem Titel gezeigt (MANIFEST-AK-11) */
   version?: string;
+  /** Feedback-Adresse; Standard: VITE_FEEDBACK_URL. Leer = kein Feedback-Knopf. */
+  feedbackUrl?: string;
 }
 
 /**
@@ -14,7 +19,7 @@ export interface ShellOptions {
  * der Container für das Spiel. Der Button liegt außerhalb des Spielfelds und verdeckt nichts.
  * Gibt das Element zurück, in das Phaser rendern soll.
  */
-export function mountGameShell({ title, version }: ShellOptions): HTMLElement {
+export function mountGameShell({ title, slug, version, feedbackUrl }: ShellOptions): HTMLElement {
   document.documentElement.lang = "de";
   document.title = `${title} – Dampf`;
 
@@ -35,6 +40,15 @@ export function mountGameShell({ title, version }: ShellOptions): HTMLElement {
     v.title = `Version ${version}`;
     bar.append(v);
   }
+  // Feedback-Knopf rechts in der Leiste (Spec 004)
+  const fb = createFeedbackButton({
+    game: slug,
+    gameVersion: version ?? "0.0.0",
+    title,
+    url: feedbackUrl,
+    pauseGame: true,
+  });
+  if (fb) bar.append(fb);
 
   const stage = document.createElement("main");
   stage.className = "dampf-stage";

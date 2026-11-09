@@ -13,7 +13,11 @@ import { debugEnabled } from "./debug.ts";
 
 const PHYSICS_DT = 1 / 120;
 
-const stage = mountGameShell({ title: manifest.title, version: manifest.version });
+const stage = mountGameShell({
+  title: manifest.title,
+  slug: manifest.slug,
+  version: manifest.version,
+});
 stage.style.background = "#8ec5ff";
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });

@@ -53,6 +53,8 @@ body.dampf-game {
 }
 
 .dampf-back {
+  flex: 0 0 auto;
+  white-space: nowrap;
   color: var(--dampf-accent);
   text-decoration: none;
   font-weight: 700;
@@ -68,6 +70,8 @@ body.dampf-game {
 }
 
 .dampf-version {
+  flex: 0 0 auto;
+  white-space: nowrap;
   margin-left: -0.5rem;
   font-size: 0.75rem;
   color: var(--dampf-text);
@@ -76,6 +80,10 @@ body.dampf-game {
 }
 
 .dampf-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-weight: 700;
   letter-spacing: 0.05em;
 }

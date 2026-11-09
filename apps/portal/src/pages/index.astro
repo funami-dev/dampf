@@ -32,6 +32,8 @@ const news = getNews();
           Rechner.
         </p>
       </div>
+      <!-- Feedback-Knopf (Spec 004), nur mit JavaScript -->
+      <div class="feedback-slot" id="dampf-feedback"></div>
     </header>
     <main class="wrap">
       <News news={news} />
@@ -43,8 +45,16 @@ const news = getNews();
   </body>
 </html>
 
+<script>
+  import { createFeedbackButton } from "@dampf/game-kit/feedback";
+
+  const button = createFeedbackButton({ game: "portal", gameVersion: null, title: "Dampf" });
+  if (button) document.getElementById("dampf-feedback")?.append(button);
+</script>
+
 <style>
   .hero {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 1.25rem;
@@ -67,6 +77,11 @@ const news = getNews();
     max-width: 50ch;
     line-height: 1.5;
     color: var(--muted);
+  }
+  .feedback-slot {
+    position: absolute;
+    top: 0.75rem;
+    right: 0;
   }
   main {
     flex: 1;

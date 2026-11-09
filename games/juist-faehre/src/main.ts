@@ -26,7 +26,11 @@ const KNOTS = 1.943844;
 const store = browserStore();
 let logbook = load(store);
 
-const stage = mountGameShell({ title: manifest.title, version: manifest.version });
+const stage = mountGameShell({
+  title: manifest.title,
+  slug: manifest.slug,
+  version: manifest.version,
+});
 stage.style.background = "#a9d4f5";
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
