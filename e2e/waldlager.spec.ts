@@ -65,7 +65,19 @@ async function open(page: Page, relay = "") {
 
 /** Warten, bis die Fallschirm-Landung vorbei ist */
 async function landed(page: Page) {
-  await expect.poll(async () => (await state(page)).me.landing, { timeout: 20_000 }).toBe(0);
+  // Laufen mehrere Testfenster parallel, verliert ein Fenster den Fokus und das Spiel pausiert
+  // (WL-AK-17) – dann steht auch die Landung. In dem Fall weiterspielen.
+  await expect
+    .poll(
+      async () => {
+        const s = await state(page);
+        if (s.screen === "paused")
+          await page.getByRole("button", { name: "Weiterspielen" }).click();
+        return s.me.landing;
+      },
+      { timeout: 30_000 },
+    )
+    .toBe(0);
 }
 
 async function chopTree(page: Page) {
