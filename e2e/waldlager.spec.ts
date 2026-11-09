@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { expectNoErrors, isMobile, trackErrors } from "./helpers.ts";
+import { BOOK_KEY } from "../games/waldlager/src/logic/tierbuch.ts";
+import { SPECIES } from "../games/waldlager/src/logic/species.ts";
 
 interface WlState {
   screen: string;
@@ -397,6 +399,11 @@ test("WL-AK-22: Tier entdecken – Meldung und Tierbuch", async ({ page }) => {
 
 test("WL-AK-27: Fallschirm, Flugzeug, Funkgerät", async ({ page }) => {
   test.setTimeout(120_000);
+  // Alle Tiere schon im Tierbuch: sonst überschreibt „Neu entdeckt: …“ die geprüften Meldungen
+  await page.addInitScript(
+    ([key, seen]) => localStorage.setItem(key as string, JSON.stringify({ v: 1, seen })),
+    [BOOK_KEY, SPECIES.map((s) => s.id)] as const,
+  );
   const errors = trackErrors(page);
   await open(page);
   const mobile = isMobile(page);
