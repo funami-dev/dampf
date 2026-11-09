@@ -2,6 +2,10 @@ export interface DebugHooks {
   state(): Record<string, unknown>;
   /** Figur versetzen (Kachel-Koordinaten) */
   teleport(x: number, y: number, fx?: number, fy?: number): void;
+  /** Fallschirm-Landung sofort beenden (Test-Hilfe) */
+  finishLanding(): void;
+  /** Feld-Infos (für Tests) */
+  cell(x: number, y: number): { terrain: number; free: boolean; tree: number };
   /** Ufer-Feld mit Flusswasser daneben: [x, y, Blickrichtung fx, fy] */
   riverSpot(): [number, number, number, number] | null;
   /** nächstes sichtbares, noch nicht entdecktes Tier: [x, y, Art] */

@@ -45,6 +45,8 @@ interface Hooks {
   buildSpot(): [number, number, number, number] | null;
   nearestAnimal(): [number, number, string] | null;
   riverSpot(): [number, number, number, number] | null;
+  cell(x: number, y: number): { terrain: number; free: boolean; tree: number };
+  finishLanding(): void;
 }
 
 declare global {
@@ -66,13 +68,16 @@ async function open(page: Page, relay = "") {
 /** Warten, bis die Fallschirm-Landung vorbei ist */
 async function landed(page: Page) {
   // Laufen mehrere Testfenster parallel, verliert ein Fenster den Fokus und das Spiel pausiert
-  // (WL-AK-17) – dann steht auch die Landung. In dem Fall weiterspielen.
+  // (WL-AK-17) – dann steht auch die Landung. Weiterspielen; dauert es zu lange, Test-Hilfe.
+  const t0 = Date.now();
   await expect
     .poll(
       async () => {
         const s = await state(page);
         if (s.screen === "paused")
           await page.getByRole("button", { name: "Weiterspielen" }).click();
+        if (s.me.landing > 0 && Date.now() - t0 > 8_000)
+          await page.evaluate(() => (window.__dampf as Hooks).finishLanding());
         return s.me.landing;
       },
       { timeout: 30_000 },
@@ -267,10 +272,14 @@ test("WL-AK-15: zwei Browser – Welt ist offen, Liste im Hauptmenü, beitreten,
   test.skip(!!process.env.DAMPF_URL, "braucht den lokalen Raum-Server");
   test.setTimeout(180_000);
   const relay = "ws://localhost:8787";
+  // eindeutige Namen, falls mehrere Testläufe denselben Raum-Server nutzen
+  const id = String(Math.floor(Math.random() * 1000)).padStart(3, "0");
+  const host = `Mia${id}`;
+  const gast = `Ben${id}`;
   const errors = trackErrors(page);
   await open(page, relay);
   await expect(page.getByText("Dein Name ist für alle sichtbar")).toBeVisible();
-  await page.getByLabel("Dein Name").fill("Mia");
+  await page.getByLabel("Dein Name").fill(host);
   await page.getByRole("button", { name: "Los geht's" }).click();
   // Ohne Zutun offen
   await expect
@@ -282,12 +291,12 @@ test("WL-AK-15: zwei Browser – Welt ist offen, Liste im Hauptmenü, beitreten,
   const guest = await ctx2.newPage();
   const errors2 = trackErrors(guest);
   await open(guest, relay);
-  await guest.getByLabel("Dein Name").fill("Ben");
+  await guest.getByLabel("Dein Name").fill(gast);
   await guest.getByRole("button", { name: "Farbe #f1c40f" }).click();
   const lobby = guest.getByRole("region", { name: "Offene Welten" });
-  await expect(lobby.getByText("Mias Welt")).toBeVisible({ timeout: 20_000 });
-  await expect(lobby.getByText(/Mia · 1 \/ 6/)).toBeVisible();
-  await lobby.getByRole("button", { name: "Mias Welt beitreten" }).click();
+  await expect(lobby.getByText(`${host}s Welt`)).toBeVisible({ timeout: 20_000 });
+  await expect(lobby.getByText(`${host} · 1 / 6`)).toBeVisible();
+  await lobby.getByRole("button", { name: `${host}s Welt beitreten` }).click();
   await expect.poll(async () => (await state(guest)).mode, { timeout: 30_000 }).toBe("guest");
   // Beide sehen sich
   await expect.poll(async () => (await state(page)).players.length, { timeout: 30_000 }).toBe(2);
@@ -300,7 +309,7 @@ test("WL-AK-15: zwei Browser – Welt ist offen, Liste im Hauptmenü, beitreten,
   const third = await ctx3.newPage();
   await open(third, relay);
   const lobby3 = third.getByRole("region", { name: "Offene Welten" });
-  await expect(lobby3.getByText(/Mia, Ben · 2 \/ 6/)).toBeVisible({ timeout: 20_000 });
+  await expect(lobby3.getByText(`${host}, ${gast} · 2 / 6`)).toBeVisible({ timeout: 20_000 });
 
   // Gastgeber fällt einen Baum → beim Gast ist er ein Stumpf
   await page.bringToFront();
@@ -338,7 +347,7 @@ test("WL-AK-15: zwei Browser – Welt ist offen, Liste im Hauptmenü, beitreten,
     timeout: 15_000,
   });
   await expect.poll(async () => (await state(guest)).mode).toBe("solo");
-  await expect(lobby3.getByText("Mias Welt")).toHaveCount(0, { timeout: 20_000 });
+  await expect(lobby3.getByText(`${host}s Welt`)).toHaveCount(0, { timeout: 20_000 });
   await expectNoErrors(errors);
   await expectNoErrors(errors2);
   await ctx2.close();
@@ -351,6 +360,8 @@ test("WL-AK-22: Tier entdecken – Meldung und Tierbuch", async ({ page }) => {
   await open(page);
   await page.getByRole("button", { name: "Los geht's" }).click();
   await expect.poll(async () => (await state(page)).screen).toBe("play");
+  // erst landen: sonst überschreibt „Gelandet!“ die Meldung „Neu entdeckt“
+  await landed(page);
   await hooks(page, (h) => h.setTime(100));
   const before = (await state(page)).book.length;
   const a = (await hooks(page, (h) => h.nearestAnimal()))!;
@@ -448,12 +459,12 @@ test("WL-AK-30: Brücke bauen, über den Fluss laufen, Trümmer ansehen", async 
   await open(page);
   await page.getByRole("button", { name: "Los geht's" }).click();
   await landed(page);
-  // Holz für drei Brückenstücke
-  for (let k = 0; k < 3; k++) {
+  // Holz für bis zu vier Brückenstücke (Flüsse sind 2–4 Felder breit)
+  for (let k = 0; k < 4; k++) {
     await hooks(page, (h) => h.setNeeds({ fitness: 100 }));
     await chopTree(page);
   }
-  expect((await state(page)).me.wood).toBeGreaterThanOrEqual(9);
+  expect((await state(page)).me.wood).toBeGreaterThanOrEqual(12);
   const spot = (await hooks(page, (h) => h.riverSpot()))!;
   expect(spot).not.toBeNull();
   const [sx, sy, fx, fy] = spot;
@@ -488,8 +499,13 @@ test("WL-AK-30: Brücke bauen, über den Fluss laufen, Trümmer ansehen", async 
           ? ["ArrowLeft", "ArrowDown"]
           : ["ArrowRight", "ArrowUp"];
   const along = async () => {
-    const me = (await state(page)).me;
-    return (me.x - (sx + 0.5)) * fx + (me.y - (sy + 0.5)) * fy;
+    const s = await state(page);
+    // paralleles Testfenster hat den Fokus genommen → Spiel pausiert: weiterspielen, Tasten neu drücken
+    if (s.screen === "paused") {
+      await page.getByRole("button", { name: "Weiterspielen" }).click();
+      for (const k of keys) await page.keyboard.down(k);
+    }
+    return (s.me.x - (sx + 0.5)) * fx + (s.me.y - (sy + 0.5)) * fy;
   };
   for (const k of keys) await page.keyboard.down(k);
   // laufen, bis man jenseits der Brücke steht (langsame Rechner brauchen länger)
