@@ -10,8 +10,13 @@
   "status": "published",
   "order": 80,
   "addedAt": "2026-11-08",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "changelog": [
+    {
+      "version": "1.0.2",
+      "date": "2026-11-09",
+      "items": ["Noch mehr Feinschliff hinter den Kulissen für zuverlässige Tests"]
+    },
     {
       "version": "1.0.1",
       "date": "2026-11-08",

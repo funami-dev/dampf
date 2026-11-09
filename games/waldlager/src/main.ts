@@ -1228,6 +1228,14 @@ if (debugEnabled) {
         p.fy = fy;
       }
     },
+    finishLanding: () => {
+      me().landing = 0;
+    },
+    cell: (x, y) => ({
+      terrain: inside(world, x, y) ? world.terrain[idx(world, x, y)]! : -1,
+      free: free(world, state, x, y),
+      tree: inside(world, x, y) ? world.treeAt[idx(world, x, y)]! : 0,
+    }),
     riverSpot: () => {
       // freies Ufer-Feld mit Flusswasser direkt daneben, möglichst nah: [x, y, fx, fy]
       const p = me();
@@ -1246,6 +1254,12 @@ if (debugEnabled) {
             const by = y + dy;
             if (!free(world, state, bx, by) || world.terrain[idx(world, bx, by)] === T.WATER)
               continue;
+            // über den Fluss (höchstens 4 Wasserfelder) muss ein freies Landfeld folgen
+            let k = 0;
+            while (k < 5 && world.terrain[idx(world, x - dx * k, y - dy * k)] === T.WATER) k++;
+            const ex = x - dx * k;
+            const ey = y - dy * k;
+            if (k > 4 || !inside(world, ex, ey) || !free(world, state, ex, ey)) continue;
             const d = Math.hypot(bx - p.x, by - p.y);
             if (d < bd) {
               bd = d;
