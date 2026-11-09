@@ -10,6 +10,7 @@ import {
   act,
   actionFor,
   addPlayer,
+  isColor,
   build,
   buildSpot,
   canBridgeAt,
@@ -304,6 +305,7 @@ function setPaused(v: boolean) {
   } else if (!v) resume();
 }
 
+const isPreset = (c: string) => (COLORS as readonly string[]).includes(c);
 const escapeHtml = (t: string) => t.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 function openStart() {
@@ -316,7 +318,9 @@ function openStart() {
     <div class="wl-colors" role="group" aria-label="Farbe">${COLORS.map(
       (c) =>
         `<button type="button" class="wl-color" data-c="${c}" style="background:${c}" aria-label="Farbe ${c}" aria-pressed="${c === profile.color}"></button>`,
-    ).join("")}</div>
+    ).join(
+      "",
+    )}<label class="wl-color-pick${isPreset(profile.color) ? "" : " on"}" title="Eigene Farbe"${isPreset(profile.color) || !isColor(profile.color) ? "" : ` style="background:${profile.color}"`}><input type="color" value="${isColor(profile.color) ? profile.color : COLORS[1]}" aria-label="Eigene Farbe" /><span aria-hidden="true">🎨</span></label></div>
     <button class="wl-btn primary" type="button" data-a="play">${hasSave ? "Weiterspielen" : "Los geht's"}</button>
     ${hasSave ? `<button class="wl-btn" type="button" data-a="new">Neue Welt</button>` : ""}
     <button class="wl-btn" type="button" data-a="book">Tierbuch</button>
@@ -324,14 +328,25 @@ function openStart() {
     <p><small>Laufen: WASD/Pfeile · Rennen: Umschalt · Aktion: E · Essen: Q · Bauen: B · Tierbuch: T</small></p>`);
   const input = el.querySelector("input")!;
   const takeName = () => (profile.name = input.value.trim().slice(0, 12) || "Wanderer");
+  const pick = el.querySelector<HTMLInputElement>(".wl-color-pick input")!;
+  const choose = (c: string, b: Element | null) => {
+    profile.color = c;
+    el.querySelectorAll(".wl-color").forEach((x) =>
+      x.setAttribute("aria-pressed", String(x === b)),
+    );
+    pick.parentElement!.classList.toggle("on", !b);
+    pick.parentElement!.style.background = b ? "" : c;
+  };
   el.querySelectorAll<HTMLButtonElement>(".wl-color").forEach((b) =>
-    b.addEventListener("click", () => {
-      profile.color = b.dataset.c!;
-      el.querySelectorAll(".wl-color").forEach((x) =>
-        x.setAttribute("aria-pressed", String(x === b)),
-      );
-    }),
+    b.addEventListener("click", () => choose(b.dataset.c!, b)),
   );
+  // WL-AK-31/32: eigene Farbe über den Farbwähler
+  const custom = () => {
+    const c = pick.value.toLowerCase();
+    if (isColor(c)) choose(c, el.querySelector(`.wl-color[data-c="${c}"]`));
+  };
+  pick.addEventListener("input", custom);
+  pick.addEventListener("change", custom);
   const start = (fresh: boolean) => {
     takeName();
     if (fresh) return withLoading(() => go(true));
@@ -423,9 +438,25 @@ function openBook(back: () => void) {
   }).join("");
   const el = panel(`<h2>Tierbuch</h2>
     <p class="wl-count">${book.size} / ${SPECIES.length} entdeckt</p>
+    <label class="wl-field wl-search">Tier suchen <input type="search" placeholder="z. B. Hase" autocomplete="off" enterkeyhint="search" /></label>
     <ul class="wl-book">${items}</ul>
+    <p class="wl-empty" hidden>Kein entdecktes Tier heißt so.</p>
     <button class="wl-btn primary" type="button" data-a="back">Zurück</button>`);
   el.classList.add("wl-panel-scroll");
+  // WL-AK-33: Suche nur über entdeckte Namen – verrät nichts über unentdeckte Tiere
+  const search = el.querySelector<HTMLInputElement>(".wl-search input")!;
+  const rows = [...el.querySelectorAll<HTMLElement>(".wl-animal")];
+  const empty = el.querySelector<HTMLElement>(".wl-empty")!;
+  search.addEventListener("input", () => {
+    const q = search.value.trim().toLocaleLowerCase("de");
+    let shown = 0;
+    SPECIES.forEach((sp, i) => {
+      const ok = !q || (book.has(sp.id) && sp.name.toLocaleLowerCase("de").includes(q));
+      rows[i]!.hidden = !ok;
+      if (ok) shown++;
+    });
+    empty.hidden = shown > 0;
+  });
   el.querySelector('[data-a="back"]')!.addEventListener("click", back);
 }
 

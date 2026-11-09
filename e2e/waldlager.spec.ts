@@ -531,3 +531,84 @@ test("WL-AK-30: Brücke bauen, über den Fluss laufen, Trümmer ansehen", async 
   ).toBeVisible();
   await expectNoErrors(errors);
 });
+
+test("WL-AK-32: Eigene Farbe über den Farbwähler", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  const pick = page.getByLabel("Eigene Farbe");
+  await pick.fill("#00ff7f");
+  await expect(page.locator(".wl-color-pick")).toHaveClass(/\bon\b/);
+  await expect(page.locator('.wl-color[aria-pressed="true"]')).toHaveCount(0);
+  await page.getByRole("button", { name: "Los geht's" }).click();
+  await expect.poll(async () => (await state(page)).screen).toBe("play");
+  expect((await state(page)).me.color).toBe("#00ff7f");
+
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => !!window.__dampf), { timeout: 60_000 }).toBe(true);
+  expect((await state(page)).me.color).toBe("#00ff7f");
+  await expect(page.locator(".wl-color-pick")).toHaveClass(/\bon\b/);
+  await expectNoErrors(errors);
+});
+
+test("WL-AK-33: Tierbuch-Suche", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors = trackErrors(page);
+  await open(page);
+  await page.getByRole("button", { name: "Los geht's" }).click();
+  await expect.poll(async () => (await state(page)).screen).toBe("play");
+  await landed(page);
+  await hooks(page, (h) => h.setTime(100));
+  const a = (await hooks(page, (h) => h.nearestAnimal()))!;
+  expect(a).not.toBeNull();
+  await page.evaluate((a) => (window.__dampf as Hooks).teleport(a[0] + 1.5, a[1]), a);
+  await expect.poll(async () => (await state(page)).book).toContain(a[2]);
+  const book = (await state(page)).book;
+  const sp = SPECIES.find((s) => s.id === a[2])!;
+  const others = SPECIES.filter((s) => !book.includes(s.id));
+
+  const mobile = isMobile(page);
+  const tap = (n: string) =>
+    mobile
+      ? page.getByRole("button", { name: n }).tap()
+      : page.getByRole("button", { name: n }).click();
+  await tap("Menü");
+  await tap("Tierbuch");
+  const search = page.getByLabel("Tier suchen");
+  const visible = page.locator(".wl-animal:visible");
+  await expect(visible).toHaveCount(32);
+
+  // Teil des Namens, anders geschrieben → nur passende entdeckte Tiere, keine „???“
+  const part = sp.name.slice(0, Math.min(3, sp.name.length)).toUpperCase();
+  await search.fill(part);
+  await expect(visible.first()).toBeVisible();
+  await expect(page.locator(".wl-animal.unseen:visible")).toHaveCount(0);
+  await expect(visible.filter({ hasText: sp.name })).toHaveCount(1);
+  const n = book.filter((id) =>
+    SPECIES.find((s) => s.id === id)!
+      .name.toLowerCase()
+      .includes(part.toLowerCase()),
+  ).length;
+  await expect(visible).toHaveCount(n);
+
+  // Tippen löst keine Spieltasten aus (Tierbuch bleibt offen, Spiel bleibt im Menü)
+  await search.fill("");
+  await search.pressSequentially("tweq");
+  await expect(page.getByLabel("Tier suchen")).toBeVisible();
+  expect((await state(page)).screen).not.toBe("play");
+
+  // unpassender Text → Hinweis; ein unentdecktes Tier lässt sich nicht finden
+  await search.fill("xyzxyz");
+  await expect(page.getByText("Kein entdecktes Tier heißt so.")).toBeVisible();
+  await expect(visible).toHaveCount(0);
+  if (others.length) {
+    await search.fill(others[0]!.name);
+    await expect(page.locator(".wl-animal.unseen:visible")).toHaveCount(0);
+  }
+
+  // leer → wieder alle
+  await search.fill("");
+  await expect(visible).toHaveCount(32);
+  await expect(page.getByText("Kein entdecktes Tier heißt so.")).toBeHidden();
+  await tap("Zurück");
+  await expectNoErrors(errors);
+});

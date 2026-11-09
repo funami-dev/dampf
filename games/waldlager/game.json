@@ -10,8 +10,16 @@
   "status": "published",
   "order": 80,
   "addedAt": "2026-11-08",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "changelog": [
+    {
+      "version": "1.2.0",
+      "date": "2026-11-09",
+      "items": [
+        "Neu: Mit dem 🎨-Knopf suchst du dir jede Farbe für deine Jacke aus",
+        "Neu: Im Tierbuch kannst du nach Tieren suchen – tipp zum Beispiel „Hase“ ein"
+      ]
+    },
     {
       "version": "1.1.0",
       "date": "2026-11-09",
