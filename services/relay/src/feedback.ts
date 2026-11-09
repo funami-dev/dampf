@@ -200,7 +200,8 @@ export function parseSubmission(
   const b = body as Record<string, unknown>;
   if (typeof b.game !== "string" || !SLUG.test(b.game)) throw new Invalid("game");
   let gameVersion: string | null;
-  if (b.game === "portal") {
+  // Startseite und Spielideen-Banner haben keine Spielversion (FEEDBACK-AK-29)
+  if (b.game === "portal" || b.game === "spielidee") {
     if (b.gameVersion !== null && b.gameVersion !== undefined) throw new Invalid("gameVersion");
     gameVersion = null;
   } else {

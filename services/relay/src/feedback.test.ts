@@ -200,6 +200,7 @@ describe("Feedback-Server: Prüfung und Schutz", () => {
       [{ ...valid(), gameVersion: "v1.0.0" }, "gameVersion"],
       [{ ...valid(), gameVersion: null }, "gameVersion"],
       [{ ...valid(), game: "portal", gameVersion: "1.0.0" }, "gameVersion"],
+      [{ ...valid(), game: "spielidee", gameVersion: "1.0.0" }, "gameVersion"],
       [{ ...valid(), device: undefined }, "device"],
       [{ ...valid(), device: { ...valid().device, viewport: "groß" } }, "device"],
       [{ ...valid(), device: { ...valid().device, mobile: "ja" } }, "device"],
@@ -212,6 +213,14 @@ describe("Feedback-Server: Prüfung und Schutz", () => {
     }
     expect(s.post("{kaputt").data).toMatchObject({ field: "body" });
     expect(s.repo.count()).toBe(0);
+  });
+
+  it("FEEDBACK-AK-29: Spielidee ohne Version wird angenommen", () => {
+    const s = setup();
+    const r = s.post({ ...valid(), game: "spielidee", gameVersion: null });
+    expect(r.status).toBe(201);
+    const e = s.repo.get(r.data!.id as string)!;
+    expect([e.game, e.gameVersion, e.status]).toEqual(["spielidee", null, "neu"]);
   });
 
   it("FEEDBACK-AK-02: Portal ohne Version, unbekannte Felder und Steuerzeichen fliegen raus", () => {
