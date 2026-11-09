@@ -462,6 +462,11 @@ test("WL-AK-27: Fallschirm, Flugzeug, Funkgerät", async ({ page }) => {
 test("WL-AK-30: Brücke bauen, über den Fluss laufen, Trümmer ansehen", async ({ page }) => {
   test.skip(isMobile(page), "nur Desktop");
   test.setTimeout(180_000);
+  // volles Tierbuch: sonst kann „Neu entdeckt“ die Trümmer-Meldung überdecken
+  await page.addInitScript(
+    ([key, seen]) => localStorage.setItem(key as string, JSON.stringify({ v: 1, seen })),
+    [BOOK_KEY, SPECIES.map((s) => s.id)] as const,
+  );
   const errors = trackErrors(page);
   await open(page);
   await page.getByRole("button", { name: "Los geht's" }).click();
@@ -505,14 +510,26 @@ test("WL-AK-30: Brücke bauen, über den Fluss laufen, Trümmer ansehen", async 
         : fy === 1
           ? ["ArrowLeft", "ArrowDown"]
           : ["ArrowRight", "ArrowUp"];
+  let last = -Infinity;
   const along = async () => {
     const s = await state(page);
+    const d = (s.me.x - (sx + 0.5)) * fx + (s.me.y - (sy + 0.5)) * fy;
     // paralleles Testfenster hat den Fokus genommen → Spiel pausiert: weiterspielen, Tasten neu drücken
     if (s.screen === "paused") {
       await page.getByRole("button", { name: "Weiterspielen" }).click();
       for (const k of keys) await page.keyboard.down(k);
+    } else if (d <= last) {
+      // keine Bewegung seit der letzten Abfrage (z. B. eine Taste ging beim Fokuswechsel verloren):
+      // zurück auf die Brückenmitte und beide Tasten neu drücken
+      for (const k of keys) await page.keyboard.up(k);
+      await page.evaluate(
+        ([x, y, fx, fy]) => (window.__dampf as Hooks).teleport(x! + 0.5, y! + 0.5, fx, fy),
+        [sx + fx * Math.max(1, Math.round(d)), sy + fy * Math.max(1, Math.round(d)), fx, fy],
+      );
+      for (const k of keys) await page.keyboard.down(k);
     }
-    return (s.me.x - (sx + 0.5)) * fx + (s.me.y - (sy + 0.5)) * fy;
+    last = d;
+    return d;
   };
   for (const k of keys) await page.keyboard.down(k);
   // laufen, bis man jenseits der Brücke steht (langsame Rechner brauchen länger)
