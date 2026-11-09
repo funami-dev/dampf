@@ -32,6 +32,8 @@ export const TREE = { hits: 4, wood: 3, regrow: DAY };
 export const BUSH = { berries: 4, refill: DAY / 2 };
 export const FIRE = { burn: 180, stoke: 120, max: 600, warm: 2.5 };
 export const SPEED = { walk: 3, run: 5.5 };
+/** Regenbogenspur des Einhorns (WL-AK-37): 10 Minuten sichtbar, höchstens 300 Felder */
+export const TRAIL = { seconds: DAY, max: 300 };
 const RADIUS = 0.3;
 const REACH = 1.3;
 
@@ -93,6 +95,8 @@ export interface State {
   day: number;
   /** gebaute Brückenfelder (Feld-Index → 1) */
   bridges: Record<number, 1>;
+  /** Regenbogenspur: Feld-Index → sichtbar bis (Spielzeit), wird nicht gespeichert */
+  trail: Record<number, number>;
 }
 
 export interface Input {
@@ -193,6 +197,7 @@ export function createState(w: World): State {
     rand: w.seed ^ 0x5eed,
     day: -1,
     bridges: {},
+    trail: {},
   };
   const awayFromStart = (x: number, y: number) => Math.hypot(x - w.start.x, y - w.start.y) >= 6;
   const scale = Math.max(1, Math.min(4, Math.round(w.size / 128)));
@@ -439,6 +444,22 @@ function nearFree(w: World, s: State, x: number, y: number, self = false) {
   return { x: w.start.x, y: w.start.y };
 }
 
+/** Einhorn-Spur auf dem Feld (x, y) setzen; Abgelaufenes und Überzähliges fliegt raus (WL-AK-37) */
+export function markTrail(w: World, s: State, x: number, y: number) {
+  const fx = Math.floor(x);
+  const fy = Math.floor(y);
+  if (!inside(w, fx, fy)) return;
+  for (const [k, until] of Object.entries(s.trail)) if (until <= s.total) delete s.trail[Number(k)];
+  s.trail[idx(w, fx, fy)] = s.total + TRAIL.seconds;
+  const keys = Object.keys(s.trail);
+  if (keys.length > TRAIL.max)
+    keys
+      .map(Number)
+      .sort((a, b) => s.trail[a]! - s.trail[b]!)
+      .slice(0, keys.length - TRAIL.max)
+      .forEach((k) => delete s.trail[k]);
+}
+
 function stepAnimals(w: World, s: State, dt: number, night: boolean) {
   const players = Object.values(s.players);
   for (const a of s.animals) {
@@ -478,6 +499,7 @@ function stepAnimals(w: World, s: State, dt: number, night: boolean) {
       if (ok(Math.floor(nx), Math.floor(a.y))) a.x = nx;
       if (ok(Math.floor(a.x), Math.floor(ny))) a.y = ny;
     } else moveBody(w, s, a, (dx / d) * step, (dy / d) * step, ok);
+    if (a.kind === UNICORN) markTrail(w, s, a.x, a.y);
     if (a.x === bx && a.y === by) {
       a.tx = a.x;
       a.ty = a.y;

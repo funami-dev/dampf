@@ -21,7 +21,8 @@ describe("WL-AK-03: Leisten", () => {
   });
   it("Rennen kostet Fitness, Stehen und Feuer erholen", () => {
     const run = stepNeeds(FULL, 5, { ...idle, running: true, moving: true });
-    expect(run.fitness).toBeLessThan(70);
+    expect(run.fitness).toBeLessThan(85);
+    expect(run.fitness).toBeGreaterThan(80);
     const low = { ...FULL, fitness: 10 };
     expect(stepNeeds(low, 5, idle).fitness).toBeGreaterThan(30);
     expect(stepNeeds(low, 5, { ...idle, atFire: true }).fitness).toBeGreaterThan(

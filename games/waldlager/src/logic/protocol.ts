@@ -51,6 +51,8 @@ export interface Snap {
   fires: Fire[];
   /** gebaute Brückenfelder (Feld-Index) */
   bridges: number[];
+  /** Regenbogenspur rund um die Gäste: [Feld-Index, sichtbar bis] (fehlt bei älteren Gastgebern) */
+  trail?: [number, number][];
   /** [Art-Index, x, y] */
   animals: [number, number, number][];
   players: PlayerSnap[];
@@ -134,6 +136,9 @@ export function parseHost(d: unknown): HostMsg | null {
     !d.berries.every((b) => Array.isArray(b) && b.length === 2 && b.every(num)) ||
     !Array.isArray(d.bridges) ||
     !d.bridges.every(num) ||
+    (d.trail !== undefined &&
+      (!Array.isArray(d.trail) ||
+        !d.trail.every((t) => Array.isArray(t) && t.length === 2 && t.every(num)))) ||
     !Array.isArray(d.fires) ||
     !d.fires.every((f) => obj(f) && num(f.id) && num(f.x) && num(f.y) && num(f.until)) ||
     !Array.isArray(d.animals) ||
@@ -167,6 +172,9 @@ export function toSnap(w: World, s: State, focus: { x: number; y: number }[]): S
     ),
     fires: s.fires.filter((f) => near(f.x, f.y)).map((f) => ({ ...f })),
     bridges: Object.keys(s.bridges).map(Number),
+    trail: Object.entries(s.trail)
+      .map(([k, until]): [number, number] => [Number(k), until])
+      .filter(([k, until]) => until > s.total && near(k % w.size, Math.floor(k / w.size))),
     animals: s.animals
       .filter((a) => near(a.x, a.y))
       .map((a) => [ANIMALS.indexOf(a.kind), +a.x.toFixed(2), +a.y.toFixed(2)]),
@@ -197,6 +205,7 @@ export function applySnap(s: State, snap: Snap, me: string, first: boolean) {
   for (const [i, n] of snap.berries) if (i >= 0 && i < s.berries.length) s.berries[i] = n;
   s.fires = snap.fires;
   s.bridges = Object.fromEntries(snap.bridges.map((i) => [i, 1 as const]));
+  s.trail = Object.fromEntries(snap.trail ?? []);
   s.animals = snap.animals.map(([k, x, y], i): Animal => {
     const prev = s.animals[i];
     return prev && prev.kind === ANIMALS[k]

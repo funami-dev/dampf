@@ -4,6 +4,8 @@ export interface DebugHooks {
   teleport(x: number, y: number, fx?: number, fy?: number): void;
   /** Fallschirm-Landung sofort beenden (Test-Hilfe) */
   finishLanding(): void;
+  /** Regenbogenspur auf ein Feld legen (Test-Hilfe, WL-AK-37) */
+  markTrail(x: number, y: number): void;
   /** Feld-Infos (für Tests) */
   cell(x: number, y: number): { terrain: number; free: boolean; tree: number };
   /** Ufer-Feld mit Flusswasser daneben: [x, y, Blickrichtung fx, fy] */

@@ -222,7 +222,7 @@ describe("WL-AK-04: Kein Sterben", () => {
     const { w, s, p } = setup();
     p.landing = 0;
     nextToTree(w, s, p);
-    p.needs.fitness = 3;
+    p.needs.fitness = 2;
     act(w, s, p);
     expect(p.exhausted).toBe(true);
     expect(act(w, s, p)).toMatch(/erschöpft/);

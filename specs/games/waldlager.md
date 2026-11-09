@@ -116,6 +116,11 @@ Mal sieht, trägt es ins **Tierbuch** ein.
   - Zu Beginn jedes Spieltags gibt es mit 15 % Chance für diesen Tag ein Einhorn.
   - Es erscheint auf einer Lichtung weit weg von allen Spielern und schimmert leicht.
   - Es gibt höchstens eins gleichzeitig, und am Ende des Tages verschwindet es wieder.
+  - **Regenbogenspur** (Feedback `fb_mdi16t2g`): Jedes Feld, über das das Einhorn läuft, bekommt
+    eine kleine Regenbogenspur mit Glitzer. Sie bleibt **10 Minuten** sichtbar (ein Spieltag),
+    verblasst in der letzten Minute und leuchtet auch nachts. Verschwindet das Einhorn, bleibt
+    seine Spur bis zum Ablauf. Höchstens 300 Spurfelder (ältere gehen zuerst). Alle Spieler der
+    Welt sehen die Spur; sie wird nicht gespeichert.
 - Alle Tiere werden als Pixel-Grafiken per Code gezeichnet, keine Bilddateien.
 
 ### Arten
@@ -198,11 +203,11 @@ bei Gefahr zu einer stacheligen Kugel zusammen.“).
 
 Drei Leisten von 0 bis 100 % stehen immer oben im Bild:
 
-| Leiste        | sinkt …                                           | steigt …                                                           |
-| ------------- | ------------------------------------------------- | ------------------------------------------------------------------ |
-| **Hunger**    | langsam mit der Zeit (voll → leer in ca. 12 Min.) | Essen: Beere +12 %                                                 |
-| **Müdigkeit** | mit der Zeit, nachts doppelt so schnell           | Schlafen im eigenen Zelt (schnell); am Lagerfeuer sitzen (langsam) |
-| **Fitness**   | beim Rennen und Holzhacken                        | beim Stehen oder Gehen (langsam), am Lagerfeuer schneller          |
+| Leiste        | sinkt …                                                              | steigt …                                                           |
+| ------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| **Hunger**    | langsam mit der Zeit (voll → leer in ca. 12 Min.)                    | Essen: Beere +12 %                                                 |
+| **Müdigkeit** | mit der Zeit, nachts doppelt so schnell                              | Schlafen im eigenen Zelt (schnell); am Lagerfeuer sitzen (langsam) |
+| **Fitness**   | beim Rennen (voll → leer in ca. 30 s) und Holzhacken (2,5 % je Hieb) | beim Stehen oder Gehen (langsam), am Lagerfeuer schneller          |
 
 (Bei „Müdigkeit“ bedeutet 100 % ausgeruht und 0 % todmüde.)
 
@@ -481,6 +486,13 @@ Figur steht.
   nachtaktive in Dämmerung und Nacht; der Hai ist aktiv, wenn seine Flosse zu sehen ist.
 - **WL-AK-36** (E2E) Tierbuch zeigt tagsüber bei einem tagaktiven Tier „🟢 Jetzt unterwegs“ und
   bei einem nachtaktiven „💤 Schläft gerade“, nachts umgekehrt.
+
+- **WL-AK-37** Regenbogenspur: Läuft das Einhorn auf ein Feld, bekommt es eine Spur bis
+  „jetzt + 600 s“. Abgelaufene Spuren verschwinden, es gibt höchstens 300 (die ältesten gehen
+  zuerst). Andere Tiere hinterlassen keine Spur. Gäste bekommen die Spur im Schnappschuss
+  (rund um sich), ungültige Spurdaten werden abgewiesen. Nach dem Laden ist keine Spur da.
+- **WL-AK-38** Fitness hält doppelt so lange: Rennen leert volle Fitness in ca. 30 s, ein
+  Axthieb kostet 2,5 % (bei Hunger unter 25 % weiterhin doppelt).
 
 ## Nicht-Ziele (MVP)
 

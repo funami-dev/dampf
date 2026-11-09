@@ -36,6 +36,7 @@ interface WlState {
   debris: { x: number; y: number }[];
   bridges: number[];
   size: number;
+  trail: number;
 }
 interface Hooks {
   state(): WlState;
@@ -49,6 +50,7 @@ interface Hooks {
   riverSpot(): [number, number, number, number] | null;
   cell(x: number, y: number): { terrain: number; free: boolean; tree: number };
   finishLanding(): void;
+  markTrail(x: number, y: number): void;
 }
 
 declare global {
@@ -658,5 +660,23 @@ test("WL-AK-36: Tierbuch zeigt, wer gerade unterwegs ist", async ({ page }) => {
   };
   await check(100, "🟢 Jetzt unterwegs", "💤 Schläft gerade");
   await check(500, "💤 Schläft gerade", "🟢 Jetzt unterwegs");
+  await expectNoErrors(errors);
+});
+
+test("WL-AK-37: Regenbogenspur wird gezeichnet, auch nachts", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await page.getByRole("button", { name: "Los geht's" }).click();
+  await landed(page);
+  await page.evaluate(() => {
+    const h = window.__dampf as Hooks;
+    const me = h.state().me;
+    for (let k = 1; k <= 5; k++) h.markTrail(Math.floor(me.x) + k, Math.floor(me.y));
+  });
+  expect((await state(page)).trail).toBeGreaterThanOrEqual(5);
+  await page.waitForTimeout(300);
+  await hooks(page, (h) => h.setTime(500));
+  await page.waitForTimeout(300);
+  expect((await state(page)).trail).toBeGreaterThanOrEqual(5);
   await expectNoErrors(errors);
 });
