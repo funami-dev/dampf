@@ -133,8 +133,8 @@ Ein Feedback-Eintrag (gespeichert im Worker):
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `id`          | vom Server vergeben, z. B. `fb_7k2m9q4x` (8 Zeichen a–z0–9), eindeutig                                                                             |
 | `createdAt`   | ISO-Zeitpunkt, vom Server gesetzt                                                                                                                  |
-| `game`        | Spiel-Slug `[a-z0-9-]{1,40}`, `portal` oder `spielidee`                                                                                                         |
-| `gameVersion` | SemVer aus `game.json`; bei `portal`/`spielidee` `null`                                                                                                        |
+| `game`        | Spiel-Slug `[a-z0-9-]{1,40}`, `portal` oder `spielidee`                                                                                            |
+| `gameVersion` | SemVer aus `game.json`; bei `portal`/`spielidee` `null`                                                                                            |
 | `text`        | 3–500 Zeichen nach Bereinigung (Steuerzeichen außer Zeilenumbruch entfernt, Leerraum am Rand gekürzt)                                              |
 | `device`      | `{ mobile, touch, viewport: "400x700", browser: "Safari 18", os: "iOS" }` – Größe auf 100 px gerundet, nur Familie + Hauptversion, kein User-Agent |
 | `status`      | `neu` \| `entwurf` \| `freigegeben` \| `umgesetzt` \| `abgelehnt` \| `archiviert`                                                                  |

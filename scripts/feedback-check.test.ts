@@ -51,7 +51,10 @@ describe("Hook-Skript scripts/feedback-check.sh", () => {
     const seen: string[] = [];
     const api = await mock((req) => {
       seen.push(`${req.url} ${req.headers.authorization ?? ""}`);
-      return { status: 200, body: stats({ kasse: 1, waldlager: 2, portal: 1, spielidee: 1, "unbekannt-x": 1 }) };
+      return {
+        status: 200,
+        body: stats({ kasse: 1, waldlager: 2, portal: 1, spielidee: 1, "unbekannt-x": 1 }),
+      };
     });
     const r = await run(api, TOKEN);
     expect(r.code).toBe(0);
