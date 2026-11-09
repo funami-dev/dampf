@@ -543,9 +543,11 @@ class FlightScene extends Phaser.Scene {
     const cos = Math.cos(l.angle);
     const sin = Math.sin(l.angle);
     // lokale Koordinaten (m, y nach oben, Fußpunkt-Mitte = 0,0) → Bildschirm
+    // in großer Höhe größer zeichnen, damit man die Fähre sieht (mindestens 5 px pro Meter)
+    const k = Math.max(1, 5 / S);
     const P = (x: number, y: number) => {
-      const dx = x;
-      const dy = y - 2.5;
+      const dx = x * k;
+      const dy = (y - 2.5) * k;
       return new Phaser.Math.Vector2(sx(cx + dx * cos + dy * sin), sy(cy - dx * sin + dy * cos));
     };
     const poly = (color: number, pts: [number, number][]) => {
@@ -578,7 +580,7 @@ class FlightScene extends Phaser.Scene {
       ]);
     }
     // Beine
-    g.lineStyle(Math.max(2, S * 0.35), 0x9aa3b5, 1);
+    g.lineStyle(Math.max(2, S * k * 0.35), 0x9aa3b5, 1);
     for (const s of [-1, 1]) {
       const a = P(s * 1.5, 1.6);
       const b = P(s * 2.5, 0);

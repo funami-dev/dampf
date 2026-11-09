@@ -87,7 +87,7 @@ test("PL-AK-09: Mond – Lern-Karte, Schub, sanft landen, Ceres frei, bleibt nac
   expect((await state(page)).fuel).toBeLessThan(600);
 
   // sanft auf die Plattform
-  await place(page, 0.4, -0.5);
+  await place(page, 0.1, -0.5);
   await expect(page.getByRole("heading", { name: "Gelandet! 🎉" })).toBeVisible();
   const s = await state(page);
   expect(s.result).toMatchObject({ landed: true });
