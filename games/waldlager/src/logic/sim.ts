@@ -368,7 +368,8 @@ export function free(w: World, s: State, x: number, y: number): boolean {
   if (!terrainWalkable(w.terrain[i]!) && !(w.terrain[i] === T.WATER && s.bridges[i])) return false;
   if (isHut(w, x, y)) return false;
   const tree = w.treeAt[i]!;
-  if (tree && !isStump(s, tree - 1)) return false;
+  // umgeknickte Bäume der Absturz-Schneise sind begehbar (WL-AK-46)
+  if (tree && !isStump(s, tree - 1) && !w.trees[tree - 1]!.fallen) return false;
   return !tentAt(s, x, y) && !fireAt(s, x, y);
 }
 
@@ -645,7 +646,7 @@ export function actionFor(
       // Apfelbaum mit Äpfeln: erst schütteln, dann hacken (WL-AK-40)
       if (tree && hasApples(w, s, tree - 1))
         opts.push({ kind: "shake", label: "Äpfel schütteln", target: tree - 1, d });
-      else if (tree && !isStump(s, tree - 1))
+      else if (tree && !isStump(s, tree - 1) && !w.trees[tree - 1]!.fallen)
         opts.push({ kind: "chop", label: "Holz hacken", target: tree - 1, d });
     }
   w.bushes.forEach((b, i) => {

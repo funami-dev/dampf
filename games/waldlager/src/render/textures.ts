@@ -271,47 +271,100 @@ function addDebris(tex: Phaser.Textures.TextureManager) {
 }
 
 function addWreck(tex: Phaser.Textures.TextureManager) {
+  // Brandstelle mit kleinem, einmotorigem Hochdecker (ohne Marke/Logo), Feedback fb_90g9p14c
   const [c, g] = canvas(112, 64);
-  // Trümmer und verbrannter Boden
-  g.fillStyle = "rgba(40,36,28,0.35)";
+  g.fillStyle = "rgba(30,26,20,0.45)";
   g.beginPath();
   g.ellipse(56, 46, 54, 16, 0, 0, Math.PI * 2);
   g.fill();
-  // Rumpf (diagonal, isometrisch)
-  for (let k = 0; k < 64; k++) {
-    const x = 18 + k;
+  g.fillStyle = "rgba(20,18,14,0.35)";
+  g.beginPath();
+  g.ellipse(58, 46, 34, 10, 0, 0, Math.PI * 2);
+  g.fill();
+  // Rumpf: kurz, nach hinten schmaler (isometrisch schräg)
+  for (let k = 0; k < 40; k++) {
+    const x = 34 + k;
     const y = 44 - k * 0.42;
-    g.fillStyle = "#d9dde2";
-    g.fillRect(x, y - 7, 2, 12);
-    g.fillStyle = "#a9b0b8";
-    g.fillRect(x, y + 3, 2, 3);
-    if (k % 6 === 2 && k > 8 && k < 52) {
-      g.fillStyle = "#2c3e50";
-      g.fillRect(x, y - 4, 2, 2);
-    }
+    const h = Math.max(4, 10 - k * 0.15);
+    g.fillStyle = "#eef0f2";
+    g.fillRect(x, y - h + 3, 2, h);
+    g.fillStyle = "#c0392b"; // farbiger Streifen
+    g.fillRect(x, y, 2, 2);
+    g.fillStyle = "#b9bfc6";
+    g.fillRect(x, y + 2, 2, 2);
   }
-  // Abgebrochene Bruchkante vorn
-  g.fillStyle = "#555";
-  g.fillRect(16, 36, 4, 14);
+  // Kabinenfenster
+  g.fillStyle = "#2c3e50";
+  g.fillRect(40, 34, 6, 3);
+  g.fillRect(47, 31, 5, 3);
+  // Hochdecker-Flügel oben auf der Kabine (rechts noch dran)
+  g.fillStyle = "#f5f6f7";
+  for (let r = 0; r < 6; r++) g.fillRect(44 + r * 2, 26 - r * 2 + 0.5, 30, 2);
+  g.fillStyle = "#c0392b";
+  g.fillRect(70, 17, 4, 4);
+  // linker Flügel abgeknickt am Boden
+  g.fillStyle = "#e3e6e9";
+  for (let r = 0; r < 5; r++) g.fillRect(12 + r * 3, 50 + r, 24, 2);
+  g.fillStyle = "#9aa0a6";
+  g.fillRect(36, 49, 3, 6);
+  // Nase mit verbogenem Propeller
+  g.fillStyle = "#7f8c8d";
+  g.fillRect(30, 40, 5, 6);
+  g.fillStyle = "#3d3d3d";
+  g.fillRect(28, 34, 2, 8);
+  g.fillRect(26, 42, 4, 2);
+  g.fillRect(24, 44, 2, 3);
   // Leitwerk
-  g.fillStyle = "#c7ccd2";
-  for (let r = 0; r < 14; r++) g.fillRect(78 + r * 0.3, 10 + r, 8 - r * 0.4, 1);
-  // Abgebrochener Flügel daneben
-  g.fillStyle = "#bfc5cc";
-  for (let r = 0; r < 8; r++) g.fillRect(30 + r * 3, 52 + r * 0.5, 26, 2);
-  g.fillStyle = "#8c939b";
-  g.fillRect(30, 52, 2, 6);
-  // Kleine Trümmerteile
+  g.fillStyle = "#eef0f2";
+  for (let r = 0; r < 10; r++) g.fillRect(72 + r * 0.3, 12 + r, 6 - r * 0.3, 1);
+  g.fillStyle = "#c0392b";
+  g.fillRect(73, 14, 3, 3);
+  // Fahrwerk und kleine Teile
+  g.fillStyle = "#2b2b2b";
+  g.fillRect(44, 46, 3, 3);
   g.fillStyle = "#9aa0a6";
   for (const [x, y] of [
-    [8, 50],
-    [96, 40],
-    [100, 52],
-    [70, 56],
-    [86, 30],
+    [8, 46],
+    [92, 44],
+    [98, 52],
+    [76, 54],
+    [86, 34],
   ])
     g.fillRect(x!, y!, 4, 2);
   tex.addCanvas("wreck", c);
+
+  // umgeknickter, angekohlter Baumstamm (zwei Richtungen) und Stumpf
+  for (const v of [0, 1]) {
+    const [f, fg] = canvas(26, 14);
+    fg.fillStyle = "#2a1f17";
+    fg.fillRect(v ? 2 : 18, 5, 6, 6); // Stumpf
+    fg.fillStyle = "#1b1410";
+    for (let k = 0; k < 18; k++) {
+      const x = v ? 6 + k : 2 + k;
+      const y = v ? 9 - k * 0.3 : 4 + k * 0.3;
+      fg.fillRect(x, y, 2, 3);
+    }
+    fg.fillStyle = "#4a3426";
+    for (let k = 0; k < 18; k += 4)
+      fg.fillRect(v ? 6 + k : 2 + k, v ? 9 - k * 0.3 : 4 + k * 0.3, 1, 1);
+    fg.fillStyle = "#c0561d"; // Glut
+    fg.fillRect(v ? 5 : 19, 6, 1, 1);
+    tex.addCanvas(`fallen${v}`, f);
+  }
+  // angesengter Boden (Raute) und Rauch-Wölkchen
+  const [sc, sg] = canvas(32, 16);
+  diamond(sg, 0, "rgba(24,20,16,0.42)");
+  tex.addCanvas("scorch", sc);
+  const [sm, smg] = canvas(16, 16);
+  smg.fillStyle = "rgba(200,200,200,0.9)";
+  smg.beginPath();
+  smg.arc(8, 8, 7, 0, Math.PI * 2);
+  smg.fill();
+  smg.fillStyle = "rgba(160,160,160,0.6)";
+  smg.beginPath();
+  smg.arc(10, 6, 4, 0, Math.PI * 2);
+  smg.fill();
+  tex.addCanvas("smoke", sm);
 }
 
 export function addPlayerTex(tex: Phaser.Textures.TextureManager, color: string) {
