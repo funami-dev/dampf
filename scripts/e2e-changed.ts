@@ -24,11 +24,11 @@ if (prod) {
   // letzter Merge auf master: Unterschied zum vorherigen Stand
   files = lines(sh("git diff --name-only HEAD^1 HEAD"));
 } else {
-  let base = "origin/master";
+  let base: string;
   try {
     base = sh("git merge-base HEAD origin/master");
   } catch {
-    /* ohne origin: gegen HEAD */
+    // ohne origin: gegen HEAD
     base = "HEAD";
   }
   files = [
