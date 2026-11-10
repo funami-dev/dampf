@@ -529,6 +529,7 @@ function placeLakes(w: World, rand: Rand) {
   for (const b of w.bushes) blocked[idx(w, b.x, b.y)] = 1;
   for (const d of w.debris) blocked[idx(w, d.x, d.y)] = 1;
   for (const [x, y] of w.plane.cells) blocked[idx(w, x, y)] = 1;
+  for (const i of w.scorch) blocked[i] = 1;
   for (const [dx, dy] of [[0, 0], ...DIRS4] as const)
     if (inside(w, w.hut.x + dx, w.hut.y + dy)) blocked[idx(w, w.hut.x + dx, w.hut.y + dy)] = 1;
   const okCell = (x: number, y: number, h: number) => {

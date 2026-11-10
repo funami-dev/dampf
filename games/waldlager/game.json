@@ -10,8 +10,18 @@
   "status": "published",
   "order": 80,
   "addedAt": "2026-11-08",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "changelog": [
+    {
+      "version": "1.11.0",
+      "date": "2026-11-11",
+      "time": "00:15",
+      "items": [
+        "Neue Werkzeug-Leiste: Die Axt hast du schon, eine Angel baust du aus 5 Holz",
+        "Wo Wasserringe sind, kannst du jetzt angeln",
+        "Fisch ist ein neues Essen – lecker und macht richtig satt"
+      ]
+    },
     {
       "version": "1.10.0",
       "date": "2026-11-10",

@@ -536,7 +536,7 @@ Figur steht.
   4 Felder breit, begehbar, mit Trittsteinen gezeichnet).
 - **WL-AK-52** Seen und Fische (Feedback `fb_ch2wfaa6`): Jede Insel hat 3–6 Seen mit 12–60
   Feldern, keiner grenzt an Meer (auch nicht diagonal, 2 Felder Abstand), auf Seefeldern stehen
-  keine Bäume, Sträucher, Trümmer, Hütte oder Flugzeug; Zahl und Lage aller Bäume bleiben gleich;
+  keine Bäume, Sträucher, Trümmer, Hütte, Flugzeug oder Absturz-Schneise; Zahl und Lage aller Bäume bleiben gleich;
   Seen sind nicht begehbar und nicht überbrückbar; es bleibt alles erreichbar wie vorher (WL-AK-01).
   Fischstellen liegen nur auf Fluss- oder Seefeldern, jeder See hat 1–2, und alles ist je Seed
   gleich. Ein alter Spielstand mit der Figur auf einem Seefeld setzt sie auf ein freies Feld.

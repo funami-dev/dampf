@@ -20,6 +20,8 @@ interface WlState {
     apples: number;
     mushrooms: number;
     cans: number;
+    fish: number;
+    rod: boolean;
     tent: { x: number; y: number } | null;
     radio: boolean;
     landing: number;
@@ -57,6 +59,8 @@ interface Hooks {
   nearestAnimal(): [number, number, string] | null;
   riverSpot(): [number, number, number, number] | null;
   lakeSpot(): [number, number, number, number] | null;
+  fishSpot(): [number, number, number] | null;
+  give(items: Partial<Record<"wood" | "berries" | "fish", number>>): void;
   cell(x: number, y: number): { terrain: number; free: boolean; tree: number };
   finishLanding(): void;
   markTrail(x: number, y: number): void;
@@ -852,6 +856,29 @@ test("WL-AK-53: Wasserringe am See, Seefeld ist nicht begehbar", async ({ page }
   const c = await page.evaluate(([, , x, y]) => (window.__dampf as Hooks).cell(x!, y!), spot);
   expect(c.terrain).toBe(9);
   expect(c.free).toBe(false);
+  await expectNoErrors(errors);
+});
+
+test("WL-AK-55: Angel bauen, angeln, Fisch essen", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors = trackErrors(page);
+  await open(page);
+  await page.getByRole("button", { name: "Los geht's" }).click();
+  await landed(page);
+  await hooks(page, (h) => h.give({ wood: 10, berries: 0 }));
+  await page.getByRole("button", { name: "Bauen" }).click();
+  await page.getByRole("button", { name: "Angel (5 Holz)" }).click();
+  await expect(page.locator('[data-h="rod"]')).toBeVisible();
+  expect((await state(page)).me.wood).toBe(5);
+  const spot = (await hooks(page, (h) => h.fishSpot()))!;
+  expect(spot).not.toBeNull();
+  await page.evaluate(([x, y]) => (window.__dampf as Hooks).teleport(x! + 0.5, y! + 0.5), spot);
+  await expect.poll(async () => (await state(page)).action).toBe("fish");
+  await page.locator('[data-b="act"]').click();
+  await expect.poll(async () => (await state(page)).me.fish).toBe(1);
+  await expect(page.locator('[data-h="fish"]')).toHaveText("🐟 1");
+  await page.locator('[data-b="eat"]').click();
+  await expect.poll(async () => (await state(page)).me.fish).toBe(0);
   await expectNoErrors(errors);
 });
 
