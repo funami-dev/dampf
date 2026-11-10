@@ -70,6 +70,12 @@ export function createMenu(
   go.textContent = "Abheben!";
   go.addEventListener("click", () => h.onStart());
   bottom.append(go);
+  // Datenschutz-Hinweis zur Live-Karte (PP-AK-17)
+  const privacy = document.createElement("p");
+  privacy.className = "pp-privacy";
+  privacy.textContent =
+    "Die Karte kommt von OpenStreetMap – dabei sieht deren Server deine Internet-Adresse.";
+  bottom.append(privacy);
   el.append(top, bottom);
   layer.append(el);
   return {

@@ -15,6 +15,7 @@ interface PPState {
   modelAircraft: string;
   throttleInput: number;
   pitchInput: number;
+  paused: boolean;
 }
 
 const AIRCRAFT = ["A320", "A321", "A340", "A380"];
@@ -58,6 +59,30 @@ declare global {
     __dampf?: unknown;
   }
 }
+
+/** Kleines Ersatz-Kachelbild (grau, 1×1 px) – Tests laden nie echte OpenStreetMap-Kacheln */
+const TILE_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN89+7dfwAJYwPZo3OEXQAAAABJRU5ErkJggg==",
+  "base64",
+);
+type Tiles = { urls: string[]; active: number; maxActive: number; fail: boolean };
+async function stubTiles(page: Page, fail = false): Promise<Tiles> {
+  const t: Tiles = { urls: [], active: 0, maxActive: 0, fail };
+  await page.route("https://tile.openstreetmap.org/**", async (route) => {
+    t.urls.push(route.request().url());
+    t.active++;
+    t.maxActive = Math.max(t.maxActive, t.active);
+    await new Promise((r) => setTimeout(r, 30));
+    t.active--;
+    if (t.fail) return route.abort("internetdisconnected");
+    return route.fulfill({ status: 200, contentType: "image/png", body: TILE_PNG });
+  });
+  return t;
+}
+// alle Pilot-Pro-Tests: Kacheln nie von den echten Servern holen
+test.beforeEach(async ({ page }) => {
+  await stubTiles(page);
+});
 
 test.describe("Katalog im Browser", () => {
   // Kleines Fenster: das Software-Rendering im Testcontainer ist sonst sehr langsam.
@@ -192,4 +217,81 @@ test("PP-AK-13: Fokusverlust pausiert den Flug", async ({ page }) => {
   expect((await state(page)).x).toBe(x);
   await page.getByRole("button", { name: /Weiterfliegen/ }).click();
   await expect.poll(() => screen(page)).toBe("flight");
+});
+
+interface MapState {
+  mode: "tiles" | "drawn";
+  loaded: number;
+  failed: number;
+  maxLoading: number;
+  bigOpen: boolean;
+  bigZoom: number;
+}
+const mapState = (page: Page) => page.evaluate(() => (window.__dampf as { map(): MapState }).map());
+
+test("PP-AK-15: Live-Karte lädt Kacheln rund um die Position, mit Namensnennung", async ({
+  page,
+}) => {
+  const errors = trackErrors(page);
+  await page.unrouteAll();
+  const tiles = await stubTiles(page);
+  await open(page);
+  await expect(
+    page.getByText(
+      "Die Karte kommt von OpenStreetMap – dabei sieht deren Server deine Internet-Adresse.",
+    ),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Abheben!" }).click();
+  await expect.poll(() => screen(page)).toBe("flight");
+  await expect.poll(async () => (await mapState(page)).mode).toBe("tiles");
+  // Düsseldorf liegt bei Zoom 11 in Kachel 1062/682
+  expect(tiles.urls.some((u) => /\/11\/106[12]\/68[23]\.png$/.test(u))).toBe(true);
+  expect(tiles.urls.every((u) => u.startsWith("https://tile.openstreetmap.org/11/"))).toBe(true);
+  expect(tiles.maxActive).toBeLessThanOrEqual(4);
+  expect((await mapState(page)).maxLoading).toBeLessThanOrEqual(4);
+  const credit = page.getByRole("link", { name: "© OpenStreetMap-Mitwirkende" }).first();
+  await expect(credit).toBeVisible();
+  await expect(credit).toHaveAttribute("href", "https://www.openstreetmap.org/copyright");
+  await expectNoErrors(errors);
+});
+
+test("PP-AK-16: große Karte – pausiert, zoomt, schließt", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await page.getByRole("button", { name: "Abheben!" }).click();
+  await expect.poll(() => screen(page)).toBe("flight");
+  const tap = (l: ReturnType<Page["getByRole"]>) => (isMobile(page) ? l.tap() : l.click());
+  await tap(page.getByRole("button", { name: "Karte" }));
+  const dlg = page.getByRole("dialog", { name: "Große Karte" });
+  await expect(dlg).toBeVisible();
+  await expect.poll(async () => (await mapState(page)).bigOpen).toBe(true);
+  expect((await state(page)).paused).toBe(true);
+  await expect(dlg.getByRole("link", { name: "© OpenStreetMap-Mitwirkende" })).toBeVisible();
+  const z = (await mapState(page)).bigZoom;
+  await tap(dlg.getByRole("button", { name: "Näher heran" }));
+  expect((await mapState(page)).bigZoom).toBe(z + 1);
+  await tap(dlg.getByRole("button", { name: "Weiter weg" }));
+  await tap(dlg.getByRole("button", { name: "Weiter weg" }));
+  expect((await mapState(page)).bigZoom).toBe(z - 1);
+  await tap(dlg.getByRole("button", { name: "Schließen" }));
+  await expect(dlg).toBeHidden();
+  await expect.poll(async () => (await state(page)).paused).toBe(false);
+  expect(await screen(page)).toBe("flight");
+  await expectNoErrors(errors);
+});
+
+test("PP-AK-17: ohne Kacheln bleibt die gezeichnete Karte", async ({ page }) => {
+  test.skip(isMobile(page), "einmal reicht");
+  const pageErrors: string[] = [];
+  page.on("pageerror", (e) => pageErrors.push(e.message));
+  await page.unrouteAll();
+  const tiles = await stubTiles(page, true);
+  await open(page);
+  await page.getByRole("button", { name: "Abheben!" }).click();
+  await expect.poll(() => screen(page)).toBe("flight");
+  await expect.poll(async () => (await mapState(page)).failed).toBeGreaterThan(0);
+  expect((await mapState(page)).mode).toBe("drawn");
+  expect(tiles.urls.length).toBeGreaterThan(0);
+  await expect(page.getByRole("button", { name: "Karte" })).toBeVisible();
+  expect(pageErrors).toEqual([]);
 });

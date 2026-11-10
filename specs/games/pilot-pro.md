@@ -107,6 +107,24 @@ sicheren Bereich (MANIFEST-AK-08), der Joystick ist mindestens 120 px groß.
 Geschwindigkeit (Knoten), Höhe (Fuß), Kurs (Grad), Schub (%), Steig-/Sinkrate. Dazu eine kleine
 Karte mit Position, Flughäfen, Rhein und Wahrzeichen.
 
+### Live-Karte aus OpenStreetMap (Feedback `fb_z06qblul`)
+
+- Die kleine Karte zeigt echte **OpenStreetMap-Kacheln**, das Flugzeug immer in der Mitte, Norden
+  oben, roter Pfeil = Kurs; sie folgt laufend dem Flug.
+- **Umrechnung Spiel → echte Koordinaten:** linear je Achse so, dass die Flughäfen Düsseldorf
+  (51,2895° N, 6,7668° O) und Köln/Bonn (50,8659° N, 7,1427° O) genau an ihrer echten Stelle
+  liegen; dazwischen ist die Position nur ungefähr (die Spielwelt ist vereinfacht).
+- **Große Karte:** Antippen/Klicken öffnet eine große Karte mit „+“, „−“ (Zoom 8–14) und
+  „Schließen“; währenddessen ist der Flug pausiert.
+- **Namensnennung** „© OpenStreetMap-Mitwirkende“ (Link auf openstreetmap.org/copyright) ist auf
+  der kleinen und der großen Karte sichtbar.
+- **Sparsam laden** (Nutzungsregeln von OpenStreetMap): Kacheln nur bei Bedarf, Zwischenspeicher
+  im Browser, höchstens 4 gleichzeitig; Kachel-Adresse `https://tile.openstreetmap.org/{z}/{x}/{y}.png`.
+- **Ohne Internet** (Kacheln laden nicht): die gezeichnete Karte (Rhein, Flughäfen, Wahrzeichen)
+  bleibt sichtbar, kein Fehler, das Spiel läuft weiter.
+- **Datenschutz-Hinweis** im Auswahl-Menü: „Die Karte kommt von OpenStreetMap – dabei sieht
+  deren Server deine Internet-Adresse.“
+
 ## Technik
 
 - **Ausnahme vom Tech-Stack:** 3D mit **Three.js** statt Phaser (Phaser ist 2D).
@@ -137,8 +155,17 @@ Karte mit Position, Flughäfen, Rhein und Wahrzeichen.
 - **PP-AK-12** (E2E Mobile 375×667) Joystick, Schubhebel, Kamera- und Bremse-Button sind
   vollständig sichtbar und bedienbar; Schubhebel erhöht die Geschwindigkeit.
 - **PP-AK-13** Fokusverlust pausiert den Flug.
+- **PP-AK-14** Umrechnung: Die Spielpositionen der beiden Flughäfen ergeben genau deren echte
+  Koordinaten (±0,0001°); Kachel-Rechnung (Web-Mercator) stimmt für bekannte Punkte.
+- **PP-AK-15** (E2E) Im Flug lädt die kleine Karte Kacheln von `tile.openstreetmap.org` rund um
+  die Position und zeigt „© OpenStreetMap-Mitwirkende“; höchstens 4 Kacheln laden gleichzeitig.
+  (Tests liefern Ersatzbilder, es geht nichts an die echten Server.)
+- **PP-AK-16** (E2E) Antippen der Karte öffnet die große Karte, der Flug pausiert; „+“/„−“
+  ändern den Zoom; „Schließen“ geht zurück.
+- **PP-AK-17** (E2E) Schlagen die Kacheln fehl, bleibt die gezeichnete Karte sichtbar, ohne
+  Seitenfehler; das Auswahl-Menü zeigt den Datenschutz-Hinweis.
 
 ## Nicht-Ziele (MVP)
 
 - Keine Missionen, Punkte oder Landebewertung, kein Wetter, keine Nacht, kein Sound, keine
-  echten Kartendaten oder Satellitenbilder, keine Original-Logos, kein Handy-Neigen.
+  Satellitenbilder, keine Original-Logos, kein Handy-Neigen.

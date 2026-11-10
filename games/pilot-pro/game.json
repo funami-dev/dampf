@@ -10,8 +10,16 @@
   "status": "published",
   "order": 40,
   "addedAt": "2026-11-01",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "changelog": [
+    {
+      "version": "1.2.0",
+      "date": "2026-11-10",
+      "items": [
+        "Neu: Die Karte zeigt jetzt die echte Landschaft von OpenStreetMap – live, wo du gerade fliegst",
+        "Tipp auf die Karte für die große Ansicht mit Zoom"
+      ]
+    },
     {
       "version": "1.1.0",
       "date": "2026-11-09",

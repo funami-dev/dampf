@@ -88,7 +88,15 @@ const menu = createMenu(
     onStart: () => startFlight(),
   },
 );
-const hud = createHud(layer, () => openMenu());
+const hud = createHud(layer, () => openMenu(), {
+  // große Karte: Flug pausiert, ohne Pause-Knopf darüber (PP-AK-16)
+  onOpen: () => {
+    if (screen !== "flight") return;
+    paused = true;
+    pauseEl.style.display = "none";
+  },
+  onClose: () => setPaused(false),
+});
 const controls = createControls(layer, () => {
   if (screen === "flight") cameraMode = cameraMode === "chase" ? "cockpit" : "chase";
 });
@@ -236,5 +244,6 @@ if (debugEnabled) {
       pitchInput: controls.input.pitch,
       rollInput: controls.input.roll,
     }),
+    map: () => hud.mapState(),
   };
 }
