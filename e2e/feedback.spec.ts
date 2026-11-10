@@ -209,13 +209,18 @@ test.describe("Feedback in Spielen", () => {
     await expect(box).toHaveValue("wasd ");
     type W = { keys: number; blurs: number; focuses: number };
     expect(await page.evaluate(() => (window as unknown as W).keys)).toBe(0);
-    expect(await page.evaluate(() => (window as unknown as W).blurs)).toBeGreaterThanOrEqual(1);
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as W).blurs))
+      .toBeGreaterThanOrEqual(1);
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();
-    expect(await page.evaluate(() => (window as unknown as W).focuses)).toBeGreaterThanOrEqual(1);
+    // das „focus“ kommt beim Schließen des Dialogs, unter Last einen Moment später
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as W).focuses))
+      .toBeGreaterThanOrEqual(1);
     // danach kommen Tasten wieder an
     await page.keyboard.press("ArrowUp");
-    expect(await page.evaluate(() => (window as unknown as W).keys)).toBe(1);
+    await expect.poll(() => page.evaluate(() => (window as unknown as W).keys)).toBe(1);
   });
 });
 
