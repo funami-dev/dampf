@@ -38,6 +38,7 @@ import { applySnap, parseGuest, parseHost, toSnap, type GuestMsg } from "./logic
 import { HABITAT_TEXT, SPECIES, TIME_TEXT, UNICORN, speciesById } from "./logic/species.ts";
 import { discover, loadBook, saveBook } from "./logic/tierbuch.ts";
 import { T, generateWorld, idx, inside, type World } from "./logic/world.ts";
+import { bearing, mapPoint } from "./logic/compass.ts";
 import { HS, isoX, isoY, tileX, tileY } from "./render/iso.ts";
 import {
   addChute,
@@ -78,6 +79,10 @@ layer.innerHTML = `
     </div>
     <div class="wl-side">
       <div class="wl-clock" data-h="clock">07:00</div>
+      <div class="wl-compass" role="img" aria-label="Kompass, Norden oben">
+        <b class="n">N</b><b class="o">O</b><b class="s">S</b><b class="w">W</b>
+        <i class="wl-needle" hidden><span>🏠</span></i>
+      </div>
       <div class="wl-room" data-h="room" hidden></div>
       <button class="wl-btn" type="button" data-b="menu">Menü</button>
     </div>
@@ -106,6 +111,8 @@ const toastEl = $(".wl-toast");
 const actBtn = $<HTMLButtonElement>('[data-b="act"]');
 const buildBar = $(".wl-buildbar");
 const night = $<HTMLCanvasElement>(".wl-night");
+const needle = $(".wl-needle");
+let hutAngle: number | null = null;
 const nightCtx = night.getContext("2d")!;
 
 // --- Spielzustand -------------------------------------------------------
@@ -575,23 +582,54 @@ function openRadio() {
           `<li class="${q.id === meId ? "me" : ""}"><i style="background:${q.color}"></i><b>${escapeHtml(q.name)}</b> · X ${Math.floor(q.x)} · Y ${Math.floor(q.y)}</li>`,
       )
       .join("");
-    const k = cv.width / world.size;
+    // wie das Spielbild gedreht: Norden oben (WL-AK-44)
+    const W = cv.width;
+    const P = (x: number, y: number) => mapPoint(x, y, world.size, W);
     g.imageSmoothingEnabled = false;
-    g.drawImage(islandMap(), 0, 0, cv.width, cv.height);
+    g.fillStyle = "#1f4f8f";
+    g.fillRect(0, 0, W, W);
+    g.save();
+    g.translate(W / 2, W / 2);
+    g.rotate(Math.PI / 4);
+    g.scale(W / (world.size * Math.SQRT2), W / (world.size * Math.SQRT2));
+    g.translate(-world.size / 2, -world.size / 2);
+    g.drawImage(islandMap(), 0, 0);
+    g.restore();
     g.fillStyle = "#fff";
     g.font = "bold 16px system-ui";
     g.textAlign = "center";
     g.textBaseline = "middle";
-    g.fillText("✈", world.plane.x * k, world.plane.y * k);
+    g.fillText("✈", ...P(world.plane.x + 0.5, world.plane.y + 0.5));
+    g.font = "15px system-ui";
+    g.fillText("🏠", ...P(world.hut.x + 0.5, world.hut.y + 0.5));
     for (const q of Object.values(state.players)) {
+      const [px, py] = P(q.x, q.y);
       g.fillStyle = q.color;
       g.strokeStyle = "#fff";
       g.lineWidth = q.id === meId ? 2.5 : 1.5;
       g.beginPath();
-      g.arc(q.x * k, q.y * k, q.id === meId ? 5 : 4, 0, Math.PI * 2);
+      g.arc(px, py, q.id === meId ? 5 : 4, 0, Math.PI * 2);
       g.fill();
       g.stroke();
     }
+    // Windrose
+    g.fillStyle = "rgba(0,0,0,0.45)";
+    g.beginPath();
+    g.arc(W - 26, 26, 20, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = "#fff";
+    g.font = "bold 11px system-ui";
+    g.fillText("N", W - 26, 12);
+    g.fillText("S", W - 26, 40);
+    g.fillText("W", W - 40, 26);
+    g.fillText("O", W - 12, 26);
+    g.fillStyle = "#e74c3c";
+    g.beginPath();
+    g.moveTo(W - 26, 18);
+    g.lineTo(W - 22, 27);
+    g.lineTo(W - 30, 27);
+    g.closePath();
+    g.fill();
   };
   draw();
   if (radioTimer) clearInterval(radioTimer);
@@ -1271,6 +1309,10 @@ function updateHud() {
   }
   hud("clock").textContent =
     `${phaseOf(state.total) === "nacht" ? "🌙" : "☀️"} ${clockOf(state.total)}`;
+  // Kompass: Nadel zur Hütte, sobald man das Funkgerät (mit Karte) hat (WL-AK-44/45)
+  hutAngle = p.radio ? bearing(world.hut.x + 0.5 - p.x, world.hut.y + 0.5 - p.y) : null;
+  needle.hidden = hutAngle === null;
+  if (hutAngle !== null) needle.style.transform = `rotate(${hutAngle.toFixed(1)}deg)`;
   const room = hud("room");
   room.hidden = mode === "solo" || (mode === "host" && !roomCode);
   room.textContent =
@@ -1343,6 +1385,8 @@ if (debugEnabled) {
         screen: paused ? "paused" : overlay && screen === "play" ? "menu" : screen,
         total: state.total,
         trail: Object.keys(state.trail).length,
+        hutAngle,
+        hut: world.hut,
         clock: clockOf(state.total),
         phase: phaseOf(state.total),
         dark: lastDark,

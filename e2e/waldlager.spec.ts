@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { expectNoErrors, isMobile, trackErrors } from "./helpers.ts";
 import { BOOK_KEY } from "../games/waldlager/src/logic/tierbuch.ts";
 import { SPECIES } from "../games/waldlager/src/logic/species.ts";
+import { bearing } from "../games/waldlager/src/logic/compass.ts";
 
 interface WlState {
   screen: string;
@@ -40,6 +41,8 @@ interface WlState {
   bridges: number[];
   size: number;
   trail: number;
+  hutAngle: number | null;
+  hut: { x: number; y: number };
 }
 interface Hooks {
   state(): WlState;
@@ -773,5 +776,44 @@ test("WL-AK-43: Hütte, Kiste, Apfelbaum und Ess-Auswahl", async ({ page }) => {
   await expect.poll(async () => (await state(page)).me.apples).toBe(1);
   expect((await state(page)).me.needs.hunger).toBeGreaterThan(h0 + 15);
   await expect(bar).toBeHidden();
+  await expectNoErrors(errors);
+});
+
+test("WL-AK-45: Kompass, Hütten-Nadel mit Funkgerät, Hütte auf der Karte", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.addInitScript(
+    ([key, seen]) => localStorage.setItem(key as string, JSON.stringify({ v: 1, seen })),
+    [BOOK_KEY, SPECIES.map((s) => s.id)] as const,
+  );
+  const errors = trackErrors(page);
+  await open(page);
+  const mobile = isMobile(page);
+  const press = (name: string | RegExp) =>
+    mobile
+      ? page.getByRole("button", { name }).first().tap()
+      : page.getByRole("button", { name }).first().click();
+  await press("Los geht's");
+  await landed(page);
+  const compass = page.getByRole("img", { name: "Kompass, Norden oben" });
+  await expect(compass).toBeVisible();
+  await expect(compass.getByText("N", { exact: true })).toBeVisible();
+  await expect(page.locator(".wl-needle")).toBeHidden();
+  expect((await state(page)).hutAngle).toBeNull();
+
+  // Funkgerät holen → Nadel zur Hütte
+  const s1 = await state(page);
+  const [cx, cy] = s1.plane.cells[0]!;
+  await page.evaluate(([x, y]) => (window.__dampf as Hooks).teleport(x! - 1.5, y! + 0.5), [cx, cy]);
+  await expect.poll(async () => (await state(page)).me.radio).toBe(true);
+  await expect(page.locator(".wl-needle")).toBeVisible();
+  const s2 = await state(page);
+  const want = bearing(s2.hut.x + 0.5 - s2.me.x, s2.hut.y + 0.5 - s2.me.y);
+  const diff = Math.abs(((s2.hutAngle! - want + 540) % 360) - 180);
+  expect(diff).toBeLessThan(3);
+
+  // Funk-Karte
+  await press(/Funk/);
+  await expect(page.getByLabel("Inselkarte")).toBeVisible();
+  await press("Zurück");
   await expectNoErrors(errors);
 });
