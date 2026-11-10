@@ -461,7 +461,8 @@ Figur steht.
   - Brücken übersteht Neuladen, und im Mehrspieler sehen alle sie.
   - Am Landeplatz stehen mindestens 10 Bäume im Umkreis von 15 Feldern.
 - **WL-AK-29** Trümmer:
-  - Es gibt 15–25 Trümmerteile auf begehbarem Land, 10–90 Felder vom Wrack entfernt.
+  - Es gibt 15–25 Trümmerteile auf begehbarem Land (nie auf einem Beerenstrauch), 10–90 Felder
+    vom Wrack entfernt.
   - „Trümmer ansehen“ zeigt die richtige Himmelsrichtung (8 Richtungen, Norden = oben) und die
     passende Entfernungsstufe.
 - **WL-AK-30** (E2E) An einen Fluss gehen und Holz sammeln, zwei bis drei Brückenstücke bauen

@@ -162,7 +162,8 @@ test("PL-AK-11: Mobile – Knöpfe gleichzeitig, Anzeigen lesbar, kein Querscrol
   const a0 = (await state(page)).angle;
   const f0 = (await state(page)).fuel;
   await expect.poll(async () => (await state(page)).angle).toBeGreaterThan(a0 + 5);
-  expect((await state(page)).fuel).toBeLessThan(f0 - 2);
+  // Schub läuft gleichzeitig: Treibstoff sinkt (10 kg/s)
+  await expect.poll(async () => (await state(page)).fuel).toBeLessThan(f0 - 2);
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await expectNoErrors(errors);
 });

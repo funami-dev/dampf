@@ -341,11 +341,18 @@ function placeDebris(w: World, rand: Rand): Debris[] {
   const dir = rand() * Math.PI * 2;
   const out: Debris[] = [];
   const used = new Set<number>();
+  // nicht auf Beerensträucher: dort würde „Beeren pflücken“ das Ansehen verdecken
+  const bush = new Set(w.bushes.map((b) => idx(w, b.x, b.y)));
   const ok = (x: number, y: number) => {
     if (!inside(w, x, y)) return false;
     const i = idx(w, x, y);
     const t = w.terrain[i]!;
-    return (t === T.GRASS || t === T.FOREST || t === T.SAND) && !w.treeAt[i] && !used.has(i);
+    return (
+      (t === T.GRASS || t === T.FOREST || t === T.SAND) &&
+      !w.treeAt[i] &&
+      !bush.has(i) &&
+      !used.has(i)
+    );
   };
   // Erst entlang der Spur; liegt sie z. B. über dem Meer, mit immer breiterem Fächer weitersuchen
   for (let k = 0; k < n * 200 && out.length < n; k++) {
