@@ -10,8 +10,14 @@
   "status": "published",
   "order": 30,
   "addedAt": "2026-11-01",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "changelog": [
+    {
+      "version": "1.1.1",
+      "date": "2026-11-11",
+      "time": "00:45",
+      "items": ["Figur wählen mit den Pfeiltasten springt nicht mehr manchmal eine Figur zu weit"]
+    },
     {
       "version": "1.1.0",
       "date": "2026-11-09",
