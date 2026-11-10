@@ -124,6 +124,20 @@ function addTree(tex: Phaser.Textures.TextureManager) {
       g.fillRect(12 - w / 4, y + 3, 2, 2);
     }
     tex.addCanvas(`tree${v}`, c);
+    // Apfelbaum mit Äpfeln (WL-AK-40): gleiche Krone, rote Punkte
+    const [ac, ag] = canvas(24, 40);
+    ag.drawImage(c, 0, 0);
+    ag.fillStyle = "#e0301e";
+    for (const [x, y] of [
+      [7, 24],
+      [15, 22],
+      [10, 17],
+      [14, 12],
+      [9, 9],
+      [17, 27],
+    ])
+      ag.fillRect(x!, y!, 2, 2);
+    tex.addCanvas(`apple${v}`, ac);
   }
   const [c, g] = canvas(12, 8);
   g.fillStyle = "#6b4423";
@@ -364,8 +378,48 @@ function addAnimals(tex: Phaser.Textures.TextureManager) {
   tex.addCanvas("rainbow", r);
 }
 
+/** Verlassene Hütte und Pilz (WL-AK-39/41) */
+function addHutAndMushroom(tex: Phaser.Textures.TextureManager) {
+  const [c, g] = canvas(34, 32);
+  // Wände (zwei sichtbare Seiten)
+  g.fillStyle = "#7a5230";
+  g.fillRect(5, 14, 12, 14);
+  g.fillStyle = "#5e3d22";
+  g.fillRect(17, 14, 12, 14);
+  // Bretter
+  g.fillStyle = "#4a2f19";
+  for (let y = 17; y < 28; y += 3) g.fillRect(5, y, 24, 1);
+  // Dach
+  g.fillStyle = "#3b2414";
+  for (let r = 0; r < 12; r++) g.fillRect(17 - (r + 2), 3 + r, (r + 2) * 2, 1);
+  g.fillStyle = "#5a3a1f";
+  g.fillRect(6, 13, 22, 2);
+  // Tür und Fenster
+  g.fillStyle = "#2a1a0e";
+  g.fillRect(9, 20, 5, 8);
+  g.fillStyle = "#9ec3d6";
+  g.fillRect(21, 18, 4, 3);
+  // Moos
+  g.fillStyle = "#4f7a35";
+  g.fillRect(8, 9, 3, 2);
+  g.fillRect(22, 11, 4, 2);
+  tex.addCanvas("hut", c);
+
+  const [m, mg] = canvas(10, 9);
+  mg.fillStyle = "#f2e8d5";
+  mg.fillRect(4, 4, 2, 4);
+  mg.fillStyle = "#c0392b";
+  mg.fillRect(1, 2, 8, 3);
+  mg.fillRect(2, 1, 6, 1);
+  mg.fillStyle = "#ffffff";
+  mg.fillRect(3, 2, 1, 1);
+  mg.fillRect(6, 3, 1, 1);
+  tex.addCanvas("mushroom", m);
+}
+
 export function addTextures(tex: Phaser.Textures.TextureManager) {
   addTiles(tex);
+  addHutAndMushroom(tex);
   addTree(tex);
   addBush(tex);
   addFire(tex);

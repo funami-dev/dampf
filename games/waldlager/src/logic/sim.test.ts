@@ -35,8 +35,12 @@ function setup(seed = 3) {
 
 /** Spieler direkt neben einen stehenden Baum stellen */
 function nextToTree(w: World, s: State, p: Player) {
+  // ein normaler Baum (Apfelbäume werden erst geschüttelt), ohne Pilz in der Nähe
   for (let k = 0; k < w.trees.length; k++) {
     const t = w.trees[k]!;
+    if (t.apple) continue;
+    if (s.mushrooms.some((m) => Math.hypot((m % w.size) - t.x, Math.floor(m / w.size) - t.y) < 3))
+      continue;
     if (free(w, s, t.x - 1, t.y)) {
       p.x = t.x - 0.5;
       p.y = t.y + 0.5;

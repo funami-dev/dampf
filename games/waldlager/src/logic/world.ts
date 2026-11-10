@@ -21,6 +21,8 @@ export const SEA_MARGIN = 12;
 export interface Tree {
   x: number;
   y: number;
+  /** Apfelbaum (WL-AK-40) */
+  apple?: boolean;
 }
 export interface Bush {
   x: number;
@@ -53,7 +55,13 @@ export interface World {
   plane: Plane;
   rivers: number;
   debris: Debris[];
+  /** die verlassene Hütte (WL-AK-39) */
+  hut: { x: number; y: number };
 }
+
+/** Hütte und Apfelbäume (WL-AK-39/40) */
+export const HUT = { minStart: 40, minPlane: 15, see: 4 };
+export const APPLE_SHARE = 0.1;
 
 export const idx = (w: { size: number }, x: number, y: number) => y * w.size + x;
 export const inside = (w: { size: number }, x: number, y: number) =>
@@ -409,6 +417,37 @@ export function debrisHint(
 }
 
 /** Weltgenerator: gleicher Seed → gleiche Insel (WL-AK-01). */
+/** Genau eine Hütte: frei, weit weg von Start und Flugzeug, erreichbar (WL-AK-39) */
+function placeHut(w: World, rand: Rand): { x: number; y: number } {
+  const size = w.size;
+  const minStart = Math.min(HUT.minStart, Math.floor(size * 0.16));
+  const reach = reachable(w, true);
+  const bush = new Set(w.bushes.map((b) => idx(w, b.x, b.y)));
+  const debris = new Set(w.debris.map((d) => idx(w, d.x, d.y)));
+  const plane = new Set(w.plane.cells.map(([x, y]) => idx(w, x, y)));
+  const ok = (x: number, y: number, planeDist: number) => {
+    if (!inside(w, x, y)) return false;
+    const i = idx(w, x, y);
+    const t = w.terrain[i];
+    if ((t !== T.GRASS && t !== T.FOREST) || w.treeAt[i] || bush.has(i) || debris.has(i))
+      return false;
+    if (plane.has(i) || Math.hypot(x - w.start.x, y - w.start.y) < minStart) return false;
+    if (Math.hypot(x - w.plane.x, y - w.plane.y) < planeDist) return false;
+    // mindestens ein Nachbar erreichbar und frei, damit man an die Kiste kommt
+    return DIRS4.some(([dx, dy]) => {
+      const j = idx(w, x + dx, y + dy);
+      return inside(w, x + dx, y + dy) && reach[j] === 1 && !w.treeAt[j] && open(w, j);
+    });
+  };
+  for (let k = 0; k < 20_000; k++) {
+    const x = Math.floor(rand() * size);
+    const y = Math.floor(rand() * size);
+    if (ok(x, y, HUT.minPlane)) return { x, y };
+  }
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (ok(x, y, 0)) return { x, y };
+  return { x: w.start.x + 1, y: w.start.y };
+}
+
 export function generateWorld(seed: number, size = SIZE): World {
   const rand = rng(seed);
   const n = size * size;
@@ -424,6 +463,7 @@ export function generateWorld(seed: number, size = SIZE): World {
     plane: { x: 0, y: 0, cells: [] },
     rivers: 0,
     debris: [],
+    hut: { x: -1, y: -1 },
   };
   const coast = valueNoise(rand, size, size / 6);
   const coastFine = valueNoise(rand, size, size / 20);
@@ -540,7 +580,11 @@ export function generateWorld(seed: number, size = SIZE): World {
   }
   connectAll(w);
   w.debris = placeDebris(w, rand);
+  // eigener Zufall, damit Inseln und Trümmer gleich bleiben wie vor der Hütte
+  const extra = rng(seed ^ 0x48757474);
+  w.hut = placeHut(w, extra);
   w.trees = w.trees.filter((t) => t.x >= 0);
+  for (const t of w.trees) if (extra() < APPLE_SHARE) t.apple = true;
   w.treeAt.fill(0);
   w.trees.forEach((t, k) => (w.treeAt[idx(w, t.x, t.y)] = k + 1));
   return w;

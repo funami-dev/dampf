@@ -2,6 +2,9 @@ export interface DebugHooks {
   state(): Record<string, unknown>;
   /** Figur versetzen (Kachel-Koordinaten) */
   teleport(x: number, y: number, fx?: number, fy?: number): void;
+  /** Stehfeld neben der Hütte bzw. einem Apfelbaum mit Äpfeln: [x, y, Stehfeld x, y] */
+  hutSpot(): [number, number, number, number] | null;
+  appleSpot(): [number, number, number, number] | null;
   /** Fallschirm-Landung sofort beenden (Test-Hilfe) */
   finishLanding(): void;
   /** Regenbogenspur auf ein Feld legen (Test-Hilfe, WL-AK-37) */

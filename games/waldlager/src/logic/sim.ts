@@ -4,12 +4,13 @@ import {
   FULL,
   RATES,
   eatBerry,
+  eatFood,
   fitnessFactor,
   speedFactor,
   stepNeeds,
   type Needs,
 } from "./needs.ts";
-import { T, debrisHint, idx, inside, terrainWalkable, type World } from "./world.ts";
+import { HUT, T, debrisHint, idx, inside, terrainWalkable, type World } from "./world.ts";
 
 /** Spielstand einer Welt (Spec: specs/games/waldlager.md). Reine Daten, serialisierbar. */
 export const COLORS = ["#e74c3c", "#3498db", "#f1c40f", "#9b59b6", "#e67e22", "#1abc9c"] as const;
@@ -26,7 +27,20 @@ export const RADIO_REACH = 2;
 export const SHARK = { cycle: 90, up: 30, max: 2 };
 export const SIGHT = { day: 5, night: 3, fire: 6 };
 
-export const LIMITS = { wood: 30, berries: 20 };
+export const LIMITS = { wood: 30, berries: 20, food: 20 };
+/** Essen: Sorte → Hunger + Prozent, Anzeige (WL-AK-42) */
+export const FOODS = {
+  mushrooms: { hunger: 8, icon: "🍄", one: "Pilz" },
+  berries: { hunger: 12, icon: "🫐", one: "Beere" },
+  apples: { hunger: 20, icon: "🍎", one: "Apfel" },
+  cans: { hunger: 35, icon: "🥫", one: "Dose" },
+} as const;
+export type FoodKind = keyof typeof FOODS;
+export const FOOD_KINDS = Object.keys(FOODS) as FoodKind[];
+/** Hütte, Äpfel, Pilze (WL-AK-39..41) */
+export const HUT_CANS = { give: 2, refill: DAY };
+export const APPLES = { give: 2, regrow: DAY / 2 };
+export const MUSHROOMS = { per256: 60, regrow: DAY / 2 };
 export const COSTS = { tent: 8, fire: 3, bridge: 3 };
 export const TREE = { hits: 4, wood: 3, regrow: DAY };
 export const BUSH = { berries: 4, refill: DAY / 2 };
@@ -48,6 +62,11 @@ export interface Player {
   needs: Needs;
   wood: number;
   berries: number;
+  apples: number;
+  mushrooms: number;
+  cans: number;
+  /** Hütte schon gesehen (Meldung nur einmal) */
+  hutSeen: boolean;
   tent: { x: number; y: number } | null;
   sleeping: boolean;
   exhausted: boolean;
@@ -97,6 +116,15 @@ export interface State {
   bridges: Record<number, 1>;
   /** Regenbogenspur: Feld-Index → sichtbar bis (Spielzeit), wird nicht gespeichert */
   trail: Record<number, number>;
+  /** Apfelbaum-Index → Zeitpunkt, ab dem wieder Äpfel dran sind */
+  appleEmpty: Record<number, number>;
+  /** Felder mit Pilz */
+  mushrooms: number[];
+  /** Zeitpunkte, an denen ein neuer Pilz wächst */
+  mushroomRespawn: number[];
+  /** Dosen in der Vorratskiste der Hütte und wann sie wieder voll ist */
+  hutCans: number;
+  hutRefill: number | null;
 }
 
 export interface Input {
@@ -198,6 +226,11 @@ export function createState(w: World): State {
     day: -1,
     bridges: {},
     trail: {},
+    appleEmpty: {},
+    mushrooms: [],
+    mushroomRespawn: [],
+    hutCans: HUT_CANS.give,
+    hutRefill: null,
   };
   const awayFromStart = (x: number, y: number) => Math.hypot(x - w.start.x, y - w.start.y) >= 6;
   const scale = Math.max(1, Math.min(4, Math.round(w.size / 128)));
@@ -215,6 +248,9 @@ export function createState(w: World): State {
       if (!spawn(w, s, sp.id, awayFromStart) && k === 0) spawn(w, s, sp.id, () => true);
   }
   newDay(w, s);
+  // Pilze erst danach, damit Tiere und Einhorn gleich bleiben wie vorher (WL-AK-41)
+  const shrooms = Math.max(4, Math.round(MUSHROOMS.per256 * (w.size / 256) ** 2));
+  for (let k = 0; k < shrooms; k++) growMushroom(w, s);
   return s;
 }
 
@@ -280,6 +316,10 @@ export function addPlayer(
     needs: { ...FULL },
     wood: 0,
     berries: 0,
+    apples: 0,
+    mushrooms: 0,
+    cans: 0,
+    hutSeen: false,
     tent: null,
     sleeping: false,
     exhausted: false,
@@ -295,6 +335,28 @@ export function addPlayer(
 }
 
 export const isStump = (s: State, tree: number) => s.stumps[tree] !== undefined;
+/** Hängen gerade Äpfel am Baum? (WL-AK-40) */
+export const hasApples = (w: World, s: State, tree: number) =>
+  !!w.trees[tree]?.apple &&
+  !isStump(s, tree) &&
+  (s.appleEmpty[tree] === undefined || s.appleEmpty[tree]! <= s.total);
+const isHut = (w: World, x: number, y: number) => w.hut.x === x && w.hut.y === y;
+
+/** Pilz auf einem zufälligen freien Waldfeld wachsen lassen (WL-AK-41) */
+export function growMushroom(w: World, s: State): boolean {
+  const taken = new Set(s.mushrooms);
+  const bush = new Set(w.bushes.map((b) => idx(w, b.x, b.y)));
+  for (let k = 0; k < 400; k++) {
+    const x = Math.floor(nextRand(s) * w.size);
+    const y = Math.floor(nextRand(s) * w.size);
+    const i = idx(w, x, y);
+    if (w.terrain[i] !== T.FOREST || w.treeAt[i] || bush.has(i) || taken.has(i)) continue;
+    if (!free(w, s, x, y)) continue;
+    s.mushrooms.push(i);
+    return true;
+  }
+  return false;
+}
 const fireAt = (s: State, x: number, y: number) => s.fires.find((f) => f.x === x && f.y === y);
 const tentAt = (s: State, x: number, y: number) =>
   Object.values(s.players).some((p) => p.tent && p.tent.x === x && p.tent.y === y);
@@ -304,6 +366,7 @@ export function free(w: World, s: State, x: number, y: number): boolean {
   if (!inside(w, x, y)) return false;
   const i = idx(w, x, y);
   if (!terrainWalkable(w.terrain[i]!) && !(w.terrain[i] === T.WATER && s.bridges[i])) return false;
+  if (isHut(w, x, y)) return false;
   const tree = w.treeAt[i]!;
   if (tree && !isStump(s, tree - 1)) return false;
   return !tentAt(s, x, y) && !fireAt(s, x, y);
@@ -392,10 +455,29 @@ export function stepWorld(w: World, s: State, dt: number): GameEvent[] {
       s.berries[Number(k)] = BUSH.berries;
       delete s.refill[Number(k)];
     }
+  // Hütte, Äpfel, Pilze (WL-AK-39..41)
+  if (s.hutRefill !== null && s.hutRefill <= s.total) {
+    s.hutCans = HUT_CANS.give;
+    s.hutRefill = null;
+  }
+  for (const [k, at] of Object.entries(s.appleEmpty))
+    if (at <= s.total) delete s.appleEmpty[Number(k)];
+  if (s.mushroomRespawn.some((t) => t <= s.total)) {
+    const due = s.mushroomRespawn.filter((t) => t <= s.total).length;
+    s.mushroomRespawn = s.mushroomRespawn.filter((t) => t > s.total);
+    for (let k = 0; k < due; k++) growMushroom(w, s);
+  }
   stepAnimals(w, s, dt, night);
   for (const p of players) {
     if (p.landing > 0) p.landing = Math.max(0, p.landing - dt);
     // Funkgerät im Flugzeug (WL-AK-24)
+    if (!p.hutSeen && Math.hypot(w.hut.x + 0.5 - p.x, w.hut.y + 0.5 - p.y) <= HUT.see) {
+      p.hutSeen = true;
+      events.push({
+        player: p.id,
+        text: "Eine verlassene Hütte! In der Kiste ist vielleicht etwas zu essen.",
+      });
+    }
     if (!p.radio && nearPlane(w, p)) {
       p.radio = true;
       events.push({ player: p.id, text: "📻 Du hast im Flugzeug ein Funkgerät gefunden!" });
@@ -523,7 +605,17 @@ export function visibleAnimals(s: State, p: { x: number; y: number }): Animal[] 
   });
 }
 
-export type ActionKind = "chop" | "pick" | "sleep" | "wake" | "stoke" | "inspect";
+export type ActionKind =
+  | "chop"
+  | "pick"
+  | "sleep"
+  | "wake"
+  | "stoke"
+  | "inspect"
+  | "shake"
+  | "gather"
+  | "open"
+  | "hutsleep";
 
 /** Was die Aktionstaste gerade tun würde (für Button-Beschriftung). */
 export function actionFor(
@@ -533,6 +625,15 @@ export function actionFor(
 ): { kind: ActionKind; label: string; target: number } | null {
   if (p.sleeping) return { kind: "wake", label: "Aufstehen", target: -1 };
   const opts: { kind: ActionKind; label: string; target: number; d: number }[] = [];
+  // Hütte zuerst: bei gleichem Abstand gewinnt sie (WL-AK-39)
+  {
+    const d = Math.hypot(w.hut.x + 0.5 - p.x, w.hut.y + 0.5 - p.y);
+    if (d <= REACH + 0.3) {
+      if (s.hutCans > 0 && p.cans < LIMITS.food)
+        opts.push({ kind: "open", label: "Kiste öffnen", target: -1, d });
+      else opts.push({ kind: "hutsleep", label: "In der Hütte schlafen", target: -1, d });
+    }
+  }
   const cx = Math.floor(p.x);
   const cy = Math.floor(p.y);
   for (let y = cy - 2; y <= cy + 2; y++)
@@ -541,7 +642,10 @@ export function actionFor(
       const d = Math.hypot(x + 0.5 - p.x, y + 0.5 - p.y);
       if (d > REACH + 0.3) continue;
       const tree = w.treeAt[idx(w, x, y)]!;
-      if (tree && !isStump(s, tree - 1))
+      // Apfelbaum mit Äpfeln: erst schütteln, dann hacken (WL-AK-40)
+      if (tree && hasApples(w, s, tree - 1))
+        opts.push({ kind: "shake", label: "Äpfel schütteln", target: tree - 1, d });
+      else if (tree && !isStump(s, tree - 1))
         opts.push({ kind: "chop", label: "Holz hacken", target: tree - 1, d });
     }
   w.bushes.forEach((b, i) => {
@@ -563,6 +667,11 @@ export function actionFor(
     const d = Math.hypot(b.x + 0.5 - p.x, b.y + 0.5 - p.y);
     if (d <= REACH) opts.push({ kind: "inspect", label: "Trümmer ansehen", target: i, d });
   });
+  // Pilze (WL-AK-41)
+  for (const m of s.mushrooms) {
+    const d = Math.hypot((m % w.size) + 0.5 - p.x, Math.floor(m / w.size) + 0.5 - p.y);
+    if (d <= REACH) opts.push({ kind: "gather", label: "Pilz sammeln", target: m, d });
+  }
   if (p.tent) {
     const d = Math.hypot(p.tent.x + 0.5 - p.x, p.tent.y + 0.5 - p.y);
     if (d <= REACH + 0.3) opts.push({ kind: "sleep", label: "Schlafen", target: -1, d });
@@ -611,6 +720,31 @@ export function act(w: World, s: State, p: Player): string | null {
       if (s.berries[a.target] === 0) s.refill[a.target] = s.total + BUSH.refill;
       return `+${n} Beeren`;
     }
+    case "shake": {
+      if (p.apples >= LIMITS.food) return "Deine Taschen sind voll.";
+      const n = Math.min(APPLES.give, LIMITS.food - p.apples);
+      p.apples += n;
+      s.appleEmpty[a.target] = s.total + APPLES.regrow;
+      return `+${n} Äpfel`;
+    }
+    case "gather": {
+      if (p.mushrooms >= LIMITS.food) return "Deine Taschen sind voll.";
+      p.mushrooms++;
+      s.mushrooms = s.mushrooms.filter((m) => m !== a.target);
+      s.mushroomRespawn.push(s.total + MUSHROOMS.regrow);
+      return "+1 Pilz";
+    }
+    case "open": {
+      const n = Math.min(s.hutCans, LIMITS.food - p.cans);
+      p.cans += n;
+      s.hutCans -= n;
+      if (s.hutCans === 0 && s.hutRefill === null) s.hutRefill = s.total + HUT_CANS.refill;
+      return n === 1 ? "+1 Dose" : `+${n} Dosen`;
+    }
+    case "hutsleep":
+      p.sleeping = true;
+      p.chop = null;
+      return "Gute Nacht in der Hütte …";
     case "inspect": {
       const b = w.debris[a.target]!;
       return debrisHint(w, b.x, b.y).text;
@@ -624,10 +758,20 @@ export function act(w: World, s: State, p: Player): string | null {
   }
 }
 
-export function eat(p: Player): string {
-  if (p.berries <= 0) return "Keine Beeren dabei – such einen Strauch!";
-  p.berries--;
-  p.needs = eatBerry(p.needs);
+/** Sorten, die man gerade dabei hat (in der Reihenfolge von FOODS) */
+export const foodsOf = (p: Player): FoodKind[] => FOOD_KINDS.filter((k) => p[k] > 0);
+
+/**
+ * Essen (WL-AK-42). Ohne Sorte: die einzige vorhandene Sorte; bei mehreren entscheidet die
+ * Oberfläche (Auswahl-Leiste) und ruft mit Sorte auf.
+ */
+export function eat(p: Player, kind?: FoodKind): string {
+  const have = foodsOf(p);
+  if (!have.length) return "Nichts zu essen dabei – such Beeren, Äpfel oder Pilze!";
+  const k = kind ?? have[0]!;
+  if (p[k] <= 0) return `Kein ${FOODS[k].one} dabei.`;
+  p[k]--;
+  p.needs = k === "berries" ? eatBerry(p.needs) : eatFood(p.needs, FOODS[k].hunger);
   return "Lecker!";
 }
 
@@ -644,6 +788,7 @@ export function canBuildAt(w: World, s: State, x: number, y: number): boolean {
   if (w.terrain[i] === T.FORD || w.terrain[i] === T.BRIDGE || w.treeAt[i] || s.bridges[i])
     return false;
   if (w.bushes.some((b) => b.x === x && b.y === y)) return false;
+  if (s.mushrooms.includes(i)) return false;
   const h = w.height[i];
   for (const [dx, dy] of [
     [1, 0],

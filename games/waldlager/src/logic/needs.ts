@@ -62,3 +62,8 @@ export function stepNeeds(n: Needs, dt: number, c: NeedsCtx): Needs {
 }
 
 export const eatBerry = (n: Needs): Needs => ({ ...n, hunger: clamp(n.hunger + RATES.berry) });
+/** Essen gibt Hunger zurück (WL-AK-42) */
+export const eatFood = (n: Needs, amount: number): Needs => ({
+  ...n,
+  hunger: clamp(n.hunger + amount),
+});

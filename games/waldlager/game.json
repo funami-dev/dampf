@@ -10,8 +10,18 @@
   "status": "published",
   "order": 80,
   "addedAt": "2026-11-08",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "changelog": [
+    {
+      "version": "1.5.0",
+      "date": "2026-11-10",
+      "time": "18:30",
+      "items": [
+        "Neu: Irgendwo im Wald steht eine verlassene Hütte – in der Kiste liegen Dosen zum Essen",
+        "Neu: Äpfel von Apfelbäumen schütteln und Pilze im Wald sammeln",
+        "Bei mehreren Sorten wählst du aus, was du essen möchtest"
+      ]
+    },
     {
       "version": "1.4.1",
       "date": "2026-11-10",
