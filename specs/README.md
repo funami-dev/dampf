@@ -30,3 +30,4 @@ Dieses Repo wird **spec-driven** entwickelt:
 | [games/kasse.md](games/kasse.md)                   | Spiel 7: Kassen-Held (3D-Supermarktkasse)               | Umgesetzt  |
 | [games/waldlager.md](games/waldlager.md)           | Spiel 8: Waldlager (Iso-Wald, Mehrspieler)              | Umgesetzt  |
 | [games/planetenlander.md](games/planetenlander.md) | Spiel 9: Planetenlander (Landen mit echter Schwerkraft) | Abgenommen |
+| [games/wichtelhaus.md](games/wichtelhaus.md)       | Spiel 10: Wichtelhaus (ruhiges Puppenhaus-Spiel)        | Abgenommen |

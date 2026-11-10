@@ -1,0 +1,17 @@
+{
+  "name": "@dampf/wichtelhaus",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@dampf/game-kit": "*",
+    "phaser": "^4.2.1"
+  },
+  "devDependencies": {
+    "vite": "^8.3.5"
+  }
+}

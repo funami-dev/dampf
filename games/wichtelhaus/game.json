@@ -1,0 +1,23 @@
+{
+  "slug": "wichtelhaus",
+  "title": "Wichtelhaus",
+  "description": "Ein kleiner Wichtel lebt in seinem Haus. Schau ihm zu, bring ihm Essen und Geschenke – ganz in Ruhe.",
+  "thumbnail": "thumbnail.png",
+  "controls": { "keyboard": true, "touch": true },
+  "status": "published",
+  "order": 100,
+  "addedAt": "2026-11-10",
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-10",
+      "time": "23:30",
+      "items": [
+        "Neues Spiel: Ein kleiner Wichtel zieht in sein Haus – schau ihm zu und hilf ihm",
+        "Ruhemoment: Atme mit dem Wichtel, wenn die Laterne heller und dunkler wird",
+        "Leise Klänge wie Regen und Kaminfeuer – am schönsten mit Kopfhörern"
+      ]
+    }
+  ]
+}
