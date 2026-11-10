@@ -14,7 +14,6 @@ interface PlState {
   fuel: number;
   padCenter: number;
   result: { landed: boolean; reason: string; stars: number } | null;
-  unlocked: number;
   best: Record<string, number>;
 }
 interface Hooks {
@@ -42,14 +41,15 @@ const tap = (page: Page, name: string | RegExp) =>
     ? page.getByRole("button", { name }).first().tap()
     : page.getByRole("button", { name }).first().click();
 
-test("PL-AK-08: Auswahl – nur der Mond ist frei, Gasriesen erklären sich", async ({ page }) => {
+test("PL-AK-08: Auswahl – alle Orte sofort frei, Gasriesen erklären sich", async ({ page }) => {
   test.skip(isMobile(page), "nur Desktop");
   const errors = trackErrors(page);
   await open(page);
   for (const n of ["Mond", "Ceres", "Pluto", "Titan", "Merkur", "Mars", "Venus", "Erde"])
     await expect(page.getByRole("button", { name: new RegExp(`^${n}`) })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Mond", exact: true })).toBeEnabled();
-  await expect(page.getByRole("button", { name: "Erde (gesperrt)" })).toBeDisabled();
+  for (const n of ["Mond", "Ceres", "Pluto", "Titan", "Merkur", "Mars", "Venus", "Erde"])
+    await expect(page.getByRole("button", { name: n, exact: true })).toBeEnabled();
+  await expect(page.getByText("🔒")).toHaveCount(0);
   await expect(page.getByText("g = 1,62 m/s² · 17 % der Erde")).toBeVisible();
 
   await page.getByRole("button", { name: "Jupiter: Warum nicht?" }).click();
@@ -62,7 +62,7 @@ test("PL-AK-08: Auswahl – nur der Mond ist frei, Gasriesen erklären sich", as
   await expectNoErrors(errors);
 });
 
-test("PL-AK-09: Mond – Lern-Karte, Schub, sanft landen, Ceres frei, bleibt nach Neuladen", async ({
+test("PL-AK-09: Mond – Lern-Karte, Schub, sanft landen, Sterne bleiben nach Neuladen", async ({
   page,
 }) => {
   test.skip(isMobile(page), "nur Desktop");
@@ -92,13 +92,12 @@ test("PL-AK-09: Mond – Lern-Karte, Schub, sanft landen, Ceres frei, bleibt nac
   const s = await state(page);
   expect(s.result).toMatchObject({ landed: true });
   expect(s.result!.stars).toBeGreaterThanOrEqual(2);
-  expect(s.unlocked).toBe(2);
   await expect(page.getByRole("button", { name: "Nächster Ort: Ceres" })).toBeVisible();
 
   await page.reload();
   await expect.poll(() => page.evaluate(() => !!window.__dampf), { timeout: 60_000 }).toBe(true);
-  await expect(page.getByRole("button", { name: "Ceres", exact: true })).toBeEnabled();
   expect((await state(page)).best.mond).toBeGreaterThanOrEqual(2);
+  await expect(page.getByRole("button", { name: "Mond", exact: true })).toContainText("★★");
   await expectNoErrors(errors);
 });
 
@@ -113,7 +112,7 @@ test("PL-AK-10: zu schnell → Bruchlandung mit Nochmal", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Rumms! 💥" })).toBeVisible();
   await expect(page.getByText("Zu schnell aufgesetzt – bremse früher mit der Düse.")).toBeVisible();
   expect((await state(page)).result).toMatchObject({ landed: false, reason: "hart", stars: 0 });
-  expect((await state(page)).unlocked).toBe(1);
+  expect((await state(page)).best.mond).toBeUndefined();
   await page.getByRole("button", { name: "Nochmal" }).click();
   await expect.poll(async () => (await state(page)).screen).toBe("fly");
   expect((await state(page)).alt).toBeGreaterThan(250);

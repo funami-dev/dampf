@@ -104,7 +104,10 @@ sicheren Bereich (MANIFEST-AK-08), der Joystick ist mindestens 120 px groß.
 
 ## Anzeigen (HUD)
 
-Geschwindigkeit (Knoten), Höhe (Fuß), Kurs (Grad), Schub (%), Steig-/Sinkrate. Dazu eine kleine
+Geschwindigkeit, Höhe, Kurs (Grad), Schub (%), Steig-/Sinkrate. **Einheiten** (Feedback
+`fb_pyn22426`): Standard ist **metrisch** (km/h, m, m/s mit einer Nachkommastelle); im
+Auswahl-Menü umschaltbar auf „Wie echte Piloten (Knoten, Fuß)“ (Knoten, Fuß, Fuß/min). Die Wahl
+wird lokal gespeichert (`dampf.pilotpro.einheiten`). Dazu eine kleine
 Karte mit Position, Flughäfen, Rhein und Wahrzeichen.
 
 ### Live-Karte aus OpenStreetMap (Feedback `fb_z06qblul`)
@@ -164,6 +167,8 @@ Karte mit Position, Flughäfen, Rhein und Wahrzeichen.
   ändern den Zoom; „Schließen“ geht zurück.
 - **PP-AK-17** (E2E) Schlagen die Kacheln fehl, bleibt die gezeichnete Karte sichtbar, ohne
   Seitenfehler; das Auswahl-Menü zeigt den Datenschutz-Hinweis.
+- **PP-AK-18** Einheiten: metrisch ist Standard (km/h, m, m/s); umgeschaltet auf Knoten/Fuß
+  zeigen die Anzeigen Knoten, Fuß, Fuß/min; die Wahl übersteht Neuladen (Vitest + E2E).
 
 ## Nicht-Ziele (MVP)
 

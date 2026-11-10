@@ -6,6 +6,7 @@ import { aircraftById, airlineById } from "./logic/catalog.ts";
 import { createFlight, step, type FlightState } from "./logic/flight.ts";
 import { buildAircraft } from "./render/aircraft.ts";
 import { buildWorld, toThree, yaw } from "./render/world.ts";
+import { UNITS_KEY, loadUnits, type Units } from "./logic/units.ts";
 import { createMenu } from "./ui/menu.ts";
 import { createHud } from "./ui/hud.ts";
 import { createControls } from "./ui/controls.ts";
@@ -76,10 +77,20 @@ function placePlane() {
   );
 }
 
+let units: Units = loadUnits((k) => localStorage.getItem(k));
 const menu = createMenu(
   layer,
-  { aircraft: aircraftId, airline: airlineId },
+  { aircraft: aircraftId, airline: airlineId, units },
   {
+    onUnits(u) {
+      units = u;
+      hud.setUnits(u);
+      try {
+        localStorage.setItem(UNITS_KEY, u);
+      } catch {
+        /* gesperrt */
+      }
+    },
     onChange(a, l) {
       aircraftId = a;
       airlineId = l;
@@ -97,6 +108,7 @@ const hud = createHud(layer, () => openMenu(), {
   },
   onClose: () => setPaused(false),
 });
+hud.setUnits(units);
 const controls = createControls(layer, () => {
   if (screen === "flight") cameraMode = cameraMode === "chase" ? "cockpit" : "chase";
 });
@@ -245,5 +257,6 @@ if (debugEnabled) {
       rollInput: controls.input.roll,
     }),
     map: () => hud.mapState(),
+    units: () => units,
   };
 }

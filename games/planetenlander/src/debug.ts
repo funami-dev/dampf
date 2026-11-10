@@ -12,7 +12,6 @@ export interface DebugHooks {
     fuel: number;
     padCenter: number;
     result: { landed: boolean; reason: string; stars: number } | null;
-    unlocked: number;
     best: Record<string, number>;
   };
   /** Fähre über die Plattformmitte setzen: Höhe über Boden, Geschwindigkeiten, Neigung in Grad */

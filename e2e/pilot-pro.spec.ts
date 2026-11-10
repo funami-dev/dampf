@@ -298,3 +298,34 @@ test("PP-AK-17: ohne Kacheln bleibt die gezeichnete Karte", async ({ page }) => 
   await expect(page.getByRole("button", { name: "Karte" })).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
+
+test("PP-AK-18: metrisch als Standard, umschaltbar auf Knoten/Fuß, bleibt gespeichert", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const errors = trackErrors(page);
+  await open(page);
+  const units = () => page.evaluate(() => (window.__dampf as { units(): string }).units());
+  expect(await units()).toBe("metrisch");
+  const metric = page.getByRole("button", { name: "Metrisch (km/h, m)" });
+  const pilots = page.getByRole("button", { name: "Wie echte Piloten (Knoten, Fuß)" });
+  await expect(metric).toHaveAttribute("aria-pressed", "true");
+  const tap = (l: ReturnType<Page["getByRole"]>) => (isMobile(page) ? l.tap() : l.click());
+  await tap(page.getByRole("button", { name: "Abheben!" }));
+  await expect.poll(() => screen(page)).toBe("flight");
+  for (const t of ["km/h", "m", "m/s"])
+    await expect(page.locator(".pp-gauge small").getByText(t, { exact: true })).toBeVisible();
+
+  await tap(page.getByRole("button", { name: "Menü" }));
+  await tap(pilots);
+  await expect(pilots).toHaveAttribute("aria-pressed", "true");
+  expect(await units()).toBe("luftfahrt");
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => !!window.__dampf), { timeout: 30_000 }).toBe(true);
+  expect(await units()).toBe("luftfahrt");
+  await tap(page.getByRole("button", { name: "Abheben!" }));
+  await expect.poll(() => screen(page)).toBe("flight");
+  for (const t of ["Knoten", "Fuß", "Fuß/min"])
+    await expect(page.locator(".pp-gauge small").getByText(t, { exact: true })).toBeVisible();
+  await expectNoErrors(errors);
+});

@@ -183,10 +183,6 @@
   font-size: 12px;
   opacity: 0.85;
 }
-.pl-card.locked {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 .pl-card.gas {
   opacity: 0.7;
   border-style: dashed;

@@ -140,16 +140,14 @@ function openSelect() {
   screen = "select";
   paused = false;
   flyUi(false);
-  const card = (b: Body, i: number) => {
-    const locked = i >= progress.unlocked;
+  // alle Orte sind sofort spielbar (Feedback fb_2rpon5ao)
+  const card = (b: Body) => {
     const best = progress.best[b.id] ?? 0;
-    return `<button class="pl-card${locked ? " locked" : ""}" type="button" data-id="${b.id}" ${
-      locked ? 'disabled aria-disabled="true"' : ""
-    } aria-label="${escapeHtml(b.name)}${locked ? " (gesperrt)" : ""}">
+    return `<button class="pl-card" type="button" data-id="${b.id}" aria-label="${escapeHtml(b.name)}">
       <span class="pl-icon">${b.icon}</span>
       <b>${escapeHtml(b.name)}</b>
       <small>g = ${de(b.g, 2)} m/s² · ${pct(b.g)}</small>
-      <span class="pl-stars">${locked ? "🔒" : starText(best)}</span>
+      <span class="pl-stars">${starText(best)}</span>
     </button>`;
   };
   const gas = BODIES.filter((b) => !b.playable)
@@ -644,7 +642,6 @@ if (debugEnabled) {
       result: result
         ? { landed: result.v.landed, reason: result.v.reason, stars: result.stars }
         : null,
-      unlocked: progress.unlocked,
       best: { ...progress.best },
     }),
     place: (alt, vy, vx = 0, angle = 0) => {
