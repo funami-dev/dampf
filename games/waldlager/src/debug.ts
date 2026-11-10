@@ -16,6 +16,9 @@ export interface DebugHooks {
   /** Ufer-Feld mit Flusswasser daneben: [x, y, Blickrichtung fx, fy] */
   riverSpot(): [number, number, number, number] | null;
   lakeSpot(): [number, number, number, number] | null;
+  fishSpot(): [number, number, number, number] | null;
+  /** Inventar setzen (Holz, Beeren, Fische) */
+  give(items: Partial<Record<"wood" | "berries" | "fish", number>>): void;
   /** nächstes sichtbares, noch nicht entdecktes Tier: [x, y, Art] */
   nearestAnimal(): [number, number, string] | null;
   /** Weltzeit setzen (Sekunden, 600 = ein Tag) */

@@ -66,6 +66,7 @@ describe("WL-AK-52: Seen und Fische", () => {
       for (const d of w.debris) expect(lake(d.x, d.y)).toBe(false);
       for (const [x, y] of w.plane.cells) expect(lake(x, y)).toBe(false);
       expect(lake(w.hut.x, w.hut.y)).toBe(false);
+      for (const i of w.scorch) expect(w.terrain[i]).not.toBe(T.LAKE);
       // nicht begehbar, alles andere bleibt erreichbar (WL-AK-01)
       expect(terrainWalkable(T.LAKE)).toBe(false);
       const seen = reachable(w, true);

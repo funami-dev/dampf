@@ -45,6 +45,7 @@ export const FOODS = {
   berries: { hunger: 12, icon: "🫐", one: "Beere" },
   apples: { hunger: 20, icon: "🍎", one: "Apfel" },
   cans: { hunger: 35, icon: "🥫", one: "Dose" },
+  fish: { hunger: 30, icon: "🐟", one: "Fisch" },
 } as const;
 export type FoodKind = keyof typeof FOODS;
 export const FOOD_KINDS = Object.keys(FOODS) as FoodKind[];
@@ -54,7 +55,9 @@ export const APPLES = { give: 2, regrow: DAY / 2 };
 export const MUSHROOMS = { per256: 60, regrow: DAY / 2 };
 /** Einhorn-Wiehern: im Mittel alle 2 Minuten, nur wenn es nicht in Sichtweite ist (WL-AK-49) */
 export const NEIGH = { every: 120, minDist: 12 };
-export const COSTS = { tent: 8, fire: 3, bridge: 3 };
+export const COSTS = { tent: 8, fire: 3, bridge: 3, rod: 5 };
+/** Angeln (WL-AK-54): Reichweite zur Fischstelle, Ruhezeit danach */
+export const FISHING = { reach: 2.5, rest: DAY / 2 };
 export const TREE = { hits: 4, wood: 3, regrow: DAY };
 export const BUSH = { berries: 4, refill: DAY / 2 };
 export const FIRE = { burn: 180, stoke: 120, max: 600, warm: 2.5 };
@@ -78,6 +81,9 @@ export interface Player {
   apples: number;
   mushrooms: number;
   cans: number;
+  fish: number;
+  /** Angel gebaut (WL-AK-54); die Axt hat man immer */
+  rod: boolean;
   /** Hütte schon gesehen (Meldung nur einmal) */
   hutSeen: boolean;
   tent: { x: number; y: number } | null;
@@ -138,6 +144,8 @@ export interface State {
   /** Dosen in der Vorratskiste der Hütte und wann sie wieder voll ist */
   hutCans: number;
   hutRefill: number | null;
+  /** ruhende Fischstellen: Index in world.fish → wieder da ab (WL-AK-54) */
+  fishRest: Record<number, number>;
 }
 
 export interface Input {
@@ -254,6 +262,7 @@ export function createState(w: World): State {
     mushroomRespawn: [],
     hutCans: HUT_CANS.give,
     hutRefill: null,
+    fishRest: {},
   };
   const awayFromStart = (x: number, y: number) => Math.hypot(x - w.start.x, y - w.start.y) >= 6;
   const scale = Math.max(1, Math.min(4, Math.round(w.size / 128)));
@@ -342,6 +351,8 @@ export function addPlayer(
     apples: 0,
     mushrooms: 0,
     cans: 0,
+    fish: 0,
+    rod: false,
     hutSeen: false,
     tent: null,
     sleeping: false,
@@ -655,7 +666,11 @@ export type ActionKind =
   | "shake"
   | "gather"
   | "open"
-  | "hutsleep";
+  | "hutsleep"
+  | "fish";
+
+/** Fischstelle hat gerade Fische (sonst ruht sie nach einem Fang) */
+export const fishHere = (s: State, k: number) => !((s.fishRest[k] ?? 0) > s.total);
 
 /** Was die Aktionstaste gerade tun würde (für Button-Beschriftung). */
 export function actionFor(
@@ -711,6 +726,17 @@ export function actionFor(
   for (const m of s.mushrooms) {
     const d = Math.hypot((m % w.size) + 0.5 - p.x, Math.floor(m / w.size) + 0.5 - p.y);
     if (d <= REACH) opts.push({ kind: "gather", label: "Pilz sammeln", target: m, d });
+  }
+  // Angeln (WL-AK-54): Schaut man aufs Wasser, hat es Vorrang vor Bäumen usw.
+  if (p.rod) {
+    const ahead = buildSpot(p);
+    const facingWater =
+      inside(w, ahead.x, ahead.y) && isFreshWater(w.terrain[idx(w, ahead.x, ahead.y)]!);
+    w.fish.forEach((f, k) => {
+      const d = Math.hypot(f.x + 0.5 - p.x, f.y + 0.5 - p.y);
+      if (d <= FISHING.reach && fishHere(s, k))
+        opts.push({ kind: "fish", label: "Angeln", target: k, d: facingWater ? -1 : d });
+    });
   }
   if (p.tent) {
     const d = Math.hypot(p.tent.x + 0.5 - p.x, p.tent.y + 0.5 - p.y);
@@ -789,6 +815,15 @@ export function act(w: World, s: State, p: Player): string | null {
       const b = w.debris[a.target]!;
       return debrisHint(w, b.x, b.y).text;
     }
+    case "fish": {
+      if (p.fish >= LIMITS.food) return "Deine Taschen sind voll.";
+      const f = w.fish[a.target]!;
+      p.fx = f.x + 0.5 - p.x;
+      p.fy = f.y + 0.5 - p.y;
+      p.fish++;
+      s.fishRest[a.target] = s.total + FISHING.rest;
+      return "+1 Fisch 🐟";
+    }
     case "stoke": {
       const f = s.fires.find((x) => x.id === a.target)!;
       p.wood--;
@@ -847,11 +882,17 @@ export function canBridgeAt(w: World, s: State, x: number, y: number): boolean {
   return w.terrain[i] === T.WATER && !s.bridges[i];
 }
 
-export type BuildKind = "tent" | "fire" | "bridge";
+export type BuildKind = "tent" | "fire" | "bridge" | "rod";
 
 export function build(w: World, s: State, p: Player, kind: BuildKind): string {
   const cost = COSTS[kind];
+  if (kind === "rod" && p.rod) return "Du hast schon eine Angel.";
   if (p.wood < cost) return `Dafür brauchst du ${cost} Holz.`;
+  if (kind === "rod") {
+    p.wood -= cost;
+    p.rod = true;
+    return "Deine Angel ist fertig! 🎣";
+  }
   const { x, y } = buildSpot(p);
   if (kind === "bridge") {
     if (!canBridgeAt(w, s, x, y)) return "Brücken baut man auf das Flusswasser vor dir.";

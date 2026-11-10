@@ -120,6 +120,7 @@ export function load(store: Store): { world: World; state: State; me: string } |
         Array.isArray(s.mushroomRespawn) && s.mushroomRespawn.every(num) ? s.mushroomRespawn : [],
       hutCans: num(s.hutCans) ? Math.max(0, Math.min(2, Math.floor(s.hutCans))) : fresh.hutCans,
       hutRefill: num(s.hutRefill) ? s.hutRefill : null,
+      fishRest: numRecord(s.fishRest) ?? {},
       players: {},
     };
     const home = { x: Math.floor(me.x), y: Math.floor(me.y) };
@@ -146,6 +147,8 @@ export function load(store: Store): { world: World; state: State; me: string } |
       apples: food(me.apples),
       mushrooms: food(me.mushrooms),
       cans: food(me.cans),
+      fish: food(me.fish),
+      rod: me.rod === true,
       hutSeen: me.hutSeen === true,
       landing: 0,
     });

@@ -27,7 +27,7 @@ export type GuestMsg =
     }
   | { v: 1; k: "act" }
   | { v: 1; k: "eat"; food?: FoodKind }
-  | { v: 1; k: "build"; kind: "tent" | "fire" | "bridge" };
+  | { v: 1; k: "build"; kind: "tent" | "fire" | "bridge" | "rod" };
 
 export interface PlayerSnap {
   id: string;
@@ -48,6 +48,9 @@ export interface PlayerSnap {
   apples?: number;
   mushrooms?: number;
   cans?: number;
+  /** Angeln (WL-AK-54; fehlen bei älteren Gastgebern) */
+  fish?: number;
+  rod?: boolean;
   radio: boolean;
   landing: number;
 }
@@ -74,6 +77,8 @@ export interface Snap {
   appleEmpty?: [number, number][];
   mushrooms?: number[];
   hutCans?: number;
+  /** ruhende Fischstellen [Index, bis] (WL-AK-54) */
+  fishRest?: [number, number][];
 }
 
 export type HostMsg =
@@ -113,7 +118,7 @@ export function parseGuest(d: unknown): GuestMsg | null {
         ? { v: 1, k: "eat", food: d.food as FoodKind }
         : null;
     case "build":
-      return d.kind === "tent" || d.kind === "fire" || d.kind === "bridge"
+      return d.kind === "tent" || d.kind === "fire" || d.kind === "bridge" || d.kind === "rod"
         ? { v: 1, k: "build", kind: d.kind }
         : null;
     default:
@@ -141,7 +146,10 @@ function playerSnap(p: unknown): p is PlayerSnap {
     (p.needs.warmth === undefined || num(p.needs.warmth)) &&
     num(p.wood) &&
     num(p.berries) &&
-    (["apples", "mushrooms", "cans"] as const).every((k) => p[k] === undefined || num(p[k])) &&
+    (["apples", "mushrooms", "cans", "fish"] as const).every(
+      (k) => p[k] === undefined || num(p[k]),
+    ) &&
+    (p.rod === undefined || bool(p.rod)) &&
     bool(p.radio) &&
     num(p.landing)
   );
@@ -168,6 +176,9 @@ export function parseHost(d: unknown): HostMsg | null {
         !d.appleEmpty.every((t) => Array.isArray(t) && t.length === 2 && t.every(num)))) ||
     (d.mushrooms !== undefined && (!Array.isArray(d.mushrooms) || !d.mushrooms.every(num))) ||
     (d.hutCans !== undefined && !num(d.hutCans)) ||
+    (d.fishRest !== undefined &&
+      (!Array.isArray(d.fishRest) ||
+        !d.fishRest.every((t) => Array.isArray(t) && t.length === 2 && t.every(num)))) ||
     !Array.isArray(d.fires) ||
     !d.fires.every((f) => obj(f) && num(f.id) && num(f.x) && num(f.y) && num(f.until)) ||
     !Array.isArray(d.animals) ||
@@ -212,6 +223,12 @@ export function toSnap(w: World, s: State, focus: { x: number; y: number }[]): S
       }),
     mushrooms: s.mushrooms.filter((m) => near(m % w.size, Math.floor(m / w.size))),
     hutCans: s.hutCans,
+    fishRest: Object.entries(s.fishRest)
+      .map(([k, until]): [number, number] => [Number(k), until])
+      .filter(([k, until]) => {
+        const f = w.fish[k];
+        return until > s.total && !!f && near(f.x, f.y);
+      }),
     animals: s.animals
       .filter((a) => near(a.x, a.y))
       .map((a) => [ANIMALS.indexOf(a.kind), +a.x.toFixed(2), +a.y.toFixed(2)]),
@@ -232,6 +249,8 @@ export function toSnap(w: World, s: State, focus: { x: number; y: number }[]): S
       apples: p.apples,
       mushrooms: p.mushrooms,
       cans: p.cans,
+      fish: p.fish,
+      rod: p.rod,
       radio: p.radio,
       landing: +p.landing.toFixed(2),
     })),
@@ -249,6 +268,7 @@ export function applySnap(s: State, snap: Snap, me: string, first: boolean) {
   s.appleEmpty = Object.fromEntries(snap.appleEmpty ?? []);
   s.mushrooms = snap.mushrooms ?? [];
   if (snap.hutCans !== undefined) s.hutCans = snap.hutCans;
+  s.fishRest = Object.fromEntries(snap.fishRest ?? []);
   s.animals = snap.animals.map(([k, x, y], i): Animal => {
     const prev = s.animals[i];
     return prev && prev.kind === ANIMALS[k]
@@ -266,6 +286,8 @@ export function applySnap(s: State, snap: Snap, me: string, first: boolean) {
         apples: 0,
         mushrooms: 0,
         cans: 0,
+        fish: 0,
+        rod: false,
         hutSeen: true,
         exhausted: false,
         running: false,
@@ -283,6 +305,8 @@ export function applySnap(s: State, snap: Snap, me: string, first: boolean) {
       apples: q.apples ?? 0,
       mushrooms: q.mushrooms ?? 0,
       cans: q.cans ?? 0,
+      fish: q.fish ?? 0,
+      rod: q.rod === true,
       radio: q.radio,
       landing: q.landing,
       sleeping: local ? p.sleeping && q.sleeping : q.sleeping,

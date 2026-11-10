@@ -13,6 +13,7 @@ import {
   addPlayer,
   isColor,
   markTrail,
+  FISHING,
   FOODS,
   foodsOf,
   hasApples,
@@ -23,6 +24,7 @@ import {
   canBuildAt,
   createState,
   eat,
+  fishHere,
   free,
   hiddenAt,
   isStump,
@@ -37,7 +39,7 @@ import { browserStore, load, save } from "./logic/save.ts";
 import { applySnap, parseGuest, parseHost, toSnap, type GuestMsg } from "./logic/protocol.ts";
 import { HABITAT_TEXT, SPECIES, TIME_TEXT, UNICORN, speciesById } from "./logic/species.ts";
 import { discover, loadBook, saveBook } from "./logic/tierbuch.ts";
-import { T, generateWorld, idx, inside, type World } from "./logic/world.ts";
+import { T, generateWorld, idx, inside, isFreshWater, type World } from "./logic/world.ts";
 import { bearing, mapPoint } from "./logic/compass.ts";
 import { rockPeak, treeKind } from "./logic/looks.ts";
 import { HS, isoX, isoY, tileX, tileY } from "./render/iso.ts";
@@ -77,7 +79,8 @@ layer.innerHTML = `
       <div class="wl-bar" data-n="rest"><span>Müdigkeit</span><i><b></b></i></div>
       <div class="wl-bar" data-n="fitness"><span>Fitness</span><i><b></b></i></div>
       <div class="wl-bar" data-n="warmth" hidden><span>Wärme</span><i><b></b></i></div>
-      <div class="wl-inv"><span data-h="wood">🪵 0</span> <span data-h="berries">🫐 0</span> <span data-h="apples" hidden></span> <span data-h="mushrooms" hidden></span> <span data-h="cans" hidden></span></div>
+      <div class="wl-inv"><span data-h="wood">🪵 0</span> <span data-h="berries">🫐 0</span> <span data-h="apples" hidden></span> <span data-h="mushrooms" hidden></span> <span data-h="cans" hidden></span> <span data-h="fish" hidden></span></div>
+      <div class="wl-inv wl-tools" aria-label="Werkzeuge"><span data-h="axe" title="Axt">🪓</span> <span data-h="rod" title="Angel" hidden>🎣</span></div>
     </div>
     <div class="wl-side">
       <div class="wl-clock" data-h="clock">07:00</div>
@@ -94,6 +97,7 @@ layer.innerHTML = `
     <button class="wl-btn" type="button" data-b="tent">Zelt (${COSTS.tent} Holz)</button>
     <button class="wl-btn" type="button" data-b="fire">Lagerfeuer (${COSTS.fire} Holz)</button>
     <button class="wl-btn" type="button" data-b="bridge">Brücke (${COSTS.bridge} Holz)</button>
+    <button class="wl-btn" type="button" data-b="rod">Angel (${COSTS.rod} Holz)</button>
     <button class="wl-btn" type="button" data-b="cancel">✕</button>
   </div>
   <div class="wl-buildbar wl-eatbar" role="group" aria-label="Was möchtest du essen?" hidden></div>
@@ -263,7 +267,7 @@ function doBuild(kind: BuildKind) {
   const msg = build(world, state, me(), kind);
   toast(msg);
   // Brücken baut man Stück für Stück: Bau-Leiste bleibt offen
-  if (kind !== "bridge" && /steht|brennt/.test(msg)) toggleBuild(false);
+  if (kind !== "bridge" && /steht|brennt|fertig/.test(msg)) toggleBuild(false);
 }
 
 actBtn.addEventListener("click", () => doAct());
@@ -273,6 +277,7 @@ $('[data-b="build"]').addEventListener("click", () => toggleBuild());
 $('[data-b="tent"]').addEventListener("click", () => doBuild("tent"));
 $('[data-b="fire"]').addEventListener("click", () => doBuild("fire"));
 $('[data-b="bridge"]').addEventListener("click", () => doBuild("bridge"));
+$('[data-b="rod"]').addEventListener("click", () => doBuild("rod"));
 $('[data-b="cancel"]').addEventListener("click", () => toggleBuild(false));
 $('[data-b="menu"]').addEventListener("click", () => openMenu());
 
@@ -297,7 +302,7 @@ window.addEventListener("keydown", (e) => {
     openBook(() => resume());
   }
   if (e.code === "KeyB") toggleBuild();
-  if (!eatBar.hidden && /^Digit[1-4]$/.test(e.code)) {
+  if (!eatBar.hidden && /^Digit[1-5]$/.test(e.code)) {
     const k = foodsOf(me())[Number(e.code.slice(5)) - 1];
     if (k) doEat(k);
     return;
@@ -305,6 +310,7 @@ window.addEventListener("keydown", (e) => {
   if (building && e.code === "Digit1") doBuild("tent");
   if (building && e.code === "Digit2") doBuild("fire");
   if (building && e.code === "Digit3") doBuild("bridge");
+  if (building && e.code === "Digit4") doBuild("rod");
   if (e.code === "Escape") {
     if (!eatBar.hidden) toggleEat(false);
     else if (building) toggleBuild(false);
@@ -1154,6 +1160,7 @@ class WorldScene extends Phaser.Scene {
     ripplesShown = 0;
     world.fish.forEach((f, k) => {
       if (Math.abs(f.x - p.x) > 22 || Math.abs(f.y - p.y) > 22) return;
+      if (!fishHere(state, k)) return; // Stelle ruht nach einem Fang (WL-AK-54)
       const cycle = 5000 + ((k * 397) % 2000);
       const ph = ((time + k * 1733) % cycle) / cycle;
       const r = place(`ripple:${k}`, "ripple", f.x + 0.5, f.y + 0.5, 0.5);
@@ -1389,7 +1396,8 @@ function updateHud() {
   }
   hud("wood").textContent = `🪵 ${p.wood}`;
   hud("berries").textContent = `🫐 ${p.berries}`;
-  for (const k of ["apples", "mushrooms", "cans"] as const) {
+  hud("rod").hidden = !p.rod;
+  for (const k of ["apples", "mushrooms", "cans", "fish"] as const) {
     const el = hud(k);
     el.hidden = p[k] <= 0;
     el.textContent = `${FOODS[k].icon} ${p[k]}`;
@@ -1492,6 +1500,8 @@ if (debugEnabled) {
           apples: p.apples,
           mushrooms: p.mushrooms,
           cans: p.cans,
+          fish: p.fish,
+          rod: p.rod,
           tent: p.tent,
           sleeping: p.sleeping,
           radio: p.radio,
@@ -1546,6 +1556,36 @@ if (debugEnabled) {
       free: free(world, state, x, y),
       tree: inside(world, x, y) ? world.treeAt[idx(world, x, y)]! : 0,
     }),
+    give: (items: Partial<Record<"wood" | "berries" | "fish", number>>) => {
+      Object.assign(me(), items);
+    },
+    fishSpot: () => {
+      // freies Feld in Angel-Reichweite einer Fischstelle, Blick aufs Wasser: [x, y, fx, fy]
+      const p = me();
+      let best: [number, number, number, number] | null = null;
+      let bd = Infinity;
+      world.fish.forEach((f, k) => {
+        if (!fishHere(state, k)) return;
+        for (let dy = -2; dy <= 2; dy++)
+          for (let dx = -2; dx <= 2; dx++) {
+            const x = f.x + dx;
+            const y = f.y + dy;
+            if (Math.hypot(dx, dy) > FISHING.reach - 0.3 || !free(world, state, x, y)) continue;
+            // Blick zur Fischstelle, das Feld davor muss Wasser sein
+            const n = Math.hypot(dx, dy) || 1;
+            const ax = Math.floor(x + 0.5 - (dx / n) * 1.2);
+            const ay = Math.floor(y + 0.5 - (dy / n) * 1.2);
+            if (!inside(world, ax, ay) || !isFreshWater(world.terrain[idx(world, ax, ay)]!))
+              continue;
+            const d = Math.hypot(x - p.x, y - p.y);
+            if (d < bd) {
+              bd = d;
+              best = [x, y, -dx, -dy];
+            }
+          }
+      });
+      return best;
+    },
     lakeSpot: () => {
       // freies Ufer-Feld neben einem See mit Fischstelle: [x, y, seeX, seeY]
       for (const f of world.fish) {
