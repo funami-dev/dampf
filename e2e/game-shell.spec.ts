@@ -19,10 +19,14 @@ test.describe("Spiel-Rahmen", () => {
       await page.goto(`/games/${game.slug}/`);
       const canvas = page.locator("#game > canvas").first();
       await expect(canvas).toBeVisible();
-      await page.waitForTimeout(300);
+      // das Spiel passt sich nach dem Laden an die Größe an – unter Last etwas später
       const vh = page.viewportSize()!.height;
-      const box = (await canvas.boundingBox())!;
-      expect(box.y + box.height).toBeLessThanOrEqual(vh - INSET + 0.5);
+      await expect
+        .poll(async () => {
+          const box = (await canvas.boundingBox())!;
+          return box.y + box.height;
+        })
+        .toBeLessThanOrEqual(vh - INSET + 0.5);
       const back = (await page.getByRole("link", { name: /Alle Spiele/ }).boundingBox())!;
       expect(back.y).toBeGreaterThanOrEqual(INSET - 0.5);
     });
