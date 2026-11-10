@@ -39,7 +39,7 @@ import { browserStore, load, save } from "./logic/save.ts";
 import { applySnap, parseGuest, parseHost, toSnap, type GuestMsg } from "./logic/protocol.ts";
 import { HABITAT_TEXT, SPECIES, TIME_TEXT, UNICORN, speciesById } from "./logic/species.ts";
 import { discover, loadBook, saveBook } from "./logic/tierbuch.ts";
-import { T, generateWorld, idx, inside, type World } from "./logic/world.ts";
+import { T, generateWorld, idx, inside, isFreshWater, type World } from "./logic/world.ts";
 import { bearing, mapPoint } from "./logic/compass.ts";
 import { rockPeak, treeKind } from "./logic/looks.ts";
 import { HS, isoX, isoY, tileX, tileY } from "./render/iso.ts";
@@ -1560,9 +1560,9 @@ if (debugEnabled) {
       Object.assign(me(), items);
     },
     fishSpot: () => {
-      // freies Feld in Angel-Reichweite der nächsten Fischstelle mit Fischen: [x, y, Stelle]
+      // freies Feld in Angel-Reichweite einer Fischstelle, Blick aufs Wasser: [x, y, fx, fy]
       const p = me();
-      let best: [number, number, number] | null = null;
+      let best: [number, number, number, number] | null = null;
       let bd = Infinity;
       world.fish.forEach((f, k) => {
         if (!fishHere(state, k)) return;
@@ -1571,10 +1571,16 @@ if (debugEnabled) {
             const x = f.x + dx;
             const y = f.y + dy;
             if (Math.hypot(dx, dy) > FISHING.reach - 0.3 || !free(world, state, x, y)) continue;
+            // Blick zur Fischstelle, das Feld davor muss Wasser sein
+            const n = Math.hypot(dx, dy) || 1;
+            const ax = Math.floor(x + 0.5 - (dx / n) * 1.2);
+            const ay = Math.floor(y + 0.5 - (dy / n) * 1.2);
+            if (!inside(world, ax, ay) || !isFreshWater(world.terrain[idx(world, ax, ay)]!))
+              continue;
             const d = Math.hypot(x - p.x, y - p.y);
             if (d < bd) {
               bd = d;
-              best = [x, y, k];
+              best = [x, y, -dx, -dy];
             }
           }
       });

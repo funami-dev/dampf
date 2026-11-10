@@ -33,8 +33,9 @@ function standAt(w: ReturnType<typeof generateWorld>, s: ReturnType<typeof creat
       if (Math.hypot(dx, dy) <= FISHING.reach - 0.3 && free(w, s, f.x + dx, f.y + dy)) {
         p.x = f.x + dx + 0.5;
         p.y = f.y + dy + 0.5;
-        // andere Aktionen (Bäume, Sträucher …) aus dem Weg räumen ist nicht nötig:
-        // Angeln muss unter den Möglichkeiten sein, wenn es die nächste ist
+        // Blick zur Fischstelle: schaut man aufs Wasser, hat Angeln Vorrang
+        p.fx = -dx || 0.01;
+        p.fy = -dy;
         return p;
       }
   throw new Error("kein Platz an der Fischstelle");

@@ -277,7 +277,8 @@ Drei Leisten von 0 bis 100 % stehen immer oben im Bild:
   hat man von Anfang an. Eine **Angel** 🎣 baut man aus 5 Holz (Bau-Menü „Angel (5 Holz)“,
   Taste 4); jeder hat höchstens eine, sie übersteht Neuladen.
 - **Angeln:** Mit Angel an einer Fischstelle (Wasserringe, höchstens 2,5 Felder weit) heißt die
-  Aktion „Angeln“ und gibt **1 Fisch** 🐟. Danach ruht die Stelle einen halben Spieltag (keine
+  Aktion „Angeln“ und gibt **1 Fisch** 🐟. Schaut man dabei aufs Wasser, kommt „Angeln“ vor
+  „Holz hacken“ usw. Danach ruht die Stelle einen halben Spieltag (keine
   Ringe, kein Fang), dann sind die Fische zurück. Ohne Angel steht dort nichts zum Angeln.
   Fisch ist Essen (+30 % Hunger) und erscheint in der Essen-Auswahl. Im Mehrspieler angeln Gäste
   genauso; ruhende Stellen sehen alle.

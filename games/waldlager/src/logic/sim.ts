@@ -727,13 +727,17 @@ export function actionFor(
     const d = Math.hypot((m % w.size) + 0.5 - p.x, Math.floor(m / w.size) + 0.5 - p.y);
     if (d <= REACH) opts.push({ kind: "gather", label: "Pilz sammeln", target: m, d });
   }
-  // Angeln (WL-AK-54)
-  if (p.rod)
+  // Angeln (WL-AK-54): Schaut man aufs Wasser, hat es Vorrang vor Bäumen usw.
+  if (p.rod) {
+    const ahead = buildSpot(p);
+    const facingWater =
+      inside(w, ahead.x, ahead.y) && isFreshWater(w.terrain[idx(w, ahead.x, ahead.y)]!);
     w.fish.forEach((f, k) => {
       const d = Math.hypot(f.x + 0.5 - p.x, f.y + 0.5 - p.y);
       if (d <= FISHING.reach && fishHere(s, k))
-        opts.push({ kind: "fish", label: "Angeln", target: k, d });
+        opts.push({ kind: "fish", label: "Angeln", target: k, d: facingWater ? -1 : d });
     });
+  }
   if (p.tent) {
     const d = Math.hypot(p.tent.x + 0.5 - p.x, p.tent.y + 0.5 - p.y);
     if (d <= REACH + 0.3) opts.push({ kind: "sleep", label: "Schlafen", target: -1, d });

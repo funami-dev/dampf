@@ -59,7 +59,7 @@ interface Hooks {
   nearestAnimal(): [number, number, string] | null;
   riverSpot(): [number, number, number, number] | null;
   lakeSpot(): [number, number, number, number] | null;
-  fishSpot(): [number, number, number] | null;
+  fishSpot(): [number, number, number, number] | null;
   give(items: Partial<Record<"wood" | "berries" | "fish", number>>): void;
   cell(x: number, y: number): { terrain: number; free: boolean; tree: number };
   finishLanding(): void;
@@ -872,7 +872,10 @@ test("WL-AK-55: Angel bauen, angeln, Fisch essen", async ({ page }) => {
   expect((await state(page)).me.wood).toBe(5);
   const spot = (await hooks(page, (h) => h.fishSpot()))!;
   expect(spot).not.toBeNull();
-  await page.evaluate(([x, y]) => (window.__dampf as Hooks).teleport(x! + 0.5, y! + 0.5), spot);
+  await page.evaluate(
+    ([x, y, fx, fy]) => (window.__dampf as Hooks).teleport(x! + 0.5, y! + 0.5, fx, fy),
+    spot,
+  );
   await expect.poll(async () => (await state(page)).action).toBe("fish");
   await page.locator('[data-b="act"]').click();
   await expect.poll(async () => (await state(page)).me.fish).toBe(1);
