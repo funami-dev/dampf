@@ -71,19 +71,28 @@ test.describe("Kein Zoom", () => {
     const cdp = await page.context().newCDPSession(page);
     type W = { clicks: number; ends: { t: number; p: boolean }[] };
     // Unter Last können zwei simulierte Tipps weiter als 350 ms auseinanderliegen; dann zählt es
-    // nicht als Doppeltipp. Deshalb bis zu 5 Versuche, bis ein echter Doppeltipp gelingt.
+    // nicht als Doppeltipp. Deshalb bis zu 8 Versuche, bis ein echter Doppeltipp gelingt.
     let checked = false;
-    for (let attempt = 0; attempt < 5 && !checked; attempt++) {
+    for (let attempt = 0; attempt < 8 && !checked; attempt++) {
       await page.waitForTimeout(500);
       await page.evaluate(() => {
         const w = window as unknown as W;
         w.clicks = 0;
         w.ends = [];
       });
-      for (let i = 0; i < 2; i++) {
-        await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [pt] });
-        await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-      }
+      // alle vier Ereignisse ohne Warten dazwischen abschicken (kommen in Reihenfolge an),
+      // damit die beiden Tipps auch unter Last dicht beieinander liegen
+      const touch = (type: "touchStart" | "touchEnd") =>
+        cdp.send("Input.dispatchTouchEvent", {
+          type,
+          touchPoints: type === "touchStart" ? [pt] : [],
+        });
+      await Promise.all([
+        touch("touchStart"),
+        touch("touchEnd"),
+        touch("touchStart"),
+        touch("touchEnd"),
+      ]);
       await expect.poll(() => page.evaluate(() => (window as unknown as W).clicks)).toBe(2);
       const ends = await page.evaluate(() => (window as unknown as W).ends);
       expect(ends).toHaveLength(2);
