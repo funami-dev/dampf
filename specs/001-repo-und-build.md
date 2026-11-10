@@ -80,6 +80,15 @@ z. B. noch auf iPad Air 2, iPad mini 4 und iPad 5. Generation.
   Juist-Fähre, Kassen-Held) den Hinweis „zu alt“ und den Zurück-Button statt einer weißen Seite;
   es gibt keinen unbehandelten Fehler.
 - **BUILD-AK-14** (E2E) Auf aktuellen Browsern erscheint der Hinweis nicht.
+- **BUILD-AK-15** `npm run test:e2e:changed` wählt die E2E-Tests nach den Änderungen gegenüber
+  `origin/master` (inkl. nicht committeter Dateien): nur Doku/Specs → Smoke-Tests; nur Spiele →
+  Smoke + deren E2E-Dateien (bei `game.json` zusätzlich die Startseite); gemeinsamer Code
+  (`packages/`, `apps/`, `services/`, `scripts/`, Konfiguration, gemeinsame E2E-Dateien) oder
+  Unbekanntes → alles. `npm run test:prod:changed` wählt genauso nach dem letzten Merge und testet
+  gegen Production.
+- **BUILD-AK-16** (E2E) Smoke-Tests (`e2e/smoke.spec.ts`): Die Startseite listet alle
+  veröffentlichten Spiele ohne Fehler; jede Spielseite lädt ohne Fehler, hat den richtigen Titel,
+  zeigt die Version und zeichnet etwas.
 
 ## CI-Entscheidung
 
