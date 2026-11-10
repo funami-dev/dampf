@@ -59,6 +59,8 @@ test.describe("Feedback in Spielen", () => {
     test(`FEEDBACK-AK-13: ${game.slug} – Knopf in der Leiste öffnet das Formular`, async ({
       page,
     }) => {
+      // 3D-Spiele laden unter Last länger
+      test.setTimeout(60_000);
       await intercept(page);
       await page.goto(`/games/${game.slug}/`);
       const bar = page.locator("header.dampf-bar");
@@ -78,6 +80,8 @@ test.describe("Feedback in Spielen", () => {
     test(`FEEDBACK-AK-18: ${game.slug} – Knopf und Formular passen aufs Handy`, async ({
       page,
     }) => {
+      // 3D-Spiele laden unter Last länger
+      test.setTimeout(60_000);
       test.skip(!isMobile(page), "nur Mobile");
       await intercept(page);
       await page.goto(`/games/${game.slug}/`);
