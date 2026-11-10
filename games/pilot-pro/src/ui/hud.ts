@@ -1,4 +1,5 @@
-import { FEET, KNOTS, type FlightState } from "../logic/flight.ts";
+import type { FlightState } from "../logic/flight.ts";
+import { UNIT_LABELS, gauges, type Units } from "../logic/units.ts";
 import { AIRPORTS, BOUNDS, LANDMARKS, RIVER } from "../logic/world.ts";
 import { ZOOM, toLatLon } from "../logic/geo.ts";
 import { TileCache, drawTiles } from "./osmmap.ts";
@@ -16,11 +17,11 @@ export function createHud(
   hud.className = "pp-hud";
   hud.innerHTML = `
     <div class="pp-gauges" aria-live="off">
-      <div class="pp-gauge"><b data-g="spd">0</b><small>Knoten</small></div>
-      <div class="pp-gauge"><b data-g="alt">0</b><small>Fuß</small></div>
+      <div class="pp-gauge"><b data-g="spd">0</b><small data-u="spd">km/h</small></div>
+      <div class="pp-gauge"><b data-g="alt">0</b><small data-u="alt">m</small></div>
       <div class="pp-gauge"><b data-g="hdg">0°</b><small>Kurs</small></div>
       <div class="pp-gauge"><b data-g="thr">0 %</b><small>Schub</small></div>
-      <div class="pp-gauge"><b data-g="vs">0</b><small>Fuß/min</small></div>
+      <div class="pp-gauge"><b data-g="vs">0</b><small data-u="vs">m/s</small></div>
     </div>`;
   const menu = document.createElement("button");
   menu.className = "pp-btn";
@@ -177,13 +178,20 @@ export function createHud(
   }
 
   let frame = 0;
+  let units: Units = "metrisch";
   return {
+    setUnits(u: Units) {
+      units = u;
+      for (const k of ["spd", "alt", "vs"] as const)
+        hud.querySelector<HTMLElement>(`[data-u="${k}"]`)!.textContent = UNIT_LABELS[u][k];
+    },
     update(s: FlightState, paused: boolean) {
-      g("spd").textContent = String(Math.round(s.speed * KNOTS));
-      g("alt").textContent = String(Math.round(s.y * FEET));
+      const v = gauges(s, units);
+      g("spd").textContent = v.spd;
+      g("alt").textContent = v.alt;
       g("hdg").textContent = `${String(Math.round(s.heading) % 360).padStart(3, "0")}°`;
       g("thr").textContent = `${Math.round(s.throttle * 100)} %`;
-      g("vs").textContent = String(Math.round((s.vs * FEET * 60) / 10) * 10);
+      g("vs").textContent = v.vs;
       notice.textContent = paused ? "" : (s.notice ?? "");
       if (frame++ % 6 === 0) drawMap(s);
     },

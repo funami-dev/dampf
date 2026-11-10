@@ -1,6 +1,8 @@
 export interface DebugHooks {
   screen(): string;
   state(): Record<string, unknown>;
+  /** gewählte Einheiten (PP-AK-18) */
+  units(): string;
   /** Live-Karte (PP-AK-15..17) */
   map(): {
     mode: "tiles" | "drawn";

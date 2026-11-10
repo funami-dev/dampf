@@ -13,7 +13,8 @@ auch auf älteren iPads (Build-Ziel wie die anderen Spiele).
 ## Himmelskörper
 
 Gleiche Fähre, gleicher Start, gleicher Treibstoff – nur Schwerkraft und Luft sind verschieden.
-Reihenfolge = Freischalt-Reihenfolge (die nächste Stufe öffnet sich nach einer gelungenen Landung).
+**Alle Orte sind von Anfang an spielbar** (Feedback `fb_2rpon5ao`); die Reihenfolge ist die
+empfohlene Reihenfolge („Nächster Ort“ nach einer Landung).
 
 | #   | Ort     | g (m/s²) | Erde = 100 % | Luftdichte am Boden (kg/m³) | Himmel / Boden           |
 | --- | ------- | -------- | ------------ | --------------------------- | ------------------------ |
@@ -56,7 +57,7 @@ Ein Rechenschritt mit fester Schrittweite (z. B. 1/120 s), unabhängig von der B
 ## Spielablauf
 
 1. **Auswahl:** Liste aller Orte als Karten (Name, Symbol, g, „x % der Erde“, Sterne).
-   Gesperrte Orte mit Schloss; Gasriesen ausgegraut mit „ℹ️ Warum nicht?“ → Erklärung.
+   Alle Orte sind frei; Gasriesen ausgegraut mit „ℹ️ Warum nicht?“ → Erklärung.
 2. **Lern-Karte** vor dem Start:
    - g-Wert und Vergleich mit der Erde („Hier ist die Schwerkraft 6-mal schwächer als auf der Erde.“).
    - „Ein Ball fällt hier in 1 Sekunde x m tief.“ (½ · g · 1 s², ohne Luft) – auf der Erde 4,9 m.
@@ -76,7 +77,7 @@ Ein Rechenschritt mit fester Schrittweite (z. B. 1/120 s), unabhängig von der B
    - Ergebnis-Bildschirm: Sinkgeschwindigkeit, Neigung, Rest-Treibstoff, Sterne; „Nochmal“,
      „Nächster Ort“ (wenn frei), „Zur Auswahl“.
 5. **Sterne:** ★ gelandet · ★★ zusätzlich Sinken ≤ 1 m/s · ★★★ zusätzlich ≥ 30 % Treibstoff übrig.
-   Bestwert je Ort und freigeschaltete Orte werden lokal gespeichert (`dampf.planetenlander.v1`);
+   Bestwert je Ort wird lokal gespeichert (`dampf.planetenlander.v1`);
    kaputte Daten → Neustart ohne Absturz.
 
 ## Anzeigen im Flug
@@ -116,18 +117,18 @@ ohne Luft, Dunst-Schichten auf Titan/Venus. Kein Ton im MVP.
   ein (±2 %), z. B. Venus ≈ 7 m/s; auf Orten ohne Luft gibt es keine Bremsung.
 - **PL-AK-05** Landung: gelandet genau bei Sinken ≤ 2 m/s, seitlich ≤ 1 m/s, Neigung ≤ 10° auf
   der Plattform; sonst Bruchlandung; neben der Plattform immer Bruchlandung.
-- **PL-AK-06** Sterne nach den Regeln oben; Bestwerte und Freischaltung überstehen Neuladen;
+- **PL-AK-06** Sterne nach den Regeln oben; Bestwerte überstehen Neuladen;
   kaputte Daten → Ausgangszustand.
 - **PL-AK-07** Lern-Karte: Fall-Strecke in 1 s = ½ · g (gerundet auf eine Nachkommastelle), Text
   „x-mal schwächer/stärker als auf der Erde“ passend.
 
 **Im Browser (Playwright)**
 
-- **PL-AK-08** (E2E Desktop) Auswahl zeigt alle Orte; nur der Mond ist anfangs frei; Gasriesen
+- **PL-AK-08** (E2E Desktop) Auswahl zeigt alle Orte, alle sind sofort spielbar; Gasriesen
   zeigen beim Antippen die Erklärung und lassen sich nicht starten.
 - **PL-AK-09** (E2E Desktop) Mond: Lern-Karte → Los → mit Tasten Schub geben verändert
   Sinkgeschwindigkeit; über eine Test-Hilfe kurz über der Plattform sanft aufsetzen → „Gelandet“,
-  Sterne, Ceres wird frei; Neuladen behält das.
+  Sterne, „Nächster Ort: Ceres“; Neuladen behält die Sterne.
 - **PL-AK-10** (E2E Desktop) Zu schnell aufsetzen → Bruchlandung mit „Nochmal“.
 - **PL-AK-11** (E2E Mobile 375×667) Knöpfe Schub/Drehen sichtbar und bedienbar (auch
   gleichzeitig), Anzeigen lesbar, kein horizontales Scrollen.

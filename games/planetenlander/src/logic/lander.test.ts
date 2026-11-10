@@ -170,25 +170,25 @@ describe("PL-AK-06: Sterne und Fortschritt", () => {
     expect(stars(v(-0.9), 100)).toBe(2);
     expect(stars(v(-0.9), 180)).toBe(3);
   });
-  it("Freischalten, Bestwerte, Neuladen und kaputte Daten", () => {
+  it("Bestwerte, Neuladen und kaputte Daten (alle Orte sind ohnehin frei)", () => {
     const data = new Map<string, string>();
     const s: Store = { get: (k) => data.get(k) ?? null, set: (k, v) => void data.set(k, v) };
     expect(loadProgress(s)).toEqual(fresh());
     let p = record(fresh(), "mond", 2);
-    expect(p).toEqual({ unlocked: 2, best: { mond: 2 } });
+    expect(p).toEqual({ best: { mond: 2 } });
     p = record(p, "mond", 1);
     expect(p.best.mond).toBe(2);
     p = record(p, "mond", 0);
-    expect(p.unlocked).toBe(2);
+    expect(p.best.mond).toBe(2);
     saveProgress(s, p);
     expect(loadProgress(s)).toEqual(p);
     p = record(p, "erde", 3);
-    expect(p.unlocked).toBe(8);
-    for (const bad of ["{", "null", '{"v":2}', '{"v":1,"unlocked":"x","best":{}}'])
+    expect(p.best).toEqual({ mond: 2, erde: 3 });
+    for (const bad of ["{", "null", '{"v":2}', '{"v":1,"best":"x"}'])
       expect(loadProgress({ get: () => bad, set: () => {} }), bad).toEqual(fresh());
     expect(
       loadProgress({ get: () => '{"v":1,"unlocked":99,"best":{"mond":7,"ceres":3}}', set() {} }),
-    ).toEqual({ unlocked: 8, best: { ceres: 3 } });
+    ).toEqual({ best: { ceres: 3 } });
     expect(KEY).toBe("dampf.planetenlander.v1");
   });
 });

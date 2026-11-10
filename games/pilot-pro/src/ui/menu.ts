@@ -1,14 +1,17 @@
 import { AIRCRAFT, AIRLINES } from "../logic/catalog.ts";
+import { UNIT_LABELS, type Units } from "../logic/units.ts";
 
 export interface MenuHandlers {
   onChange(aircraft: string, airline: string): void;
   onStart(): void;
+  /** Einheiten gewechselt (PP-AK-18) */
+  onUnits?(u: Units): void;
 }
 
 /** Auswahlmenü (DOM über dem 3D-Bild). */
 export function createMenu(
   layer: HTMLElement,
-  initial: { aircraft: string; airline: string },
+  initial: { aircraft: string; airline: string; units?: Units },
   h: MenuHandlers,
 ) {
   const el = document.createElement("section");
@@ -69,6 +72,32 @@ export function createMenu(
   go.type = "button";
   go.textContent = "Abheben!";
   go.addEventListener("click", () => h.onStart());
+  // Einheiten (PP-AK-18)
+  let units: Units = initial.units ?? "metrisch";
+  const unitWrap = document.createElement("div");
+  unitWrap.innerHTML = "<h2>Einheiten</h2>";
+  const unitRow = document.createElement("div");
+  unitRow.className = "pp-choices";
+  unitRow.setAttribute("role", "group");
+  unitRow.setAttribute("aria-label", "Einheiten");
+  const unitButtons = (Object.keys(UNIT_LABELS) as Units[]).map((u) => {
+    const b = document.createElement("button");
+    b.className = "pp-btn";
+    b.type = "button";
+    b.textContent = UNIT_LABELS[u].name;
+    b.addEventListener("click", () => {
+      units = u;
+      syncUnits();
+      h.onUnits?.(u);
+    });
+    unitRow.append(b);
+    return { u, b };
+  });
+  const syncUnits = () =>
+    unitButtons.forEach(({ u, b }) => b.setAttribute("aria-pressed", String(u === units)));
+  syncUnits();
+  unitWrap.append(unitRow);
+  bottom.append(unitWrap);
   bottom.append(go);
   // Datenschutz-Hinweis zur Live-Karte (PP-AK-17)
   const privacy = document.createElement("p");
