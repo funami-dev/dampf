@@ -110,6 +110,15 @@ describe("WL-AK-29: Trümmerspur", () => {
     }
   });
 
+  it("kein Trümmerteil liegt auf einem Beerenstrauch (sonst ginge nur „Beeren pflücken“)", () => {
+    for (let k = 1; k <= 40; k++) {
+      const w = generateWorld(k * 7919 + 13);
+      const bush = new Set(w.bushes.map((b) => `${b.x},${b.y}`));
+      for (const d of w.debris)
+        expect(bush.has(`${d.x},${d.y}`), `Seed ${k * 7919 + 13}`).toBe(false);
+    }
+  });
+
   it("Hinweis: Himmelsrichtung (Norden = oben) und Entfernungsstufe", () => {
     const w = generateWorld(3);
     const { x, y } = w.plane;
