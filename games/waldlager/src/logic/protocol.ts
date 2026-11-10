@@ -40,7 +40,8 @@ export interface PlayerSnap {
   moving: boolean;
   sleeping: boolean;
   tent: { x: number; y: number } | null;
-  needs: { hunger: number; rest: number; fitness: number };
+  /** warmth fehlt bei älteren Gastgebern → 100 */
+  needs: { hunger: number; rest: number; fitness: number; warmth?: number };
   wood: number;
   berries: number;
   /** Vorräte (fehlen bei älteren Gastgebern → 0) */
@@ -137,6 +138,7 @@ function playerSnap(p: unknown): p is PlayerSnap {
     num(p.needs.hunger) &&
     num(p.needs.rest) &&
     num(p.needs.fitness) &&
+    (p.needs.warmth === undefined || num(p.needs.warmth)) &&
     num(p.wood) &&
     num(p.berries) &&
     (["apples", "mushrooms", "cans"] as const).every((k) => p[k] === undefined || num(p[k])) &&
@@ -260,6 +262,7 @@ export function applySnap(s: State, snap: Snap, me: string, first: boolean) {
       s.players[q.id] ??
       (s.players[q.id] = {
         ...q,
+        needs: { ...q.needs, warmth: q.needs.warmth ?? 100 },
         apples: 0,
         mushrooms: 0,
         cans: 0,
@@ -274,7 +277,7 @@ export function applySnap(s: State, snap: Snap, me: string, first: boolean) {
       name: q.name,
       color: q.color,
       tent: q.tent,
-      needs: q.needs,
+      needs: { ...q.needs, warmth: q.needs.warmth ?? 100 },
       wood: q.wood,
       berries: q.berries,
       apples: q.apples ?? 0,

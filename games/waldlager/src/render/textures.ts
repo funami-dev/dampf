@@ -87,14 +87,21 @@ function addTiles(tex: Phaser.Textures.TextureManager) {
         for (let k = 2; k < TH; k += 3) g.fillRect(4, k, TW - 8, 1);
       }
       if (Number(t) === T.FORD) {
-        g.fillStyle = "#d8d2bb";
+        // steinige Furt: deutlich sichtbare Trittsteine mit Schatten (WL-AK-50)
         for (const [x, y] of [
-          [10, 6],
-          [16, 8],
-          [21, 7],
-          [14, 11],
-        ])
-          g.fillRect(x!, y!, 3, 2);
+          [8, 5],
+          [15, 7],
+          [22, 6],
+          [12, 10],
+          [19, 11],
+        ]) {
+          g.fillStyle = "#4b5560";
+          g.fillRect(x!, y! + 2, 5, 1);
+          g.fillStyle = "#9aa0a6";
+          g.fillRect(x!, y!, 5, 3);
+          g.fillStyle = "#c8cdd2";
+          g.fillRect(x! + 1, y!, 3, 1);
+        }
       }
       tex.addCanvas(tileKey(Number(t), v), c);
     }

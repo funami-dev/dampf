@@ -405,6 +405,15 @@ const DIRECTIONS = [
 ];
 
 /** Hinweis eines Trümmerteils: Himmelsrichtung (Norden = oben am Bildschirm) und Entfernung */
+/** Himmelsrichtung (8) einer Kachel-Richtung, Norden = oben im Bild (z. B. „Nordosten“) */
+export function directionName(dx: number, dy: number): string {
+  // isometrisch: Bildschirm-rechts = (dx − dy), Bildschirm-unten = (dx + dy) / 2
+  const sx = dx - dy;
+  const sy = (dx + dy) / 2;
+  const ang = (Math.atan2(-sy, sx) * 180) / Math.PI;
+  return DIRECTIONS[((Math.round(ang / 45) % 8) + 8) % 8]!;
+}
+
 export function debrisHint(
   w: World,
   x: number,
@@ -412,11 +421,7 @@ export function debrisHint(
 ): { dir: string; dist: string; text: string } {
   const dx = w.plane.x - x;
   const dy = w.plane.y - y;
-  // isometrisch: Bildschirm-rechts = (dx − dy), Bildschirm-unten = (dx + dy) / 2
-  const sx = dx - dy;
-  const sy = (dx + dy) / 2;
-  const ang = (Math.atan2(-sy, sx) * 180) / Math.PI;
-  const dir = DIRECTIONS[((Math.round(ang / 45) % 8) + 8) % 8]!;
+  const dir = directionName(dx, dy);
   const d = Math.hypot(dx, dy);
   const dist = d < 20 ? "ganz nah" : d < 50 ? "nicht mehr weit" : "noch weit weg";
   return { dir, dist, text: `Ein Stück Flugzeug! Die Spur führt nach ${dir} – ${dist}.` };
@@ -465,6 +470,46 @@ function placeSwath(w: World, rand: Rand) {
       }
     }
   w.scorch = [...out].sort((p, q) => p - q);
+}
+
+/** Zusätzliche steinige Furten über Flüsse (Feedback fb_9bwz2s9o, WL-AK-50) */
+export const EXTRA_FORDS = { min: 3, max: 6, maxWidth: 4, spacing: 25 };
+function addFords(w: World, rand: Rand) {
+  const want = EXTRA_FORDS.min + Math.floor(rand() * (EXTRA_FORDS.max - EXTRA_FORDS.min + 1));
+  const done: { x: number; y: number }[] = [];
+  const land = (x: number, y: number) =>
+    inside(w, x, y) && terrainWalkable(w.terrain[idx(w, x, y)]!);
+  for (let k = 0; k < 6000 && done.length < want; k++) {
+    const x = Math.floor(rand() * w.size);
+    const y = Math.floor(rand() * w.size);
+    if (w.terrain[idx(w, x, y)] !== T.WATER) continue;
+    if (done.some((d) => Math.hypot(d.x - x, d.y - y) < EXTRA_FORDS.spacing)) continue;
+    for (const [dx, dy] of [
+      [1, 0],
+      [0, 1],
+    ] as const) {
+      // vom Feld aus rückwärts bis zum Ufer, dann vorwärts über das Wasser
+      let sx = x;
+      let sy = y;
+      while (inside(w, sx - dx, sy - dy) && w.terrain[idx(w, sx - dx, sy - dy)] === T.WATER) {
+        sx -= dx;
+        sy -= dy;
+      }
+      const cells: number[] = [];
+      let cx = sx;
+      let cy = sy;
+      while (inside(w, cx, cy) && w.terrain[idx(w, cx, cy)] === T.WATER && cells.length <= 5) {
+        cells.push(idx(w, cx, cy));
+        cx += dx;
+        cy += dy;
+      }
+      if (cells.length > EXTRA_FORDS.maxWidth) continue;
+      if (!land(sx - dx, sy - dy) || !land(cx, cy)) continue;
+      for (const i of cells) w.terrain[i] = T.FORD;
+      done.push({ x, y });
+      break;
+    }
+  }
 }
 
 /** Genau eine Hütte: frei, weit weg von Start und Flugzeug, erreichbar (WL-AK-39) */
@@ -640,5 +685,6 @@ export function generateWorld(seed: number, size = SIZE): World {
   w.trees.forEach((t, k) => (w.treeAt[idx(w, t.x, t.y)] = k + 1));
   // ganz zum Schluss und mit eigenem Zufall: alles andere bleibt, wie es war
   placeSwath(w, rng(seed ^ 0x53636831));
+  addFords(w, rng(seed ^ 0x466f7264));
   return w;
 }

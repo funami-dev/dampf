@@ -3,6 +3,7 @@ import { SPECIES, UNICORN, speciesById } from "./species.ts";
 import {
   FULL,
   RATES,
+  FREEZE,
   eatBerry,
   eatFood,
   fitnessFactor,
@@ -10,7 +11,16 @@ import {
   stepNeeds,
   type Needs,
 } from "./needs.ts";
-import { HUT, T, debrisHint, idx, inside, terrainWalkable, type World } from "./world.ts";
+import {
+  HUT,
+  T,
+  debrisHint,
+  directionName,
+  idx,
+  inside,
+  terrainWalkable,
+  type World,
+} from "./world.ts";
 
 /** Spielstand einer Welt (Spec: specs/games/waldlager.md). Reine Daten, serialisierbar. */
 export const COLORS = ["#e74c3c", "#3498db", "#f1c40f", "#9b59b6", "#e67e22", "#1abc9c"] as const;
@@ -41,6 +51,8 @@ export const FOOD_KINDS = Object.keys(FOODS) as FoodKind[];
 export const HUT_CANS = { give: 2, refill: DAY };
 export const APPLES = { give: 2, regrow: DAY / 2 };
 export const MUSHROOMS = { per256: 60, regrow: DAY / 2 };
+/** Einhorn-Wiehern: im Mittel alle 2 Minuten, nur wenn es nicht in Sichtweite ist (WL-AK-49) */
+export const NEIGH = { every: 120, minDist: 12 };
 export const COSTS = { tent: 8, fire: 3, bridge: 3 };
 export const TREE = { hits: 4, wood: 3, regrow: DAY };
 export const BUSH = { berries: 4, refill: DAY / 2 };
@@ -156,11 +168,21 @@ export function habitatOk(w: World, kind: string, x: number, y: number, strict =
       return w.height[i]! >= 2;
     case "meer":
       return w.terrain[i] === T.SEA && nearLand(w, x, y, 5);
+    case "strand":
+      // Krebse bleiben auf Sand am Meer (fb_6hh2w8h7)
+      return w.terrain[i] === T.SAND && nearSea(w, x, y, 3);
     case "wald":
       return !strict || w.terrain[i] === T.FOREST;
     case "wiese":
       return !strict || w.terrain[i] === T.GRASS || w.terrain[i] === T.SAND;
   }
+}
+
+function nearSea(w: World, x: number, y: number, r: number): boolean {
+  for (let dy = -r; dy <= r; dy++)
+    for (let dx = -r; dx <= r; dx++)
+      if (inside(w, x + dx, y + dy) && w.terrain[idx(w, x + dx, y + dy)] === T.SEA) return true;
+  return false;
 }
 
 function nearLand(w: World, x: number, y: number, r: number): boolean {
@@ -472,6 +494,18 @@ export function stepWorld(w: World, s: State, dt: number): GameEvent[] {
   for (const p of players) {
     if (p.landing > 0) p.landing = Math.max(0, p.landing - dt);
     // Funkgerät im Flugzeug (WL-AK-24)
+    // Einhorn wiehern hören (Feedback fb_7rnu4uip, WL-AK-49)
+    const uni = s.animals.find((a) => a.kind === UNICORN);
+    if (
+      uni &&
+      !p.sleeping &&
+      Math.hypot(uni.x - p.x, uni.y - p.y) > NEIGH.minDist &&
+      nextRand(s) < dt / NEIGH.every
+    )
+      events.push({
+        player: p.id,
+        text: `🦄 Du hörst ein Einhorn wiehern – irgendwo im ${directionName(uni.x - p.x, uni.y - p.y)}!`,
+      });
     if (!p.hutSeen && Math.hypot(w.hut.x + 0.5 - p.x, w.hut.y + 0.5 - p.y) <= HUT.see) {
       p.hutSeen = true;
       events.push({
@@ -483,13 +517,17 @@ export function stepWorld(w: World, s: State, dt: number): GameEvent[] {
       p.radio = true;
       events.push({ player: p.id, text: "📻 Du hast im Flugzeug ein Funkgerät gefunden!" });
     }
+    const wasCold = p.needs.warmth < FREEZE;
     p.needs = stepNeeds(p.needs, dt, {
       night,
       running: p.running,
       moving: p.moving,
       sleeping: p.sleeping,
       atFire: atFire(s, p),
+      cold: night || phaseOf(s.total) === "daemmerung",
     });
+    if (!wasCold && p.needs.warmth < FREEZE)
+      events.push({ player: p.id, text: "🥶 Dir ist kalt – mach ein Feuer oder geh ins Zelt!" });
     if (p.needs.fitness <= 0) p.exhausted = true;
     if (p.exhausted && p.needs.fitness >= 20) p.exhausted = false;
     if (p.sleeping && p.needs.rest >= 100) {

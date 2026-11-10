@@ -10,8 +10,20 @@
   "status": "published",
   "order": 80,
   "addedAt": "2026-11-08",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "changelog": [
+    {
+      "version": "1.8.0",
+      "date": "2026-11-10",
+      "time": "22:30",
+      "items": [
+        "Neu: Nachts wird es kalt – bleib am Feuer oder geh ins Zelt, sonst frierst du",
+        "Manchmal hörst du ein Einhorn wiehern – und aus welcher Richtung",
+        "Neu: Strandkrabben am Meer",
+        "Steinige Furten: An ein paar Stellen kommst du ohne Brücke über den Fluss",
+        "Gehen kostet jetzt ein bisschen Puste"
+      ]
+    },
     {
       "version": "1.7.0",
       "date": "2026-11-10",

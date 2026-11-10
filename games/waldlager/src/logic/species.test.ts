@@ -13,7 +13,7 @@ describe("WL-AK-18: Tierarten", () => {
   it("jede Art hat Name, Lebensraum, Zeit, Seltenheit, Satz und eine gültige Pixel-Grafik", () => {
     for (const s of SPECIES) {
       expect(s.name.length).toBeGreaterThan(1);
-      expect(["wald", "wiese", "wasser", "huegel", "meer"]).toContain(s.habitat);
+      expect(["wald", "wiese", "wasser", "huegel", "meer", "strand"]).toContain(s.habitat);
       expect(["tag", "nacht"]).toContain(s.time);
       expect(["haeufig", "selten", "sehr-selten"]).toContain(s.rarity);
       expect(s.fact.length).toBeGreaterThan(20);

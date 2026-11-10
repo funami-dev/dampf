@@ -75,6 +75,7 @@ layer.innerHTML = `
       <div class="wl-bar" data-n="hunger"><span>Hunger</span><i><b></b></i></div>
       <div class="wl-bar" data-n="rest"><span>Müdigkeit</span><i><b></b></i></div>
       <div class="wl-bar" data-n="fitness"><span>Fitness</span><i><b></b></i></div>
+      <div class="wl-bar" data-n="warmth" hidden><span>Wärme</span><i><b></b></i></div>
       <div class="wl-inv"><span data-h="wood">🪵 0</span> <span data-h="berries">🫐 0</span> <span data-h="apples" hidden></span> <span data-h="mushrooms" hidden></span> <span data-h="cans" hidden></span></div>
     </div>
     <div class="wl-side">
@@ -1347,7 +1348,10 @@ function onEvent(ev: { player: string; text: string }) {
 
 function updateHud() {
   const p = me();
-  for (const k of ["hunger", "rest", "fitness"] as const) {
+  // Wärme nur in Dämmerung/Nacht oder solange sie nicht voll ist (WL-AK-48)
+  const ph = phaseOf(state.total);
+  $('[data-n="warmth"]').hidden = !(ph === "nacht" || ph === "daemmerung" || p.needs.warmth < 99.5);
+  for (const k of ["hunger", "rest", "fitness", "warmth"] as const) {
     const el = $(`[data-n="${k}"]`);
     const v = Math.round(p.needs[k]);
     el.querySelector<HTMLElement>("b")!.style.width = `${v}%`;
