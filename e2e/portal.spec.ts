@@ -4,6 +4,7 @@ import {
   formatDate,
   listedGames,
   loadManifests,
+  newsDateTime,
   newsEntries,
 } from "../packages/game-kit/src/node.ts";
 import { expectNoErrors, isMobile, trackErrors } from "./helpers.ts";
@@ -125,16 +126,16 @@ test.describe("Versionen und Neuigkeiten", () => {
       await expect(cards.nth(i)).toContainText(`v${game.version}`);
   });
 
-  test("PORTAL-AK-11: Neuigkeiten oben, neueste zuerst, mit Datum, Link, Version und Punkten", async ({
+  test("PORTAL-AK-11: Neuigkeiten unter den Spielen, neueste zuerst, minutengenau, mit Link, Version und Punkten", async ({
     page,
   }) => {
     await page.goto("/");
     const section = page.getByRole("region", { name: "Neuigkeiten" });
     await expect(section).toBeVisible();
-    // über den Spielkarten
+    // unter den Spielkarten (Feedback fb_nnwyqq7p)
     const newsBox = (await section.boundingBox())!;
     const gridBox = (await page.locator("[data-testid=games]").boundingBox())!;
-    expect(newsBox.y).toBeLessThan(gridBox.y);
+    expect(newsBox.y).toBeGreaterThan(gridBox.y + gridBox.height - 1);
     // weitere Einträge aufklappen (falls vorhanden)
     if (news.length > 3) await section.getByText("Weitere Neuigkeiten").click();
     const entries = section.locator("[data-news]");
@@ -142,7 +143,8 @@ test.describe("Versionen und Neuigkeiten", () => {
     for (const [i, n] of news.entries()) {
       const e = entries.nth(i);
       await expect(e).toHaveAttribute("data-news", `${n.slug}@${n.version}`);
-      await expect(e).toContainText(formatDate(n.date));
+      await expect(e).toContainText(formatDate(n.date, n.time));
+      await expect(e.locator("time")).toHaveAttribute("datetime", newsDateTime(n));
       await expect(e).toContainText(`v${n.version}`);
       await expect(e.getByRole("link", { name: n.title })).toHaveAttribute(
         "href",

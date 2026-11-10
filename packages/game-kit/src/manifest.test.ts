@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   compareVersions,
   formatDate,
+  newsDateTime,
   listedGames,
   newsEntries,
   parseManifest,
@@ -117,6 +118,11 @@ describe("MANIFEST-AK-10: Version und Änderungsprotokoll", () => {
     ["Datum vor addedAt", { changelog: [entry("1.0.0", "2026-10-01")] }, "changelog.0.date"],
     ["keine Punkte", { changelog: [entry("1.0.0", "2026-11-08", [])] }, "changelog.0.items"],
     [
+      "kaputte Uhrzeit",
+      { changelog: [{ ...entry("1.0.0", "2026-11-08"), time: "25:00" }] },
+      "changelog.0.time",
+    ],
+    [
       "zu viele Punkte",
       { changelog: [entry("1.0.0", "2026-11-08", Array(7).fill("x"))] },
       "changelog.0.items",
@@ -175,5 +181,18 @@ describe("PORTAL-AK-11: Neuigkeiten", () => {
   it("Datum auf Deutsch", () => {
     expect(formatDate("2026-11-08")).toBe("8. November 2026");
     expect(formatDate("2027-03-01")).toBe("1. März 2027");
+  });
+  it("minutengenau: gleicher Tag nach Uhrzeit, neueste zuerst (Feedback fb_nnwyqq7p)", () => {
+    const games = [
+      g("a", 1, [{ version: "1.0.0", date: "2026-11-10", time: "08:01", items: ["früh"] }]),
+      g("b", 2, [
+        { version: "1.1.0", date: "2026-11-10", time: "12:52", items: ["mittag"] },
+        { version: "1.0.0", date: "2026-11-09", time: "23:21", items: ["gestern"] },
+      ]),
+    ];
+    expect(newsEntries(games).map((n) => n.items[0])).toEqual(["mittag", "früh", "gestern"]);
+    expect(formatDate("2026-11-10", "12:52")).toBe("10. November 2026, 12:52 Uhr");
+    expect(newsDateTime({ date: "2026-11-10", time: "08:01" })).toBe("2026-11-10T08:01");
+    expect(newsDateTime({ date: "2026-11-10" })).toBe("2026-11-10");
   });
 });

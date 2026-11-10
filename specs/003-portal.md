@@ -14,15 +14,15 @@ Die Startseite (`/`) zeigt alle veröffentlichten Spiele als Karten. Ein Klick a
   für Überschriften, gut lesbare Schrift für Fließtext).
 - Raster aus Spielkarten. Je Karte: Thumbnail, Titel, **Version** (klein, z. B. „v1.0.0“),
   Beschreibung, Steuerungs-Icons (Tastatur / Touch).
-- **Neuigkeiten** (oben, über den Spielkarten), aus den `changelog`-Einträgen aller veröffentlichten
-  Spiele:
-  - die neuesten Einträge zuerst (nach Datum, bei gleichem Datum nach der Sortierung der Spiele),
-    höchstens 10.
+- **Neuigkeiten** (unter den Spielkarten, Feedback `fb_nnwyqq7p`), aus den `changelog`-Einträgen
+  aller veröffentlichten Spiele:
+  - die neuesten Einträge zuerst (nach Datum und Uhrzeit, bei Gleichstand nach der Sortierung der
+    Spiele), höchstens 10.
   - Die 3 neuesten stehen direkt da, die weiteren unter „Weitere Neuigkeiten“ zum Aufklappen
     (`<details>`, geht ohne JavaScript). Der Bereich scrollt nicht in sich selbst, damit man auf
     dem Handy die Seite weiter wischen kann.
-  - Je Eintrag: Datum (z. B. „8. November 2026“), Spieltitel als Link zum Spiel, Version und die
-    Punkte als Liste.
+  - Je Eintrag: Datum mit Uhrzeit (z. B. „10. November 2026, 12:52 Uhr“; ohne Uhrzeit nur das
+    Datum), Spieltitel als Link zum Spiel, Version und die Punkte als Liste.
   - Ohne Einträge entfällt der Bereich.
 - Sortierung: `order` aufsteigend, danach `title` alphabetisch.
 - Leerer Zustand: Gibt es keine veröffentlichten Spiele, wird ein Hinweistext angezeigt.
@@ -57,8 +57,9 @@ Die Startseite (`/`) zeigt alle veröffentlichten Spiele als Karten. Ein Klick a
 - **PORTAL-AK-10** Jede Spielkarte zeigt die Version des Spiels („v“ + `version`).
 - **PORTAL-AK-11** Der Bereich „Neuigkeiten“ zeigt die neuesten Änderungsprotokoll-Einträge
   veröffentlichter Spiele:
-  - neueste zuerst, höchstens 10;
-  - mit Datum, verlinktem Spieltitel, Version und Punkten;
+  - unter den Spielkarten;
+  - neueste zuerst nach Datum und Uhrzeit, höchstens 10;
+  - mit Datum und Uhrzeit (minutengenau), verlinktem Spieltitel, Version und Punkten;
   - Entwürfe (`draft`) erscheinen nicht.
   - Er funktioniert ohne JavaScript und ohne horizontales Scrollen auf Mobile (375×667).
 - **PORTAL-AK-09** Die Startseite lässt sich auf Mobile per Wischgeste vertikal scrollen; das CSS

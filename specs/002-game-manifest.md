@@ -29,6 +29,7 @@ zur Build-Zeit; es gibt keine zentrale Liste, die man pflegen muss.
     {
       "version": "1.0.0", // SemVer
       "date": "2026-11-08", // ISO-Datum
+      "time": "14:05", // optional: Uhrzeit (deutsche Zeit), wann der Eintrag live ging
       "items": ["Erste Version: …"], // 1–6 Punkte, je höchstens 120 Zeichen
     },
   ],
@@ -51,8 +52,8 @@ gemeinsam genutzt.
   einen neuen Eintrag ganz oben im `changelog` mit kurzen, kindgerechten Punkten auf Deutsch.
 - **Regeln, die der Build prüft:**
   - Der oberste `changelog`-Eintrag hat genau die aktuelle `version`.
-  - Die Versionen im `changelog` sind eindeutig und stehen absteigend, die Daten ebenso
-    (neueste zuerst).
+  - Die Versionen im `changelog` sind eindeutig und stehen absteigend, Datum und Uhrzeit ebenso
+    (neueste zuerst). Die Uhrzeit hat das Format `HH:MM`.
   - Ein Datum liegt nicht vor `addedAt`.
 - **Anzeige:**
   - **Startseite:** kleine Versionsangabe auf jeder Spielkarte (z. B. „v1.0.0“) und der Bereich
@@ -92,7 +93,7 @@ gemeinsam genutzt.
 - **MANIFEST-AK-10** `version` und `changelog` sind Pflicht:
   - Eine Version, die kein SemVer ist (z. B. „1.0“ oder „v1.0.0“), wird abgelehnt.
   - Ein leerer `changelog`, ein oberster Eintrag ungleich `version`, doppelte oder falsch
-    sortierte Versionen bzw. Daten, ein Datum vor `addedAt` sowie 0 oder mehr als 6 Punkte oder
+    sortierte Versionen bzw. Daten/Uhrzeiten, eine kaputte Uhrzeit, ein Datum vor `addedAt` sowie 0 oder mehr als 6 Punkte oder
     Punkte über 120 Zeichen werden mit Datei und Feld abgelehnt.
 - **MANIFEST-AK-11** (E2E) Auf jeder Spielseite steht in der oberen Leiste die Version des
   Spiels, z. B. „v1.0.0“.
