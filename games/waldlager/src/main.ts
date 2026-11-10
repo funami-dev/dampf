@@ -524,6 +524,18 @@ function openBook(back: () => void) {
   el.querySelector('[data-a="back"]')!.addEventListener("click", back);
 }
 
+/** angesengte Felder (je Welt einmal als Menge) */
+let scorchFor: World | null = null;
+let scorchCache = new Set<number>();
+function scorchSet() {
+  if (scorchFor !== world) {
+    scorchFor = world;
+    scorchCache = new Set(world.scorch);
+  }
+  return scorchCache;
+}
+let smokeShown = 0;
+
 /** Inselkarte (einmal je Welt gezeichnet) */
 let minimap: HTMLCanvasElement | null = null;
 function islandMap(): HTMLCanvasElement {
@@ -1016,6 +1028,7 @@ class WorldScene extends Phaser.Scene {
     let oi = 0;
     const bushes = bushIndex();
     const shrooms = new Set(state.mushrooms);
+    const scorched = scorchSet();
     for (let y = y0; y <= y1; y++)
       for (let x = x0; x <= x1; x++) {
         const sx = isoX(x, y);
@@ -1031,8 +1044,21 @@ class WorldScene extends Phaser.Scene {
           .setDepth(-1e6 + (x + y) * 4 + h);
         const cx = isoX(x + 0.5, y + 0.5);
         const cy = isoY(x + 0.5, y + 0.5, h);
+        if (scorched.has(i))
+          this.pool(this.ground, gi++)
+            .setTexture("scorch")
+            .setOrigin(0.5, 0)
+            .setPosition(sx, sy)
+            .setDepth(-1e6 + (x + y) * 4 + h + 1);
         const tree = world.treeAt[i]!;
-        if (tree) {
+        if (tree && world.trees[tree - 1]!.fallen && !isStump(state, tree - 1)) {
+          // umgeknickter, angekohlter Stamm in der Absturz-Schneise (WL-AK-46)
+          this.pool(this.objects, oi++)
+            .setTexture(`fallen${hash(x, y) & 1}`)
+            .setOrigin(0.5, 0.7)
+            .setPosition(cx, cy)
+            .setDepth((x + y + 1) * 10);
+        } else if (tree) {
           const stump = isStump(state, tree - 1);
           this.pool(this.objects, oi++)
             .setTexture(
@@ -1096,10 +1122,23 @@ class WorldScene extends Phaser.Scene {
         f.y + 0.5,
         0.9,
       );
-    // Flugzeugwrack
+    // Flugzeugwrack mit Rauchsäule (WL-AK-47)
     const pl = world.plane;
-    if (Math.abs(pl.x - p.x) < 40 && Math.abs(pl.y - p.y) < 40)
-      place("wreck", "wreck", pl.x + 0.5, pl.y + 0.5, 0.72).setDepth((pl.x + pl.y + 3) * 10);
+    smokeShown = 0;
+    if (Math.abs(pl.x - p.x) < 60 && Math.abs(pl.y - p.y) < 60) {
+      if (Math.abs(pl.x - p.x) < 40 && Math.abs(pl.y - p.y) < 40)
+        place("wreck", "wreck", pl.x + 0.5, pl.y + 0.5, 0.72).setDepth((pl.x + pl.y + 3) * 10);
+      const N = 14;
+      for (let k = 0; k < N; k++) {
+        const ph = (time / 9000 + k / N) % 1;
+        const sp = place(`smoke:${k}`, "smoke", pl.x + 0.5, pl.y + 0.5, 0.5);
+        sp.setPosition(sp.x + 6 + ph * 40 + Math.sin(ph * 6 + k) * 4, sp.y - 18 - ph * 190)
+          .setScale(0.6 + ph * 2.4)
+          .setAlpha((1 - ph) * 0.75)
+          .setDepth(1e6 - 10);
+        smokeShown++;
+      }
+    }
     for (const q of Object.values(state.players)) {
       if (q.sleeping) continue;
       const s = place(`p:${q.id}`, addPlayerTex(this.textures, q.color), q.x, q.y);
@@ -1206,6 +1245,21 @@ function drawNight(cam: Phaser.Cameras.Scene2D.Camera, time: number) {
   for (const f of state.fires)
     if (f.until > state.total) light(f.x + 0.5, f.y + 0.5, 6 + Math.sin(time / 90) * 0.3);
   for (const q of Object.values(state.players)) if (!q.sleeping) light(q.x, q.y, 2.4);
+  // die Brandstelle glimmt nachts (WL-AK-47)
+  light(world.plane.x + 0.5, world.plane.y + 0.5, 2.2 + Math.sin(time / 140) * 0.25);
+  {
+    const ex = (isoX(world.plane.x + 0.5, world.plane.y + 0.5) - v.x) * scale;
+    const ey =
+      (isoY(world.plane.x + 0.5, world.plane.y + 0.5, hAt(world.plane.x, world.plane.y)) - v.y) *
+      scale;
+    const rr = 2.6 * 16 * scale;
+    nightCtx.globalCompositeOperation = "source-over";
+    const og = nightCtx.createRadialGradient(ex, ey, 0, ex, ey, rr);
+    og.addColorStop(0, `rgba(255,120,30,${0.28 * dark + 0.06 * Math.sin(time / 120)})`);
+    og.addColorStop(1, "rgba(255,120,30,0)");
+    nightCtx.fillStyle = og;
+    nightCtx.fillRect(ex - rr, ey - rr, rr * 2, rr * 2);
+  }
   // die Regenbogenspur leuchtet auch nachts (WL-AK-37)
   const me0 = state.players[meId];
   if (me0)
@@ -1386,6 +1440,7 @@ if (debugEnabled) {
         total: state.total,
         trail: Object.keys(state.trail).length,
         hutAngle,
+        smoke: smokeShown,
         hut: world.hut,
         clock: clockOf(state.total),
         phase: phaseOf(state.total),
@@ -1537,6 +1592,10 @@ if (debugEnabled) {
       return best;
     },
     // Hütte und Apfelbaum (WL-AK-43): Stehfeld, von dem aus die Aktion passt
+    fallenTree: () => {
+      const t = world.trees.find((q) => q.fallen);
+      return t ? [t.x, t.y] : null;
+    },
     hutSpot: () => standFor(world.hut.x, world.hut.y, ["open", "hutsleep"]),
     appleSpot: () => {
       const p = me();

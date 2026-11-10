@@ -23,6 +23,8 @@ export interface Tree {
   y: number;
   /** Apfelbaum (WL-AK-40) */
   apple?: boolean;
+  /** in der Absturz-Schneise umgeknickt und angekohlt (WL-AK-46) */
+  fallen?: boolean;
 }
 export interface Bush {
   x: number;
@@ -57,11 +59,15 @@ export interface World {
   debris: Debris[];
   /** die verlassene Hütte (WL-AK-39) */
   hut: { x: number; y: number };
+  /** angesengte Felder der Absturz-Schneise (WL-AK-46) */
+  scorch: number[];
 }
 
 /** Hütte und Apfelbäume (WL-AK-39/40) */
 export const HUT = { minStart: 40, minPlane: 15, see: 4 };
 export const APPLE_SHARE = 0.1;
+/** Absturz-Schneise (WL-AK-46) */
+export const SWATH = { min: 30, max: 40, halfWidth: 1.5 };
 
 export const idx = (w: { size: number }, x: number, y: number) => y * w.size + x;
 export const inside = (w: { size: number }, x: number, y: number) =>
@@ -417,6 +423,50 @@ export function debrisHint(
 }
 
 /** Weltgenerator: gleicher Seed → gleiche Insel (WL-AK-01). */
+/** Richtung, aus der das Flugzeug kam: Mittel der Trümmerspur (WL-AK-46) */
+export function swathDir(w: World): number {
+  let dx = 0;
+  let dy = 0;
+  for (const d of w.debris) {
+    const l = Math.hypot(d.x - w.plane.x, d.y - w.plane.y) || 1;
+    dx += (d.x - w.plane.x) / l;
+    dy += (d.y - w.plane.y) / l;
+  }
+  return Math.atan2(dy, dx);
+}
+
+/** Absturz-Schneise: angesengter Boden, umgeknickte Bäume, nichts wird entfernt (WL-AK-46) */
+function placeSwath(w: World, rand: Rand) {
+  const len = SWATH.min + Math.floor(rand() * (SWATH.max - SWATH.min + 1));
+  const a = swathDir(w);
+  const ux = Math.cos(a);
+  const uy = Math.sin(a);
+  const out = new Set<number>();
+  const r = Math.ceil(len + 2);
+  for (let y = w.plane.y - r; y <= w.plane.y + r; y++)
+    for (let x = w.plane.x - r; x <= w.plane.x + r; x++) {
+      if (!inside(w, x, y)) continue;
+      const rx = x - w.plane.x;
+      const ry = y - w.plane.y;
+      const along = rx * ux + ry * uy;
+      const across = Math.abs(-rx * uy + ry * ux);
+      // vorne schmaler, am Wrack breiter (ungleichmäßiger Rand)
+      const half = SWATH.halfWidth + (1 - along / len) * 0.8 + (rand() - 0.5) * 0.6;
+      if (along < 0 || along > len || across > half) continue;
+      const i = idx(w, x, y);
+      const t = w.terrain[i];
+      if (t !== T.GRASS && t !== T.FOREST && t !== T.SAND) continue;
+      out.add(i);
+      const ti = w.treeAt[i]!;
+      if (ti) {
+        const tree = w.trees[ti - 1]!;
+        tree.fallen = true;
+        tree.apple = false;
+      }
+    }
+  w.scorch = [...out].sort((p, q) => p - q);
+}
+
 /** Genau eine Hütte: frei, weit weg von Start und Flugzeug, erreichbar (WL-AK-39) */
 function placeHut(w: World, rand: Rand): { x: number; y: number } {
   const size = w.size;
@@ -464,6 +514,7 @@ export function generateWorld(seed: number, size = SIZE): World {
     rivers: 0,
     debris: [],
     hut: { x: -1, y: -1 },
+    scorch: [],
   };
   const coast = valueNoise(rand, size, size / 6);
   const coastFine = valueNoise(rand, size, size / 20);
@@ -587,5 +638,7 @@ export function generateWorld(seed: number, size = SIZE): World {
   for (const t of w.trees) if (extra() < APPLE_SHARE) t.apple = true;
   w.treeAt.fill(0);
   w.trees.forEach((t, k) => (w.treeAt[idx(w, t.x, t.y)] = k + 1));
+  // ganz zum Schluss und mit eigenem Zufall: alles andere bleibt, wie es war
+  placeSwath(w, rng(seed ^ 0x53636831));
   return w;
 }

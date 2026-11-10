@@ -42,6 +42,7 @@ interface WlState {
   size: number;
   trail: number;
   hutAngle: number | null;
+  smoke: number;
   hut: { x: number; y: number };
 }
 interface Hooks {
@@ -57,6 +58,7 @@ interface Hooks {
   cell(x: number, y: number): { terrain: number; free: boolean; tree: number };
   finishLanding(): void;
   markTrail(x: number, y: number): void;
+  fallenTree(): [number, number] | null;
   hutSpot(): [number, number, number, number] | null;
   appleSpot(): [number, number, number, number] | null;
 }
@@ -815,5 +817,23 @@ test("WL-AK-45: Kompass, Hütten-Nadel mit Funkgerät, Hütte auf der Karte", as
   await press(/Funk/);
   await expect(page.getByLabel("Inselkarte")).toBeVisible();
   await press("Zurück");
+  await expectNoErrors(errors);
+});
+
+test("WL-AK-47: Rauch über dem Wrack, umgeknickte Bäume sind begehbar", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors = trackErrors(page);
+  await open(page);
+  await page.getByRole("button", { name: "Los geht's" }).click();
+  await landed(page);
+  const s1 = await state(page);
+  const [cx, cy] = s1.plane.cells[0]!;
+  await page.evaluate(([x, y]) => (window.__dampf as Hooks).teleport(x! - 3.5, y! + 0.5), [cx, cy]);
+  await expect.poll(async () => (await state(page)).smoke).toBeGreaterThan(5);
+  const f = (await hooks(page, (h) => h.fallenTree()))!;
+  expect(f).not.toBeNull();
+  const c = await page.evaluate(([x, y]) => (window.__dampf as Hooks).cell(x!, y!), f);
+  expect(c.free).toBe(true);
+  expect(c.tree).toBeGreaterThan(0);
   await expectNoErrors(errors);
 });

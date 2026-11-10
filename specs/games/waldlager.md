@@ -59,8 +59,17 @@ gegen Tiere. Rehe und andere Waldtiere laufen nur herum. Man kann nicht sterben.
 ## Das abgestürzte Flugzeug und das Funkgerät
 
 - Irgendwo auf der Insel liegt **ein abgestürztes Flugzeug**:
-  - ein großes Wrack aus Rumpf, abgebrochenem Flügel und Trümmerteilen über mehrere Felder,
-  - auf ebenem Land, ohne Logo oder echte Fluggesellschaft.
+  - ein **kleines einmotoriges Sportflugzeug** (Hochdecker: Flügel oben auf der Kabine, weiß mit
+    farbigem Streifen) mit abgeknicktem Flügel und verbogenem Propeller, auf einer Brandstelle
+    über mehrere Felder (Feedback `fb_90g9p14c`),
+  - auf ebenem Land, ohne Logo, Marke oder echte Fluggesellschaft.
+  - **Rauch:** Über dem Wrack steigt eine graue Rauchsäule auf (leicht vom Wind verweht), so hoch,
+    dass man sie über den Bäumen schon von Weitem sieht; nachts glimmt die Brandstelle orange.
+  - **Schneise:** Vom Wrack führt eine 30–40 Felder lange, etwa 3 Felder breite Schneise in die
+    Richtung, aus der das Flugzeug kam (dieselbe Richtung wie die Trümmerspur). Der Boden ist
+    angesengt; die Bäume darin sind umgeknickte, angekohlte Stämme: man kann hindurchlaufen, sie
+    nicht hacken, und sie tragen keine Äpfel. Alle anderen Bäume, Sträucher und Trümmer bleiben,
+    wo sie waren (Spielstände bleiben gültig).
   - Die Wrack-Felder sind nicht begehbar, man kann aber direkt daneben stehen.
 - **Trümmerteile verraten den Weg:**
   - Beim Absturz sind **Trümmerteile** über die Insel verstreut: 15–25 Stück entlang einer Spur,
@@ -479,6 +488,11 @@ Figur steht.
   (Inselmitte in der Kartenmitte, Norden oben).
 - **WL-AK-45** (E2E) Der Kompass ist sichtbar (N), ohne Funkgerät ohne Hütten-Nadel; mit
   Funkgerät zeigt die Nadel zur Hütte (Winkel passt), und die Funk-Karte zeigt die Hütte.
+- **WL-AK-46** Schneise: 30–40 Felder lang, beginnt am Wrack, zeigt (±30°) in die Richtung der
+  Trümmerspur; Bäume darin sind umgeknickt (begehbar, keine Aktion „Holz hacken“, keine Äpfel),
+  ihre Felder angesengt; immer gleich je Seed; Zahl und Lage aller Bäume unverändert.
+- **WL-AK-47** (E2E) Am Wrack steigt Rauch auf (Rauch-Teilchen sichtbar); ein Feld mit
+  umgeknicktem Baum ist begehbar.
 - **WL-AK-27** (E2E) Neue Welt:
   - Fallschirm-Landung, danach laufen.
   - Mit Test-Hilfe zum Flugzeug: Meldung und Funk-Button erscheinen.

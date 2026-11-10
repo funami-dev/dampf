@@ -3,6 +3,8 @@ export interface DebugHooks {
   /** Figur versetzen (Kachel-Koordinaten) */
   teleport(x: number, y: number, fx?: number, fy?: number): void;
   /** Stehfeld neben der Hütte bzw. einem Apfelbaum mit Äpfeln: [x, y, Stehfeld x, y] */
+  /** ein umgeknickter Baum der Absturz-Schneise: [x, y] */
+  fallenTree(): [number, number] | null;
   hutSpot(): [number, number, number, number] | null;
   appleSpot(): [number, number, number, number] | null;
   /** Fallschirm-Landung sofort beenden (Test-Hilfe) */

@@ -10,8 +10,18 @@
   "status": "published",
   "order": 80,
   "addedAt": "2026-11-08",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "changelog": [
+    {
+      "version": "1.7.0",
+      "date": "2026-11-10",
+      "time": "21:00",
+      "items": [
+        "Das Wrack ist jetzt ein kleines Sportflugzeug",
+        "Über dem Wrack steigt Rauch auf – nachts glimmt es",
+        "Eine Schneise aus umgeknickten, angekohlten Bäumen führt zum Wrack"
+      ]
+    },
     {
       "version": "1.6.0",
       "date": "2026-11-10",
