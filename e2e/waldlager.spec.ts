@@ -373,16 +373,17 @@ test("WL-AK-22: Tier entdecken – Meldung und Tierbuch", async ({ page }) => {
   await page.evaluate((a) => (window.__dampf as Hooks).teleport(a[0] + 1.5, a[1]), a);
   await expect.poll(async () => (await state(page)).book).toContain(a[2]);
   await expect(page.getByText(/^(Neu entdeckt: .+!|✨ Ein Einhorn! ✨)$/)).toBeVisible();
-  const count = (await state(page)).book.length;
-  expect(count).toBeGreaterThan(before);
+  expect((await state(page)).book.length).toBeGreaterThan(before);
 
-  // Tierbuch über das Menü
+  // Tierbuch über das Menü (das Menü hält das Spiel an; erst dann zählen, denn bis dahin kann
+  // die Figur schon das nächste Tier entdeckt haben)
   const mobile = isMobile(page);
   const tap = (n: string) =>
     mobile
       ? page.getByRole("button", { name: n }).tap()
       : page.getByRole("button", { name: n }).click();
   await tap("Menü");
+  const count = (await state(page)).book.length;
   await tap("Tierbuch");
   await expect(page.getByText(`${count} / 32 entdeckt`)).toBeVisible();
   await expect(page.getByText("???").first()).toBeVisible();
