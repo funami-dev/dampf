@@ -39,6 +39,7 @@ import { HABITAT_TEXT, SPECIES, TIME_TEXT, UNICORN, speciesById } from "./logic/
 import { discover, loadBook, saveBook } from "./logic/tierbuch.ts";
 import { T, generateWorld, idx, inside, type World } from "./logic/world.ts";
 import { bearing, mapPoint } from "./logic/compass.ts";
+import { rockPeak, treeKind } from "./logic/looks.ts";
 import { HS, isoX, isoY, tileX, tileY } from "./render/iso.ts";
 import {
   addChute,
@@ -1051,6 +1052,13 @@ class WorldScene extends Phaser.Scene {
             .setOrigin(0.5, 0)
             .setPosition(sx, sy)
             .setDepth(-1e6 + (x + y) * 4 + h + 1);
+        // Felsgipfel: Berge sehen höher aus (WL-AK-51)
+        if (t === T.ROCK)
+          this.pool(this.objects, oi++)
+            .setTexture(`peak${rockPeak(x, y)}`)
+            .setOrigin(0.5, 0.86)
+            .setPosition(cx, cy)
+            .setDepth((x + y + 1) * 10);
         const tree = world.treeAt[i]!;
         if (tree && world.trees[tree - 1]!.fallen && !isStump(state, tree - 1)) {
           // umgeknickter, angekohlter Stamm in der Absturz-Schneise (WL-AK-46)
@@ -1065,7 +1073,7 @@ class WorldScene extends Phaser.Scene {
             .setTexture(
               stump
                 ? "stump"
-                : `${hasApples(world, state, tree - 1) ? "apple" : "tree"}${hash(x, y) & 1}`,
+                : `${hasApples(world, state, tree - 1) ? "apple" : treeKind(world, tree - 1)}${hash(x, y) & 1}`,
             )
             .setOrigin(0.5, stump ? 0.7 : 0.94)
             .setPosition(cx, cy)
