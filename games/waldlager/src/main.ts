@@ -537,6 +537,7 @@ function scorchSet() {
   return scorchCache;
 }
 let smokeShown = 0;
+let ripplesShown = 0;
 
 /** Inselkarte (einmal je Welt gezeichnet) */
 let minimap: HTMLCanvasElement | null = null;
@@ -557,6 +558,7 @@ function islandMap(): HTMLCanvasElement {
     [T.FOREST]: [47, 95, 39],
     [T.ROCK]: [141, 141, 141],
     [T.WRECK]: [200, 200, 200],
+    [T.LAKE]: [47, 111, 184],
   };
   for (let i = 0; i < world.terrain.length; i++) {
     const [r, gg, b] = col[world.terrain[i]!] ?? [0, 0, 0];
@@ -1148,6 +1150,25 @@ class WorldScene extends Phaser.Scene {
         smokeShown++;
       }
     }
+    // Fische: ruhige Wasserringe und Bläschen (WL-AK-52), Zyklus 5–7 s
+    ripplesShown = 0;
+    world.fish.forEach((f, k) => {
+      if (Math.abs(f.x - p.x) > 22 || Math.abs(f.y - p.y) > 22) return;
+      const cycle = 5000 + ((k * 397) % 2000);
+      const ph = ((time + k * 1733) % cycle) / cycle;
+      const r = place(`ripple:${k}`, "ripple", f.x + 0.5, f.y + 0.5, 0.5);
+      r.setScale(0.25 + ph * 0.9)
+        .setAlpha(ph < 0.6 ? (1 - ph / 0.6) * 0.8 : 0)
+        .setDepth((f.x + f.y) * 10 + 2);
+      ripplesShown++;
+      for (let b = 0; b < 3; b++) {
+        const bp = (ph * 1.6 - b * 0.2) % 1;
+        const s = place(`bubble:${k}:${b}`, "bubble", f.x + 0.5, f.y + 0.5, 0.5);
+        s.setPosition(s.x + (b - 1) * 4, s.y - bp * 10)
+          .setAlpha(bp > 0 && bp < 0.5 ? (1 - bp * 2) * 0.9 : 0)
+          .setDepth((f.x + f.y) * 10 + 3);
+      }
+    });
     for (const q of Object.values(state.players)) {
       if (q.sleeping) continue;
       const s = place(`p:${q.id}`, addPlayerTex(this.textures, q.color), q.x, q.y);
@@ -1453,6 +1474,7 @@ if (debugEnabled) {
         trail: Object.keys(state.trail).length,
         hutAngle,
         smoke: smokeShown,
+        ripples: ripplesShown,
         hut: world.hut,
         clock: clockOf(state.total),
         phase: phaseOf(state.total),
@@ -1524,6 +1546,26 @@ if (debugEnabled) {
       free: free(world, state, x, y),
       tree: inside(world, x, y) ? world.treeAt[idx(world, x, y)]! : 0,
     }),
+    lakeSpot: () => {
+      // freies Ufer-Feld neben einem See mit Fischstelle: [x, y, seeX, seeY]
+      for (const f of world.fish) {
+        if (world.terrain[idx(world, f.x, f.y)] !== T.LAKE) continue;
+        for (const [dx, dy] of [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1],
+        ] as const) {
+          let r = 1;
+          while (r < 8 && world.terrain[idx(world, f.x + dx * r, f.y + dy * r)] === T.LAKE) r++;
+          const x = f.x + dx * r;
+          const y = f.y + dy * r;
+          if (free(world, state, x, y))
+            return [x, y, x - dx, y - dy] as [number, number, number, number];
+        }
+      }
+      return null;
+    },
     riverSpot: () => {
       // freies Ufer-Feld mit Flusswasser direkt daneben, möglichst nah: [x, y, fx, fy]
       const p = me();

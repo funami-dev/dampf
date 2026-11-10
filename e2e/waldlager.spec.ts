@@ -43,6 +43,7 @@ interface WlState {
   trail: number;
   hutAngle: number | null;
   smoke: number;
+  ripples: number;
   hut: { x: number; y: number };
 }
 interface Hooks {
@@ -55,6 +56,7 @@ interface Hooks {
   buildSpot(): [number, number, number, number] | null;
   nearestAnimal(): [number, number, string] | null;
   riverSpot(): [number, number, number, number] | null;
+  lakeSpot(): [number, number, number, number] | null;
   cell(x: number, y: number): { terrain: number; free: boolean; tree: number };
   finishLanding(): void;
   markTrail(x: number, y: number): void;
@@ -835,6 +837,21 @@ test("WL-AK-47: Rauch über dem Wrack, umgeknickte Bäume sind begehbar", async 
   const c = await page.evaluate(([x, y]) => (window.__dampf as Hooks).cell(x!, y!), f);
   expect(c.free).toBe(true);
   expect(c.tree).toBeGreaterThan(0);
+  await expectNoErrors(errors);
+});
+
+test("WL-AK-53: Wasserringe am See, Seefeld ist nicht begehbar", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await page.getByRole("button", { name: "Los geht's" }).click();
+  await landed(page);
+  const spot = (await hooks(page, (h) => h.lakeSpot()))!;
+  expect(spot).not.toBeNull();
+  await page.evaluate(([x, y]) => (window.__dampf as Hooks).teleport(x! + 0.5, y! + 0.5), spot);
+  await expect.poll(async () => (await state(page)).ripples).toBeGreaterThan(0);
+  const c = await page.evaluate(([, , x, y]) => (window.__dampf as Hooks).cell(x!, y!), spot);
+  expect(c.terrain).toBe(9);
+  expect(c.free).toBe(false);
   await expectNoErrors(errors);
 });
 

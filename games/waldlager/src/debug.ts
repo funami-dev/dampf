@@ -15,6 +15,7 @@ export interface DebugHooks {
   cell(x: number, y: number): { terrain: number; free: boolean; tree: number };
   /** Ufer-Feld mit Flusswasser daneben: [x, y, Blickrichtung fx, fy] */
   riverSpot(): [number, number, number, number] | null;
+  lakeSpot(): [number, number, number, number] | null;
   /** nächstes sichtbares, noch nicht entdecktes Tier: [x, y, Art] */
   nearestAnimal(): [number, number, string] | null;
   /** Weltzeit setzen (Sekunden, 600 = ein Tag) */

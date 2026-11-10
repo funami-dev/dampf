@@ -1,5 +1,5 @@
-import { COLORS, addPlayer, isColor, createState, type Player, type State } from "./sim.ts";
-import { SIZE, generateWorld, type World } from "./world.ts";
+import { COLORS, addPlayer, free, isColor, createState, type Player, type State } from "./sim.ts";
+import { SIZE, T, generateWorld, idx, inside, type World } from "./world.ts";
 
 /** Speicherstand (WL-AK-10), localStorage-Schlüssel dampf.waldlager.v1 */
 export const KEY = "dampf.waldlager.v1";
@@ -68,6 +68,21 @@ function validPlayer(p: unknown): p is Player {
   );
 }
 
+const onLake = (w: World, x: number, y: number) =>
+  inside(w, Math.floor(x), Math.floor(y)) &&
+  w.terrain[idx(w, Math.floor(x), Math.floor(y))] === T.LAKE;
+
+/** nächstes freies Feld in wachsenden Ringen */
+export function nearestFree(w: World, s: State, x: number, y: number): { x: number; y: number } {
+  for (let r = 1; r < w.size; r++)
+    for (let dy = -r; dy <= r; dy++)
+      for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        if (free(w, s, x + dx, y + dy)) return { x: x + dx, y: y + dy };
+      }
+  return w.start;
+}
+
 /** Lädt die eigene Welt; kaputte oder fehlende Daten → null (neue Welt, kein Absturz). */
 export function load(store: Store): { world: World; state: State; me: string } | null {
   try {
@@ -90,14 +105,16 @@ export function load(store: Store): { world: World; state: State; me: string } |
       stumps: s.stumps ?? {},
       berries: s.berries,
       refill: s.refill ?? {},
-      fires: s.fires,
+      fires: s.fires.filter((f) => !onLake(world, f.x, f.y)),
       nextFire: num(s.nextFire) ? s.nextFire : 1,
       bridges: s.bridges && typeof s.bridges === "object" ? s.bridges : {},
       // Hütte, Äpfel, Pilze (WL-AK-42); ältere Spielstände: frisch erzeugt
       appleEmpty: numRecord(s.appleEmpty) ?? fresh.appleEmpty,
       mushrooms:
         Array.isArray(s.mushrooms) && s.mushrooms.every((m) => Number.isInteger(m))
-          ? s.mushrooms.filter((m) => m >= 0 && m < world.size * world.size)
+          ? s.mushrooms.filter(
+              (m) => m >= 0 && m < world.size * world.size && world.terrain[m] !== T.LAKE,
+            )
           : fresh.mushrooms,
       mushroomRespawn:
         Array.isArray(s.mushroomRespawn) && s.mushroomRespawn.every(num) ? s.mushroomRespawn : [],
@@ -120,7 +137,7 @@ export function load(store: Store): { world: World; state: State; me: string } |
       needs: { ...me.needs, warmth: num(me.needs.warmth) ? me.needs.warmth : 100 },
       wood: me.wood,
       berries: me.berries,
-      tent: me.tent ?? null,
+      tent: me.tent && !onLake(world, me.tent.x, me.tent.y) ? me.tent : null,
       home:
         me.home && num(me.home.x) && num(me.home.y)
           ? me.home
@@ -132,6 +149,13 @@ export function load(store: Store): { world: World; state: State; me: string } |
       hutSeen: me.hutSeen === true,
       landing: 0,
     });
+    // ältere Spielstände: Wer jetzt in einem neuen See steht, kommt ans Ufer (WL-AK-52)
+    if (!free(world, state, Math.floor(p.x), Math.floor(p.y))) {
+      const spot = nearestFree(world, state, Math.floor(p.x), Math.floor(p.y));
+      p.x = spot.x + 0.5;
+      p.y = spot.y + 0.5;
+    }
+    if (onLake(world, p.home.x, p.home.y)) p.home = { x: Math.floor(p.x), y: Math.floor(p.y) };
     return { world, state, me: me.id };
   } catch {
     return null;

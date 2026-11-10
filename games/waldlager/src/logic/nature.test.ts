@@ -75,7 +75,11 @@ describe("WL-AK-49: Einhorn wiehern", () => {
     // nah dran: kein Wiehern
     s.animals = [{ kind: UNICORN, x: p.x + 2, y: p.y, tx: p.x + 2, ty: p.y, fleeing: false }];
     const near: string[] = [];
-    for (let k = 0; k < 400; k++) near.push(...stepWorld(w, s, 0.25).map((e) => e.text));
+    for (let k = 0; k < 400; k++) {
+      // das Einhorn bleibt in der Nähe (es könnte sonst weglaufen)
+      Object.assign(s.animals[0]!, { x: p.x + 2, y: p.y, tx: p.x + 2, ty: p.y });
+      near.push(...stepWorld(w, s, 0.25).map((e) => e.text));
+    }
     expect(near.filter((t) => t.startsWith("🦄")).length).toBe(0);
     expect(NEIGH.minDist).toBe(12);
   });

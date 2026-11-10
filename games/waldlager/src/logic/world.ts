@@ -11,6 +11,8 @@ export const T = {
   SAND: 6,
   SEA: 7,
   WRECK: 8,
+  /** kleiner See (WL-AK-52): nicht begehbar, keine Brücken */
+  LAKE: 9,
 } as const;
 export type Terrain = (typeof T)[keyof typeof T];
 
@@ -61,6 +63,10 @@ export interface World {
   hut: { x: number; y: number };
   /** angesengte Felder der Absturz-Schneise (WL-AK-46) */
   scorch: number[];
+  /** kleine Seen: Mitte und Zahl der Felder (WL-AK-52) */
+  lakes: { x: number; y: number; cells: number }[];
+  /** Fischstellen in Flüssen und Seen (WL-AK-52) */
+  fish: { x: number; y: number }[];
 }
 
 /** Hütte und Apfelbäume (WL-AK-39/40) */
@@ -75,8 +81,10 @@ export const inside = (w: { size: number }, x: number, y: number) =>
 
 /** Gelände begehbar (ohne Bäume, Zelte usw.) */
 export function terrainWalkable(t: number): boolean {
-  return t !== T.WATER && t !== T.ROCK && t !== T.SEA && t !== T.WRECK;
+  return t !== T.WATER && t !== T.ROCK && t !== T.SEA && t !== T.WRECK && t !== T.LAKE;
 }
+/** Süßwasser: Fluss oder See (Wassertiere, Fische) */
+export const isFreshWater = (t: number) => t === T.WATER || t === T.LAKE;
 export const isLand = (t: number) => t !== T.SEA;
 
 function valueNoise(rand: Rand, size: number, cell: number) {
@@ -512,6 +520,117 @@ function addFords(w: World, rand: Rand) {
   }
 }
 
+/** Kleine Seen (WL-AK-52) */
+export const LAKES = { min: 3, max: 6, minCells: 12, maxCells: 60, seaGap: 2, spacing: 20 };
+function placeLakes(w: World, rand: Rand) {
+  const want = LAKES.min + Math.floor(rand() * (LAKES.max - LAKES.min + 1));
+  const size = w.size;
+  const blocked = new Uint8Array(size * size);
+  for (const b of w.bushes) blocked[idx(w, b.x, b.y)] = 1;
+  for (const d of w.debris) blocked[idx(w, d.x, d.y)] = 1;
+  for (const [x, y] of w.plane.cells) blocked[idx(w, x, y)] = 1;
+  for (const [dx, dy] of [[0, 0], ...DIRS4] as const)
+    if (inside(w, w.hut.x + dx, w.hut.y + dy)) blocked[idx(w, w.hut.x + dx, w.hut.y + dy)] = 1;
+  const okCell = (x: number, y: number, h: number) => {
+    if (x < 2 || y < 2 || x >= size - 2 || y >= size - 2) return false;
+    const i = idx(w, x, y);
+    const t = w.terrain[i];
+    if ((t !== T.GRASS && t !== T.FOREST) || w.treeAt[i] || blocked[i] || w.height[i] !== h)
+      return false;
+    if (Math.hypot(x - w.start.x, y - w.start.y) < 8) return false;
+    if (Math.hypot(x - w.plane.x, y - w.plane.y) < 6) return false;
+    for (let dy = -LAKES.seaGap; dy <= LAKES.seaGap; dy++)
+      for (let dx = -LAKES.seaGap; dx <= LAKES.seaGap; dx++)
+        if (w.terrain[idx(w, x + dx, y + dy)] === T.SEA) return false;
+    // nicht direkt an Fluss, Furt oder anderem See
+    return DIRS4.every(([dx, dy]) => {
+      const n = w.terrain[idx(w, x + dx, y + dy)];
+      return n !== T.WATER && n !== T.FORD && n !== T.BRIDGE && n !== T.LAKE;
+    });
+  };
+  let reach = reachable(w, true);
+  for (let k = 0; k < 3000 && w.lakes.length < want; k++) {
+    const cx = Math.floor(rand() * size);
+    const cy = Math.floor(rand() * size);
+    const rx = 2 + rand() * 2.5;
+    const ry = 2 + rand() * 2.5;
+    const wob = rand() * Math.PI * 2;
+    if (!okCell(cx, cy, w.height[idx(w, cx, cy)]!)) continue;
+    if (w.lakes.some((l) => Math.hypot(l.x - cx, l.y - cy) < LAKES.spacing)) continue;
+    const h = w.height[idx(w, cx, cy)]!;
+    const shape = (x: number, y: number) => {
+      const a = Math.atan2(y - cy, x - cx);
+      const r = 1 + 0.18 * Math.sin(a * 3 + wob);
+      return ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= r * r;
+    };
+    // zusammenhängendes Stück ab der Mitte
+    const cells: number[] = [];
+    const seen = new Set<number>([idx(w, cx, cy)]);
+    const q: [number, number][] = [[cx, cy]];
+    while (q.length) {
+      const [x, y] = q.pop()!;
+      cells.push(idx(w, x, y));
+      for (const [dx, dy] of DIRS4) {
+        const nx = x + dx;
+        const ny = y + dy;
+        const j = idx(w, nx, ny);
+        if (seen.has(j) || !shape(nx, ny) || !okCell(nx, ny, h)) continue;
+        seen.add(j);
+        q.push([nx, ny]);
+      }
+    }
+    if (cells.length < LAKES.minCells || cells.length > LAKES.maxCells) continue;
+    const before = cells.map((i) => w.terrain[i]!);
+    for (const i of cells) w.terrain[i] = T.LAKE;
+    // darf nichts abschneiden, was vorher erreichbar war
+    const after = reachable(w, true);
+    let cut = false;
+    for (let i = 0; i < after.length && !cut; i++)
+      if (reach[i] && !after[i] && w.terrain[i] !== T.LAKE) cut = true;
+    if (cut) {
+      cells.forEach((i, k) => (w.terrain[i] = before[k]!));
+      continue;
+    }
+    reach = after;
+    w.lakes.push({ x: cx, y: cy, cells: cells.length });
+  }
+}
+
+/** Fischstellen: je See 1–2, an Flüssen etwa alle 20 Felder (WL-AK-52) */
+export const FISH = { riverEvery: 20, riverGap: 10 };
+function placeFish(w: World, rand: Rand) {
+  const size = w.size;
+  const river: number[] = [];
+  for (let i = 0; i < size * size; i++) if (w.terrain[i] === T.WATER) river.push(i);
+  // Flusslänge ≈ Felder / Breite (Flüsse sind etwa 2 Felder breit)
+  const want = Math.max(3, Math.round(river.length / 2 / FISH.riverEvery));
+  const spots: { x: number; y: number }[] = [];
+  for (let k = 0; k < want * 30 && spots.length < want && river.length; k++) {
+    const i = river[Math.floor(rand() * river.length)]!;
+    const x = i % size;
+    const y = (i / size) | 0;
+    if (spots.some((s) => Math.hypot(s.x - x, s.y - y) < FISH.riverGap)) continue;
+    spots.push({ x, y });
+  }
+  for (const l of w.lakes) {
+    const cells: number[] = [];
+    for (let y = l.y - 6; y <= l.y + 6; y++)
+      for (let x = l.x - 6; x <= l.x + 6; x++)
+        if (inside(w, x, y) && w.terrain[idx(w, x, y)] === T.LAKE) cells.push(idx(w, x, y));
+    const n = 1 + (rand() < 0.5 ? 1 : 0);
+    const mine: { x: number; y: number }[] = [];
+    for (let k = 0; k < 40 && mine.length < n; k++) {
+      const i = cells[Math.floor(rand() * cells.length)]!;
+      const x = i % size;
+      const y = (i / size) | 0;
+      if (mine.some((s) => Math.hypot(s.x - x, s.y - y) < 3)) continue;
+      mine.push({ x, y });
+    }
+    spots.push(...mine);
+  }
+  w.fish = spots;
+}
+
 /** Genau eine Hütte: frei, weit weg von Start und Flugzeug, erreichbar (WL-AK-39) */
 function placeHut(w: World, rand: Rand): { x: number; y: number } {
   const size = w.size;
@@ -560,6 +679,8 @@ export function generateWorld(seed: number, size = SIZE): World {
     debris: [],
     hut: { x: -1, y: -1 },
     scorch: [],
+    lakes: [],
+    fish: [],
   };
   const coast = valueNoise(rand, size, size / 6);
   const coastFine = valueNoise(rand, size, size / 20);
@@ -686,5 +807,7 @@ export function generateWorld(seed: number, size = SIZE): World {
   // ganz zum Schluss und mit eigenem Zufall: alles andere bleibt, wie es war
   placeSwath(w, rng(seed ^ 0x53636831));
   addFords(w, rng(seed ^ 0x466f7264));
+  placeLakes(w, rng(seed ^ 0x5365656e));
+  placeFish(w, rng(seed ^ 0x46697368));
   return w;
 }

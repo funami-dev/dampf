@@ -10,8 +10,18 @@
   "status": "published",
   "order": 80,
   "addedAt": "2026-11-08",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "changelog": [
+    {
+      "version": "1.10.0",
+      "date": "2026-11-10",
+      "time": "23:50",
+      "items": [
+        "Auf der Insel gibt es jetzt kleine Seen",
+        "Wo Fische schwimmen, siehst du ruhige Wasserringe und Bläschen",
+        "Biber, Enten und Frösche leben auch an den Seen"
+      ]
+    },
     {
       "version": "1.9.0",
       "date": "2026-11-10",
