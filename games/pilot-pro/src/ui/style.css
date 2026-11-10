@@ -215,3 +215,61 @@
   justify-content: center;
   background: rgba(11, 37, 69, 0.55);
 }
+/* Live-Karte aus OpenStreetMap (PP-AK-15..17) */
+.pp-map {
+  cursor: pointer;
+  pointer-events: auto;
+}
+.pp-osm-credit {
+  position: absolute;
+  top: 208px;
+  right: 6px;
+  width: 88px;
+  text-align: right;
+  line-height: 1.1;
+}
+.pp-osm {
+  font:
+    600 9px/1.1 system-ui,
+    sans-serif;
+  color: #fff;
+  text-shadow: 0 1px 2px #000;
+  pointer-events: auto;
+}
+.pp-bigmap {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: rgba(10, 20, 30, 0.92);
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  gap: 8px;
+  pointer-events: auto;
+}
+.pp-bigmap canvas {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+}
+.pp-bigmap-bar {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.pp-bigmap-bar .pp-btn {
+  min-width: 52px;
+  width: auto;
+}
+.pp-osm-big {
+  font-size: 12px;
+  text-align: center;
+}
+.pp-privacy {
+  margin: 6px 0 0;
+  font-size: 12px;
+  opacity: 0.85;
+  text-align: center;
+}
