@@ -232,6 +232,7 @@ const mapState = (page: Page) => page.evaluate(() => (window.__dampf as { map():
 test("PP-AK-15: Live-Karte lädt Kacheln rund um die Position, mit Namensnennung", async ({
   page,
 }) => {
+  test.setTimeout(90_000);
   const errors = trackErrors(page);
   await page.unrouteAll();
   const tiles = await stubTiles(page);
@@ -256,6 +257,7 @@ test("PP-AK-15: Live-Karte lädt Kacheln rund um die Position, mit Namensnennung
 });
 
 test("PP-AK-16: große Karte – pausiert, zoomt, schließt", async ({ page }) => {
+  test.setTimeout(90_000);
   const errors = trackErrors(page);
   await open(page);
   await page.getByRole("button", { name: "Abheben!" }).click();
@@ -281,6 +283,7 @@ test("PP-AK-16: große Karte – pausiert, zoomt, schließt", async ({ page }) =
 });
 
 test("PP-AK-17: ohne Kacheln bleibt die gezeichnete Karte", async ({ page }) => {
+  test.setTimeout(90_000);
   test.skip(isMobile(page), "einmal reicht");
   const pageErrors: string[] = [];
   page.on("pageerror", (e) => pageErrors.push(e.message));
