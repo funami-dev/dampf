@@ -15,6 +15,7 @@
     {
       "version": "1.3.0",
       "date": "2026-11-10",
+      "time": "12:52",
       "items": [
         "Neu: Geschwindigkeit in km/h und Höhe in Metern",
         "Wer mag, schaltet im Menü auf Knoten und Fuß um – so wie echte Piloten"
@@ -23,6 +24,7 @@
     {
       "version": "1.2.0",
       "date": "2026-11-10",
+      "time": "10:13",
       "items": [
         "Neu: Die Karte zeigt jetzt die echte Landschaft von OpenStreetMap – live, wo du gerade fliegst",
         "Tipp auf die Karte für die große Ansicht mit Zoom"
@@ -31,6 +33,7 @@
     {
       "version": "1.1.0",
       "date": "2026-11-09",
+      "time": "14:11",
       "items": [
         "Neu: Mit dem 💬-Knopf oben kannst du uns sagen, was dir gefällt oder was nicht klappt."
       ]
@@ -38,6 +41,7 @@
     {
       "version": "1.0.0",
       "date": "2026-11-08",
+      "time": "20:50",
       "items": [
         "3D-Flüge zwischen Düsseldorf und Köln",
         "A320, A321, A340 und A380 mit sieben Airlines",

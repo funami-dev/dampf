@@ -14,6 +14,11 @@ export function compareVersions(a: string, b: string): number {
 const changelogEntry = z.object({
   version: z.string().regex(SEMVER, "Version im Format MAJOR.MINOR.PATCH, z. B. 1.0.0"),
   date: z.iso.date(),
+  /** Uhrzeit (deutsche Zeit) „HH:MM“ – ungefähr wann der Eintrag live ging */
+  time: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Uhrzeit im Format HH:MM")
+    .optional(),
   items: z.array(z.string().min(1).max(120)).min(1).max(6),
 });
 export type ChangelogEntry = z.infer<typeof changelogEntry>;
@@ -56,7 +61,7 @@ export const gameManifestSchema = z
           path: ["changelog", i + 1, "version"],
           message: "Versionen müssen eindeutig und absteigend sein (neueste zuerst)",
         });
-      if (e.date < next.date)
+      if (newsDateTime(e) < newsDateTime(next))
         ctx.addIssue({
           code: "custom",
           path: ["changelog", i + 1, "date"],
@@ -102,12 +107,18 @@ export interface NewsItem {
   title: string;
   version: string;
   date: string;
+  time?: string;
   items: string[];
 }
 
+/** Sortier- und `datetime`-Schlüssel: „2026-11-10T12:52“ bzw. nur das Datum */
+export const newsDateTime = (e: { date: string; time?: string }) =>
+  e.time ? `${e.date}T${e.time}` : e.date;
+
 /**
  * Neuigkeiten aus den Änderungsprotokollen veröffentlichter Spiele (PORTAL-AK-11):
- * neueste zuerst, bei gleichem Datum in der Reihenfolge der Startseite; höchstens `limit`.
+ * neueste zuerst (nach Datum und Uhrzeit), bei Gleichstand in der Reihenfolge der Startseite;
+ * höchstens `limit`.
  */
 export function newsEntries(games: readonly GameManifest[], limit = 10): NewsItem[] {
   const listed = listedGames(games);
@@ -115,7 +126,11 @@ export function newsEntries(games: readonly GameManifest[], limit = 10): NewsIte
     .flatMap((g, order) =>
       g.changelog.map((e) => ({ order, n: { slug: g.slug, title: g.title, ...e } })),
     )
-    .sort((a, b) => (a.n.date < b.n.date ? 1 : a.n.date > b.n.date ? -1 : a.order - b.order))
+    .sort((a, b) => {
+      const ka = newsDateTime(a.n);
+      const kb = newsDateTime(b.n);
+      return ka < kb ? 1 : ka > kb ? -1 : a.order - b.order;
+    })
     .slice(0, limit)
     .map((x) => x.n);
 }
@@ -134,8 +149,8 @@ const MONTHS = [
   "November",
   "Dezember",
 ];
-/** „2026-11-08“ → „8. November 2026“ */
-export function formatDate(iso: string): string {
+/** „2026-11-08“ → „8. November 2026“, mit Uhrzeit „8. November 2026, 14:05 Uhr“ */
+export function formatDate(iso: string, time?: string): string {
   const [y, m, d] = iso.split("-").map(Number);
-  return `${d}. ${MONTHS[m! - 1]} ${y}`;
+  return `${d}. ${MONTHS[m! - 1]} ${y}${time ? `, ${time} Uhr` : ""}`;
 }

@@ -15,6 +15,7 @@
     {
       "version": "1.4.1",
       "date": "2026-11-10",
+      "time": "08:01",
       "items": [
         "Trümmerteile liegen nie mehr auf einem Beerenstrauch – so kannst du sie immer ansehen"
       ]
@@ -22,6 +23,7 @@
     {
       "version": "1.4.0",
       "date": "2026-11-09",
+      "time": "23:21",
       "items": [
         "Neu: Das Einhorn hinterlässt eine Regenbogenspur – 10 Minuten lang kannst du ihr folgen 🌈",
         "Deine Puste hält jetzt doppelt so lange beim Rennen und Holzhacken"
@@ -30,6 +32,7 @@
     {
       "version": "1.3.0",
       "date": "2026-11-09",
+      "time": "18:40",
       "items": [
         "Neu: Im Tierbuch siehst du, welche Tiere gerade unterwegs sind und welche schlafen",
         "Beim Hai siehst du, ob seine Flosse gerade zu sehen ist",
@@ -39,6 +42,7 @@
     {
       "version": "1.2.0",
       "date": "2026-11-09",
+      "time": "17:17",
       "items": [
         "Neu: Mit dem 🎨-Knopf suchst du dir jede Farbe für deine Jacke aus",
         "Neu: Im Tierbuch kannst du nach Tieren suchen – tipp zum Beispiel „Hase“ ein"
@@ -47,6 +51,7 @@
     {
       "version": "1.1.0",
       "date": "2026-11-09",
+      "time": "14:11",
       "items": [
         "Neu: Mit dem 💬-Knopf oben kannst du uns sagen, was dir gefällt oder was nicht klappt."
       ]
@@ -54,6 +59,7 @@
     {
       "version": "1.0.2",
       "date": "2026-11-09",
+      "time": "12:19",
       "items": [
         "Trümmerteile liegen jetzt auf jeder Insel – auch wenn das Flugzeug nah am Meer liegt",
         "Feinschliff hinter den Kulissen für zuverlässige Tests"
@@ -61,12 +67,14 @@
     },
     {
       "version": "1.0.1",
-      "date": "2026-11-08",
+      "date": "2026-11-09",
+      "time": "09:13",
       "items": ["Kleine Verbesserungen hinter den Kulissen für stabilere Tests"]
     },
     {
       "version": "1.0.0",
       "date": "2026-11-08",
+      "time": "20:50",
       "items": [
         "Fallschirm-Landung auf einer Insel mit Wald, Flüssen und Hügeln",
         "Holz hacken, Zelt, Lagerfeuer und Brücken bauen",
