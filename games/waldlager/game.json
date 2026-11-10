@@ -10,8 +10,17 @@
   "status": "published",
   "order": 80,
   "addedAt": "2026-11-08",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "changelog": [
+    {
+      "version": "1.9.0",
+      "date": "2026-11-10",
+      "time": "23:10",
+      "items": [
+        "Die Berge ragen jetzt hoch auf – die höchsten mit Schnee",
+        "Neue Bäume: Kiefern, Laubbäume und Birken zwischen den Tannen"
+      ]
+    },
     {
       "version": "1.8.0",
       "date": "2026-11-10",

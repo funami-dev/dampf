@@ -33,7 +33,12 @@ gegen Tiere. Rehe und andere Waldtiere laufen nur herum. Man kann nicht sterben.
     pro Insel** gibt es eine **steinige Furt** (Trittsteine, höchstens 4 Felder breit, mindestens
     25 Felder voneinander entfernt), über die man zu Fuß kommt (Feedback `fb_9bwz2s9o`).
   - **Hügel** in 2–3 Höhenstufen, als erhöhte Kacheln mit Kanten dargestellt und begehbar.
-  - **Einige Berge** (Fels): nicht begehbar und nicht abbaubar.
+  - **Einige Berge** (Fels): nicht begehbar und nicht abbaubar. Auf jedem Felsfeld ragt ein
+    Gipfel in einer von drei Höhen auf, der höchste mit Schnee – so sehen Berge hoch aus
+    (Feedback `fb_owbtcbd8`).
+  - **Baumarten** (Feedback `fb_5rohgojr`): Tanne, Kiefer, Laubbaum und Birke. Im Wald überwiegen
+    Nadelbäume, auf Wiesen Laubbäume und Birken; Apfelbäume sind Laubbäume. Nur das Aussehen
+    ändert sich, nicht die Regeln.
 - **Meer und Fluss sehen verschieden aus:** Das Meer ist dunkler und hat Wellen am Strand.
 - **Erreichbarkeit:**
   - Zwischen zwei Flüssen hängen alle begehbaren Felder zusammen.
@@ -496,6 +501,9 @@ Figur steht.
   ihre Felder angesengt; immer gleich je Seed; Zahl und Lage aller Bäume unverändert.
 - **WL-AK-47** (E2E) Am Wrack steigt Rauch auf (Rauch-Teilchen sichtbar); ein Feld mit
   umgeknicktem Baum ist begehbar.
+- **WL-AK-51** Aussehen: Bäume haben vier Arten (jede mindestens 3 %), im Wald mehr als die
+  Hälfte Nadelbäume, Apfelbäume sind Laubbäume, je Feld immer gleich; Felsgipfel gibt es in drei
+  Höhen.
 - **WL-AK-48** Frieren (Feedback `fb_gt0srcqv`): In Dämmerung und Nacht sinkt draußen die
   **Wärme** (voll → leer in ca. 2,5 Min.), am Feuer steigt sie schnell, beim Schlafen langsam,
   tagsüber erholt sie sich. Unter 30 % friert man: Fitness sinkt zusätzlich 4 %/s, und es kommt

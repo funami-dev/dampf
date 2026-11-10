@@ -108,6 +108,114 @@ function addTiles(tex: Phaser.Textures.TextureManager) {
   }
 }
 
+/** Kiefer, Laubbaum (auch Apfelbaum) und Birke (WL-AK-51) */
+function addMoreTrees(tex: Phaser.Textures.TextureManager, v: number) {
+  // Kiefer: hoher, schlanker Stamm, flache Krone oben
+  {
+    const [c, g] = canvas(24, 44);
+    g.fillStyle = "#6b3f22";
+    g.fillRect(11, 14, 3, 30);
+    const leaf = v ? ["#2f5d32", "#3d7340"] : ["#29513a", "#386b48"];
+    for (const [y, w] of [
+      [4, 16],
+      [9, 20],
+      [14, 14],
+    ] as const) {
+      g.fillStyle = leaf[0]!;
+      g.fillRect(12 - w / 2, y, w, 6);
+      g.fillStyle = leaf[1]!;
+      g.fillRect(12 - w / 2 + 2, y, w - 6, 2);
+    }
+    tex.addCanvas(`kiefer${v}`, c);
+  }
+  // Laubbaum: runde Krone aus Kreisen; mit Äpfeln als Apfelbaum
+  for (const apples of [false, true]) {
+    const [c, g] = canvas(26, 40);
+    g.fillStyle = "#5b3a1e";
+    g.fillRect(11, 24, 4, 15);
+    const leaf = v ? ["#3f8a35", "#57a34a", "#2f6e28"] : ["#4a8f3c", "#65b055", "#367328"];
+    const blob = (x: number, y: number, r: number, col: string) => {
+      g.fillStyle = col;
+      g.beginPath();
+      g.arc(x, y, r, 0, Math.PI * 2);
+      g.fill();
+    };
+    blob(13, 16, 11, leaf[2]!);
+    blob(9, 14, 8, leaf[0]!);
+    blob(17, 13, 8, leaf[0]!);
+    blob(13, 9, 8, leaf[0]!);
+    blob(11, 10, 3, leaf[1]!);
+    blob(17, 12, 3, leaf[1]!);
+    if (apples) {
+      g.fillStyle = "#e0301e";
+      for (const [x, y] of [
+        [7, 15],
+        [15, 18],
+        [11, 11],
+        [19, 13],
+        [13, 20],
+        [9, 7],
+      ])
+        g.fillRect(x!, y!, 2, 2);
+    }
+    tex.addCanvas(`${apples ? "apple" : "laub"}${v}`, c);
+  }
+  // Birke: weißer Stamm mit dunklen Strichen, hellgrüne, lockere Krone
+  {
+    const [c, g] = canvas(22, 40);
+    g.fillStyle = "#eeeeea";
+    g.fillRect(10, 14, 3, 25);
+    g.fillStyle = "#3b3b3b";
+    for (const y of [17, 22, 27, 32, 36]) g.fillRect(10 + (y % 2), y, 2, 1);
+    g.fillStyle = v ? "#8cc56a" : "#9bd17a";
+    for (const [x, y, w, h] of [
+      [5, 6, 12, 8],
+      [3, 11, 16, 6],
+      [7, 2, 8, 5],
+    ])
+      g.fillRect(x!, y!, w!, h!);
+    g.fillStyle = "#b8e39c";
+    g.fillRect(8, 5, 3, 2);
+    g.fillRect(13, 10, 3, 2);
+    tex.addCanvas(`birke${v}`, c);
+  }
+}
+
+/** Felsgipfel in drei Höhen, der höchste mit Schnee (WL-AK-51) */
+function addPeaks(tex: Phaser.Textures.TextureManager) {
+  for (const k of [0, 1, 2]) {
+    const h = [26, 38, 52][k]!;
+    const [c, g] = canvas(32, h + 8);
+    const base = h + 6;
+    // linke helle und rechte dunkle Flanke
+    g.fillStyle = "#9a9a9a";
+    g.beginPath();
+    g.moveTo(2, base);
+    g.lineTo(16, 4);
+    g.lineTo(16, base);
+    g.fill();
+    g.fillStyle = "#707070";
+    g.beginPath();
+    g.moveTo(16, 4);
+    g.lineTo(30, base);
+    g.lineTo(16, base);
+    g.fill();
+    g.fillStyle = "#5c5c5c";
+    for (let y = 12; y < base; y += 7) g.fillRect(18 + ((y * 3) % 7), y, 3, 1);
+    if (k === 2) {
+      g.fillStyle = "#f4f6f8";
+      g.beginPath();
+      g.moveTo(10, 18);
+      g.lineTo(16, 4);
+      g.lineTo(22, 18);
+      g.lineTo(18, 15);
+      g.lineTo(15, 19);
+      g.fill();
+    }
+    tex.addCanvas(`peak${k}`, c);
+  }
+}
+
 function addTree(tex: Phaser.Textures.TextureManager) {
   for (let v = 0; v < 2; v++) {
     const [c, g] = canvas(24, 40);
@@ -131,20 +239,8 @@ function addTree(tex: Phaser.Textures.TextureManager) {
       g.fillRect(12 - w / 4, y + 3, 2, 2);
     }
     tex.addCanvas(`tree${v}`, c);
-    // Apfelbaum mit Äpfeln (WL-AK-40): gleiche Krone, rote Punkte
-    const [ac, ag] = canvas(24, 40);
-    ag.drawImage(c, 0, 0);
-    ag.fillStyle = "#e0301e";
-    for (const [x, y] of [
-      [7, 24],
-      [15, 22],
-      [10, 17],
-      [14, 12],
-      [9, 9],
-      [17, 27],
-    ])
-      ag.fillRect(x!, y!, 2, 2);
-    tex.addCanvas(`apple${v}`, ac);
+    tex.addCanvas(`tanne${v}`, c);
+    addMoreTrees(tex, v);
   }
   const [c, g] = canvas(12, 8);
   g.fillStyle = "#6b4423";
@@ -479,6 +575,7 @@ function addHutAndMushroom(tex: Phaser.Textures.TextureManager) {
 
 export function addTextures(tex: Phaser.Textures.TextureManager) {
   addTiles(tex);
+  addPeaks(tex);
   addHutAndMushroom(tex);
   addTree(tex);
   addBush(tex);
