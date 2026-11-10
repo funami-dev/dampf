@@ -14,6 +14,7 @@ import {
 import {
   HUT,
   T,
+  isFreshWater,
   debrisHint,
   directionName,
   idx,
@@ -201,7 +202,7 @@ function nearWater(w: World, x: number, y: number, r: number): boolean {
       if (Math.abs(dx) + Math.abs(dy) > r) continue;
       const nx = x + dx;
       const ny = y + dy;
-      if (inside(w, nx, ny) && w.terrain[idx(w, nx, ny)] === T.WATER) return true;
+      if (inside(w, nx, ny) && isFreshWater(w.terrain[idx(w, nx, ny)]!)) return true;
     }
   return false;
 }

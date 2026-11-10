@@ -53,6 +53,7 @@ const TILE_COLORS: Record<number, [string, string]> = {
   [T.SAND]: ["#d9c58a", "#c4ae6f"],
   [T.SEA]: ["#1f4f8f", "#5d8fd0"],
   [T.WRECK]: ["#6f7550", "#545a3a"],
+  [T.LAKE]: ["#2f6fb8", "#5b98dc"],
 };
 
 export const tileKey = (t: number, v: number) => `tile${t}_${v}`;
@@ -66,7 +67,11 @@ function addTiles(tex: Phaser.Textures.TextureManager) {
       const side = shade(base, 0.62);
       for (let r = 0; r < HS + TH / 2; r++) {
         const earth =
-          r > TH / 2 + 2 && Number(t) !== T.WATER && Number(t) !== T.ROCK && Number(t) !== T.SEA;
+          r > TH / 2 + 2 &&
+          Number(t) !== T.WATER &&
+          Number(t) !== T.ROCK &&
+          Number(t) !== T.SEA &&
+          Number(t) !== T.LAKE;
         g.fillStyle = earth ? "#5e4630" : shade(base, 0.5);
         g.fillRect(0, TH / 2 + r, TW / 2, 1);
         g.fillStyle = earth ? "#6e5238" : side;
@@ -79,7 +84,7 @@ function addTiles(tex: Phaser.Textures.TextureManager) {
         g,
         0,
         dot,
-        Number(t) === T.WATER || Number(t) === T.SEA ? 4 : 9,
+        Number(t) === T.WATER || Number(t) === T.SEA || Number(t) === T.LAKE ? 4 : 9,
         Number(t) * 31 + v * 7 + 1,
       );
       if (Number(t) === T.BRIDGE) {
@@ -468,6 +473,21 @@ function addWreck(tex: Phaser.Textures.TextureManager) {
   smg.arc(10, 6, 4, 0, Math.PI * 2);
   smg.fill();
   tex.addCanvas("smoke", sm);
+  // Fische (WL-AK-52): flacher Wasserring und kleines Bläschen
+  const [rc, rg] = canvas(32, 16);
+  rg.strokeStyle = "rgba(230,245,255,0.9)";
+  rg.lineWidth = 1.5;
+  rg.beginPath();
+  rg.ellipse(16, 8, 14, 6, 0, 0, Math.PI * 2);
+  rg.stroke();
+  tex.addCanvas("ripple", rc);
+  const [bc, bg] = canvas(6, 6);
+  bg.strokeStyle = "rgba(235,248,255,0.95)";
+  bg.lineWidth = 1;
+  bg.beginPath();
+  bg.arc(3, 3, 2, 0, Math.PI * 2);
+  bg.stroke();
+  tex.addCanvas("bubble", bc);
 }
 
 export function addPlayerTex(tex: Phaser.Textures.TextureManager, color: string) {

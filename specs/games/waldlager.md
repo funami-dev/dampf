@@ -32,6 +32,16 @@ gegen Tiere. Rehe und andere Waldtiere laufen nur herum. Man kann nicht sterben.
     fertigen Brücken**: Brücken muss man **selbst bauen** (siehe Tätigkeiten). Nur an **3–6 Stellen
     pro Insel** gibt es eine **steinige Furt** (Trittsteine, höchstens 4 Felder breit, mindestens
     25 Felder voneinander entfernt), über die man zu Fuß kommt (Feedback `fb_9bwz2s9o`).
+  - **Kleine Seen** (Feedback `fb_ch2wfaa6`): 3–6 pro Insel, je 12–60 Felder groß, im Inland auf
+    Wiese oder Waldboden, nie am Meer. Seen sind nicht begehbar, man kann **keine Brücken** darauf
+    bauen. Wo ein See entsteht, stehen keine Bäume, Sträucher, Trümmer, Hütte oder Flugzeug, und er
+    trennt keine begehbaren Gebiete voneinander. Wassertiere (Biber, Ente, Frosch …) leben auch an
+    Seen. Auf der Funk-Karte sind Seen zu sehen.
+  - **Fische** in Flüssen und Seen: An festen Fischstellen (je See 1–2, an Flüssen etwa alle 20
+    Felder, immer gleich je Seed) sieht man alle paar Sekunden ruhig **Wasserringe** und kleine
+    aufsteigende **Bläschen**. Fangen kann man sie noch nicht (kommt mit der Angel).
+  - Ältere Spielstände: Steht man beim Laden in einem neuen See, landet man am nächsten freien
+    Ufer; Zelte, Feuer und Pilze auf Seefeldern verschwinden.
   - **Hügel** in 2–3 Höhenstufen, als erhöhte Kacheln mit Kanten dargestellt und begehbar.
   - **Einige Berge** (Fels): nicht begehbar und nicht abbaubar. Auf jedem Felsfeld ragt ein
     Gipfel in einer von drei Höhen auf, der höchste mit Schnee – so sehen Berge hoch aus
@@ -516,6 +526,13 @@ Figur steht.
 - **WL-AK-50** Strandkrabben und Furten: Die Strandkrabbe (Feedback `fb_6hh2w8h7`) lebt nur auf
   Sand am Meer und steht im Tierbuch; jede Insel hat 3–6 steinige Furten über Flüsse (höchstens
   4 Felder breit, begehbar, mit Trittsteinen gezeichnet).
+- **WL-AK-52** Seen und Fische (Feedback `fb_ch2wfaa6`): Jede Insel hat 3–6 Seen mit 12–60
+  Feldern, keiner grenzt an Meer (auch nicht diagonal, 2 Felder Abstand), auf Seefeldern stehen
+  keine Bäume, Sträucher, Trümmer, Hütte oder Flugzeug; Zahl und Lage aller Bäume bleiben gleich;
+  Seen sind nicht begehbar und nicht überbrückbar; es bleibt alles erreichbar wie vorher (WL-AK-01).
+  Fischstellen liegen nur auf Fluss- oder Seefeldern, jeder See hat 1–2, und alles ist je Seed
+  gleich. Ein alter Spielstand mit der Figur auf einem Seefeld setzt sie auf ein freies Feld.
+- **WL-AK-53** (E2E) An einem See sind Wasserringe zu sehen; das Seefeld ist nicht begehbar.
 - **WL-AK-27** (E2E) Neue Welt:
   - Fallschirm-Landung, danach laufen.
   - Mit Test-Hilfe zum Flugzeug: Meldung und Funk-Button erscheinen.
