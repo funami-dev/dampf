@@ -272,7 +272,15 @@ Drei Leisten von 0 bis 100 % stehen immer oben im Bild:
   - Im Bau-Menü steht „Brücke (3 Holz)“, Taste 3.
 - **Lagerfeuer bauen:** kostet 3 Holz. Es brennt 3 Minuten, jedes nachgelegte Holz gibt
   +2 Minuten. Am Feuer sitzen erholt Fitness und Müdigkeit. Das Feuer **leuchtet nachts**.
-- **Inventar:** Holz (max. 30), Beeren, Äpfel, Pilze und Dosen (je max. 20).
+- **Inventar:** Holz (max. 30), Beeren, Äpfel, Pilze, Dosen und Fische (je max. 20).
+- **Werkzeuge** (Feedback `fb_ch2wfaa6`): Im Inventar gibt es eine Werkzeug-Zeile. Die **Axt** 🪓
+  hat man von Anfang an. Eine **Angel** 🎣 baut man aus 5 Holz (Bau-Menü „Angel (5 Holz)“,
+  Taste 4); jeder hat höchstens eine, sie übersteht Neuladen.
+- **Angeln:** Mit Angel an einer Fischstelle (Wasserringe, höchstens 2,5 Felder weit) heißt die
+  Aktion „Angeln“ und gibt **1 Fisch** 🐟. Danach ruht die Stelle einen halben Spieltag (keine
+  Ringe, kein Fang), dann sind die Fische zurück. Ohne Angel steht dort nichts zum Angeln.
+  Fisch ist Essen (+30 % Hunger) und erscheint in der Essen-Auswahl. Im Mehrspieler angeln Gäste
+  genauso; ruhende Stellen sehen alle.
 
 ### Die verlassene Hütte und mehr Essen (Feedback `fb_h8wy9ca4`)
 
@@ -533,6 +541,13 @@ Figur steht.
   Fischstellen liegen nur auf Fluss- oder Seefeldern, jeder See hat 1–2, und alles ist je Seed
   gleich. Ein alter Spielstand mit der Figur auf einem Seefeld setzt sie auf ein freies Feld.
 - **WL-AK-53** (E2E) An einem See sind Wasserringe zu sehen; das Seefeld ist nicht begehbar.
+- **WL-AK-54** Werkzeuge und Angel (Feedback `fb_ch2wfaa6`): Eine Angel kostet 5 Holz, eine
+  zweite geht nicht („Du hast schon eine Angel.“). Mit Angel an einer Fischstelle ergibt „Angeln“
+  einen Fisch (max. 20); die Stelle ruht dann einen halben Spieltag. Ohne Angel oder an einer
+  ruhenden Stelle gibt es kein „Angeln“. Fisch essen gibt +30 % Hunger. Angel, Fische und ruhende
+  Stellen überstehen Neuladen und gehen im Mehrspieler an die Gäste.
+- **WL-AK-55** (E2E) Angel bauen (Werkzeug-Zeile zeigt 🎣), an einer Fischstelle angeln, den Fisch
+  in der Essen-Auswahl essen.
 - **WL-AK-27** (E2E) Neue Welt:
   - Fallschirm-Landung, danach laufen.
   - Mit Test-Hilfe zum Flugzeug: Meldung und Funk-Button erscheinen.

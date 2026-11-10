@@ -548,7 +548,6 @@ function placeLakes(w: World, rand: Rand) {
       return n !== T.WATER && n !== T.FORD && n !== T.BRIDGE && n !== T.LAKE;
     });
   };
-  let reach = reachable(w, true);
   for (let k = 0; k < 3000 && w.lakes.length < want; k++) {
     const cx = Math.floor(rand() * size);
     const cy = Math.floor(rand() * size);
@@ -582,18 +581,60 @@ function placeLakes(w: World, rand: Rand) {
     if (cells.length < LAKES.minCells || cells.length > LAKES.maxCells) continue;
     const before = cells.map((i) => w.terrain[i]!);
     for (const i of cells) w.terrain[i] = T.LAKE;
-    // darf nichts abschneiden, was vorher erreichbar war
-    const after = reachable(w, true);
-    let cut = false;
-    for (let i = 0; i < after.length && !cut; i++)
-      if (reach[i] && !after[i] && w.terrain[i] !== T.LAKE) cut = true;
-    if (cut) {
+    // darf nichts abschneiden: alle freien Nachbarn des Sees hängen schon in der Nähe zusammen
+    if (!aroundConnected(w, cells)) {
       cells.forEach((i, k) => (w.terrain[i] = before[k]!));
       continue;
     }
-    reach = after;
     w.lakes.push({ x: cx, y: cy, cells: cells.length });
   }
+}
+
+/** Alle freien Felder rund um `cells` sind in einem Fenster um sie herum verbunden (wie reachable) */
+function aroundConnected(w: World, cells: number[]): boolean {
+  const pass = (i: number) => open(w, i) || w.terrain[i] === T.WATER;
+  const border = new Set<number>();
+  let x0 = w.size;
+  let y0 = w.size;
+  let x1 = 0;
+  let y1 = 0;
+  for (const i of cells) {
+    const x = i % w.size;
+    const y = (i / w.size) | 0;
+    x0 = Math.min(x0, x);
+    y0 = Math.min(y0, y);
+    x1 = Math.max(x1, x);
+    y1 = Math.max(y1, y);
+    for (const [dx, dy] of DIRS4) {
+      const j = idx(w, x + dx, y + dy);
+      if (pass(j)) border.add(j);
+    }
+  }
+  if (!border.size) return true;
+  const M = 8;
+  const inWin = (x: number, y: number) =>
+    inside(w, x, y) && x >= x0 - M && x <= x1 + M && y >= y0 - M && y <= y1 + M;
+  const first = border.values().next().value!;
+  const seen = new Set([first]);
+  const q = [first];
+  let found = 0;
+  while (q.length) {
+    const i = q.pop()!;
+    if (border.has(i)) found++;
+    const x = i % w.size;
+    const y = (i / w.size) | 0;
+    for (const [dx, dy] of DIRS4) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (!inWin(nx, ny)) continue;
+      const j = ny * w.size + nx;
+      if (!seen.has(j) && pass(j)) {
+        seen.add(j);
+        q.push(j);
+      }
+    }
+  }
+  return found === border.size;
 }
 
 /** Fischstellen: je See 1–2, an Flüssen etwa alle 20 Felder (WL-AK-52) */
