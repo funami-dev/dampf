@@ -10,8 +10,18 @@
   "status": "published",
   "order": 80,
   "addedAt": "2026-11-08",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "changelog": [
+    {
+      "version": "1.6.0",
+      "date": "2026-11-10",
+      "time": "19:30",
+      "items": [
+        "Neu: Kompass oben neben der Uhr – Norden ist oben",
+        "Mit dem Funkgerät zeigt eine Nadel den Weg zur Hütte",
+        "Die Hütte ist jetzt auf der Funk-Karte eingezeichnet, die Karte steht wie das Spielbild"
+      ]
+    },
     {
       "version": "1.5.0",
       "date": "2026-11-10",

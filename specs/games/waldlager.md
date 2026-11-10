@@ -84,9 +84,12 @@ gegen Tiere. Rehe und andere Waldtiere laufen nur herum. Man kann nicht sterben.
   - **Liste** aller Spieler in der Welt mit Namen und **Koordinaten**, z. B.
     „Ben · X 113 · Y 177“; die eigene Zeile ist hervorgehoben.
   - **Kleine Inselkarte** mit Küste, farbigen Punkten für alle Spieler und einem Symbol für das
-    Flugzeug.
+    Flugzeug. Die Karte ist **wie das Spielbild gedreht** (Norden oben) und zeigt oben eine kleine
+    Windrose (N/O/S/W) und die **Hütte 🏠** (immer, Feedback `fb_nqi67r2h`).
   - Koordinaten sind die Feldnummern: X und Y von 0 bis 255.
 - Ohne Funkgerät gibt es keine Koordinaten und keine Karte. Man muss sich am Gelände orientieren.
+- **Kompass** (Feedback `fb_nqi67r2h`): oben neben der Uhr, immer sichtbar, mit N/O/S/W (Norden =
+  oben im Spielbild). **Mit Funkgerät** zeigt zusätzlich eine Nadel 🏠 die Richtung zur Hütte.
 
 ## Tiere entdecken (nie verletzbar)
 
@@ -471,6 +474,11 @@ Figur steht.
   - Haie sind nur im Meer, verlassen es nie, und es gibt höchstens zwei.
   - Die Flosse ist zeitweise abgetaucht und dann weder sichtbar noch entdeckbar.
   - Der Hai steht im Tierbuch (32 Arten).
+- **WL-AK-44** Kompass und Karte: Die Richtung auf dem Bildschirm wird richtig berechnet (Norden
+  0°, Osten 90°, Süden 180°, Westen 270°); Kartenpunkte liegen wie im Spielbild gedreht
+  (Inselmitte in der Kartenmitte, Norden oben).
+- **WL-AK-45** (E2E) Der Kompass ist sichtbar (N), ohne Funkgerät ohne Hütten-Nadel; mit
+  Funkgerät zeigt die Nadel zur Hütte (Winkel passt), und die Funk-Karte zeigt die Hütte.
 - **WL-AK-27** (E2E) Neue Welt:
   - Fallschirm-Landung, danach laufen.
   - Mit Test-Hilfe zum Flugzeug: Meldung und Funk-Button erscheinen.

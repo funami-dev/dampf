@@ -401,3 +401,65 @@
   opacity: 1;
   font-weight: 700;
 }
+/* Kompass (WL-AK-44/45): Norden oben, Nadel zur Hütte mit Funkgerät */
+.wl-compass {
+  position: relative;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(20, 32, 18, 0.78);
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  font-size: 10px;
+  font-weight: 700;
+}
+.wl-compass b {
+  position: absolute;
+  line-height: 1;
+}
+.wl-compass .n {
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #ff6b5b;
+}
+.wl-compass .s {
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.wl-compass .w {
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.wl-compass .o {
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.wl-needle {
+  position: absolute;
+  inset: 0;
+  display: block;
+  font-style: normal;
+}
+.wl-needle[hidden] {
+  display: none;
+}
+.wl-needle::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 9px;
+  width: 2px;
+  height: 18px;
+  margin-left: -1px;
+  background: #f6c344;
+}
+.wl-needle span {
+  position: absolute;
+  left: 50%;
+  top: -9px;
+  transform: translateX(-50%);
+  font-size: 13px;
+}
