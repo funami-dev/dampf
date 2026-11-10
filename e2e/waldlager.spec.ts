@@ -371,7 +371,23 @@ test("WL-AK-22: Tier entdecken – Meldung und Tierbuch", async ({ page }) => {
   const a = (await hooks(page, (h) => h.nearestAnimal()))!;
   expect(a).not.toBeNull();
   await page.evaluate((a) => (window.__dampf as Hooks).teleport(a[0] + 1.5, a[1]), a);
-  await expect.poll(async () => (await state(page)).book).toContain(a[2]);
+  // Unter Last kann ein paralleles Testfenster den Fokus nehmen (Spiel pausiert); dann weiter-
+  // spielen und die Figur erneut neben das Tier setzen (es kann inzwischen weitergelaufen sein).
+  await expect
+    .poll(
+      async () => {
+        const s = await state(page);
+        if (s.book.includes(a[2])) return s.book;
+        if (s.screen === "paused")
+          await page.getByRole("button", { name: "Weiterspielen" }).click();
+        const b = await hooks(page, (h) => h.nearestAnimal());
+        if (b && b[2] === a[2])
+          await page.evaluate((b) => (window.__dampf as Hooks).teleport(b[0] + 1.5, b[1]), b);
+        return s.book;
+      },
+      { timeout: 15_000 },
+    )
+    .toContain(a[2]);
   await expect(page.getByText(/^(Neu entdeckt: .+!|✨ Ein Einhorn! ✨)$/)).toBeVisible();
   expect((await state(page)).book.length).toBeGreaterThan(before);
 
