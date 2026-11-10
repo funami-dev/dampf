@@ -42,7 +42,13 @@ export function save(store: Store, seed: number, state: State, me: string, size 
   store.set(KEY, JSON.stringify(data));
 }
 
-const num = (x: unknown) => typeof x === "number" && Number.isFinite(x);
+const num = (x: unknown): x is number => typeof x === "number" && Number.isFinite(x);
+/** Vorrat 0–20 (ungültig → 0) */
+const food = (x: unknown) => (num(x) ? Math.max(0, Math.min(20, Math.floor(x))) : 0);
+const numRecord = (x: unknown): Record<number, number> | null =>
+  !!x && typeof x === "object" && !Array.isArray(x) && Object.values(x).every(num)
+    ? (x as Record<number, number>)
+    : null;
 
 function validPlayer(p: unknown): p is Player {
   const q = p as Player;
@@ -87,6 +93,16 @@ export function load(store: Store): { world: World; state: State; me: string } |
       fires: s.fires,
       nextFire: num(s.nextFire) ? s.nextFire : 1,
       bridges: s.bridges && typeof s.bridges === "object" ? s.bridges : {},
+      // Hütte, Äpfel, Pilze (WL-AK-42); ältere Spielstände: frisch erzeugt
+      appleEmpty: numRecord(s.appleEmpty) ?? fresh.appleEmpty,
+      mushrooms:
+        Array.isArray(s.mushrooms) && s.mushrooms.every((m) => Number.isInteger(m))
+          ? s.mushrooms.filter((m) => m >= 0 && m < world.size * world.size)
+          : fresh.mushrooms,
+      mushroomRespawn:
+        Array.isArray(s.mushroomRespawn) && s.mushroomRespawn.every(num) ? s.mushroomRespawn : [],
+      hutCans: num(s.hutCans) ? Math.max(0, Math.min(2, Math.floor(s.hutCans))) : fresh.hutCans,
+      hutRefill: num(s.hutRefill) ? s.hutRefill : null,
       players: {},
     };
     const home = { x: Math.floor(me.x), y: Math.floor(me.y) };
@@ -110,6 +126,10 @@ export function load(store: Store): { world: World; state: State; me: string } |
           ? me.home
           : { x: Math.floor(me.x), y: Math.floor(me.y) },
       radio: me.radio === true,
+      apples: food(me.apples),
+      mushrooms: food(me.mushrooms),
+      cans: food(me.cans),
+      hutSeen: me.hutSeen === true,
       landing: 0,
     });
     return { world, state, me: me.id };

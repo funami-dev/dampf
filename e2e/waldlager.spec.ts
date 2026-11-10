@@ -16,6 +16,9 @@ interface WlState {
     needs: { hunger: number; rest: number; fitness: number };
     wood: number;
     berries: number;
+    apples: number;
+    mushrooms: number;
+    cans: number;
     tent: { x: number; y: number } | null;
     radio: boolean;
     landing: number;
@@ -51,6 +54,8 @@ interface Hooks {
   cell(x: number, y: number): { terrain: number; free: boolean; tree: number };
   finishLanding(): void;
   markTrail(x: number, y: number): void;
+  hutSpot(): [number, number, number, number] | null;
+  appleSpot(): [number, number, number, number] | null;
 }
 
 declare global {
@@ -122,12 +127,19 @@ test("WL-AK-13: Desktop – hacken, Feuer und Zelt bauen, Beeren essen, Nacht", 
   expect(s0.me.color).toBe("#e74c3c");
   expect(s0.animals).toBeGreaterThan(10);
 
-  // Laufen mit der Tastatur
-  await page.keyboard.down("ArrowDown");
-  await page.waitForTimeout(600);
-  await page.keyboard.up("ArrowDown");
-  const s1 = await state(page);
-  expect(Math.hypot(s1.me.x - s0.me.x, s1.me.y - s0.me.y)).toBeGreaterThan(0.3);
+  // Laufen mit der Tastatur (der Landeplatz ist zufällig: steht in einer Richtung ein Baum,
+  // die nächste Richtung probieren)
+  let moved = 0;
+  for (const key of ["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"]) {
+    const a = (await state(page)).me;
+    await page.keyboard.down(key);
+    await page.waitForTimeout(600);
+    await page.keyboard.up(key);
+    const b = (await state(page)).me;
+    moved = Math.hypot(b.x - a.x, b.y - a.y);
+    if (moved > 0.3) break;
+  }
+  expect(moved).toBeGreaterThan(0.3);
 
   // Holz hacken: vier Bäume → 12 Holz
   for (let k = 0; k < 4; k++) {
@@ -695,5 +707,71 @@ test("WL-AK-37: Regenbogenspur wird gezeichnet, auch nachts", async ({ page }) =
   await hooks(page, (h) => h.setTime(500));
   await page.waitForTimeout(300);
   expect((await state(page)).trail).toBeGreaterThanOrEqual(5);
+  await expectNoErrors(errors);
+});
+
+test("WL-AK-43: Hütte, Kiste, Apfelbaum und Ess-Auswahl", async ({ page }) => {
+  test.setTimeout(120_000);
+  // volles Tierbuch: sonst kann „Neu entdeckt“ die Meldungen überdecken
+  await page.addInitScript(
+    ([key, seen]) => localStorage.setItem(key as string, JSON.stringify({ v: 1, seen })),
+    [BOOK_KEY, SPECIES.map((s) => s.id)] as const,
+  );
+  const errors = trackErrors(page);
+  await open(page);
+  const mobile = isMobile(page);
+  const tap = (name: string | RegExp) =>
+    mobile
+      ? page.getByRole("button", { name }).first().tap()
+      : page.getByRole("button", { name }).first().click();
+  await tap("Los geht's");
+  await landed(page);
+  const go = async (spot: [number, number, number, number]) => {
+    const [tx, ty, sx, sy] = spot;
+    await page.evaluate(
+      ([tx, ty, sx, sy]) =>
+        (window.__dampf as Hooks).teleport(sx! + 0.5, sy! + 0.5, tx! - sx!, ty! - sy!),
+      [tx, ty, sx, sy],
+    );
+  };
+  const act = async () => {
+    if (mobile) await tap("Aktion");
+    else await page.keyboard.press("e");
+  };
+  const resumeIfPaused = async () => {
+    if ((await state(page)).screen === "paused") await tap("Weiterspielen");
+  };
+
+  // Hütte: Meldung und Kiste
+  const hut = (await hooks(page, (h) => h.hutSpot()))!;
+  expect(hut).not.toBeNull();
+  await go(hut);
+  await expect(page.getByText(/^Eine verlassene Hütte!/)).toBeVisible();
+  await expect.poll(async () => (await resumeIfPaused(), (await state(page)).action)).toBe("open");
+  await act();
+  await expect.poll(async () => (await state(page)).me.cans).toBe(2);
+  await expect(page.getByText("🥫 2")).toBeVisible();
+
+  // Apfelbaum schütteln
+  const apple = (await hooks(page, (h) => h.appleSpot()))!;
+  expect(apple).not.toBeNull();
+  await go(apple);
+  await expect.poll(async () => (await resumeIfPaused(), (await state(page)).action)).toBe("shake");
+  await act();
+  await expect.poll(async () => (await state(page)).me.apples).toBe(2);
+
+  // Essen: mehrere Sorten → Auswahl-Leiste
+  await hooks(page, (h) => h.setNeeds({ hunger: 40 }));
+  if (mobile) await tap("Essen");
+  else await page.keyboard.press("q");
+  const bar = page.getByRole("group", { name: "Was möchtest du essen?" });
+  await expect(bar).toBeVisible();
+  await expect(bar.getByRole("button", { name: "Dose essen (2)" })).toBeVisible();
+  const h0 = (await state(page)).me.needs.hunger;
+  if (mobile) await bar.getByRole("button", { name: "Apfel essen (2)" }).tap();
+  else await bar.getByRole("button", { name: "Apfel essen (2)" }).click();
+  await expect.poll(async () => (await state(page)).me.apples).toBe(1);
+  expect((await state(page)).me.needs.hunger).toBeGreaterThan(h0 + 15);
+  await expect(bar).toBeHidden();
   await expectNoErrors(errors);
 });

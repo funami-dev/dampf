@@ -205,7 +205,7 @@ Drei Leisten von 0 bis 100 % stehen immer oben im Bild:
 
 | Leiste        | sinkt …                                                              | steigt …                                                           |
 | ------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| **Hunger**    | langsam mit der Zeit (voll → leer in ca. 12 Min.)                    | Essen: Beere +12 %                                                 |
+| **Hunger**    | langsam mit der Zeit (voll → leer in ca. 12 Min.)                    | Essen: Pilz +8 %, Beere +12 %, Apfel +20 %, Dose +35 %             |
 | **Müdigkeit** | mit der Zeit, nachts doppelt so schnell                              | Schlafen im eigenen Zelt (schnell); am Lagerfeuer sitzen (langsam) |
 | **Fitness**   | beim Rennen (voll → leer in ca. 30 s) und Holzhacken (2,5 % je Hieb) | beim Stehen oder Gehen (langsam), am Lagerfeuer schneller          |
 
@@ -242,7 +242,30 @@ Drei Leisten von 0 bis 100 % stehen immer oben im Bild:
   - Im Bau-Menü steht „Brücke (3 Holz)“, Taste 3.
 - **Lagerfeuer bauen:** kostet 3 Holz. Es brennt 3 Minuten, jedes nachgelegte Holz gibt
   +2 Minuten. Am Feuer sitzen erholt Fitness und Müdigkeit. Das Feuer **leuchtet nachts**.
-- **Inventar:** Holz (max. 30), Beeren (max. 20).
+- **Inventar:** Holz (max. 30), Beeren, Äpfel, Pilze und Dosen (je max. 20).
+
+### Die verlassene Hütte und mehr Essen (Feedback `fb_h8wy9ca4`)
+
+- **Verlassene Hütte:** Auf jeder Insel steht **genau eine** kleine Holzhütte im Wald bzw. auf
+  einer Wiese, mindestens 40 Felder vom Inselmittelpunkt und 15 Felder vom Flugzeug entfernt, vom
+  Landeplatz aus zu Fuß (ggf. mit Brücken) erreichbar. Man kann nicht durch sie hindurchlaufen.
+  - Kommt man zum ersten Mal auf 4 Felder heran: Meldung „Eine verlassene Hütte! In der Kiste
+    ist vielleicht etwas zu essen.“
+  - **Vorratskiste:** „Kiste öffnen“ gibt 2 Dosen 🥫 (solange Platz ist). Danach ist die Kiste
+    leer und füllt sich nach einem Spieltag wieder.
+  - **Schlafen in der Hütte** geht wie im Zelt („In der Hütte schlafen“), wenn die Kiste leer ist
+    oder man keinen Platz mehr hat.
+- **Apfelbäume:** Etwa jeder zehnte Baum ist ein Apfelbaum (rote Punkte in der Krone).
+  „Äpfel schütteln“ gibt 2 Äpfel; danach hängen nach einem halben Spieltag neue Äpfel dran.
+  Solange Äpfel dran sind, kommt beim Apfelbaum zuerst „Äpfel schütteln“, danach „Holz hacken“.
+- **Pilze:** Auf Waldfeldern wachsen Pilze (auf einer 256er-Insel etwa 60). „Pilz sammeln“ nimmt
+  einen; nach einem halben Spieltag wächst irgendwo im Wald ein neuer.
+- **Essen:** Hat man nur eine Sorte dabei, isst „Essen“ (Taste Q) sie direkt. Bei mehreren Sorten
+  erscheint eine Leiste mit den Sorten und ihrer Anzahl (z. B. „🍎 Apfel (2)“, Tasten 1–4);
+  „✕“ schließt sie. Ohne Essen: „Nichts zu essen dabei – such Beeren, Äpfel oder Pilze!“
+- **Anzeige oben:** 🪵 Holz und 🫐 Beeren wie bisher, dazu 🍎, 🍄 und 🥫, sobald man davon etwas hat.
+- **Mehrspieler und Speichern:** Hütte, Äpfel und Pilze sehen alle; Gäste essen ihre eigenen
+  Vorräte. Inventar, Kiste, Äpfel und Pilze werden gespeichert.
 
 ## Tag und Nacht
 
@@ -494,6 +517,21 @@ Figur steht.
   (rund um sich), ungültige Spurdaten werden abgewiesen. Nach dem Laden ist keine Spur da.
 - **WL-AK-38** Fitness hält doppelt so lange: Rennen leert volle Fitness in ca. 30 s, ein
   Axthieb kostet 2,5 % (bei Hunger unter 25 % weiterhin doppelt).
+
+- **WL-AK-39** Hütte: Jede Insel (viele Seeds) hat genau eine Hütte auf begehbarem Land, ≥ 40
+  Felder vom Mittelpunkt, ≥ 15 vom Flugzeug, erreichbar; das Feld ist nicht begehbar. „Kiste
+  öffnen“ gibt 2 Dosen, danach ist die Kiste leer und nach einem Spieltag wieder voll; bei leerer
+  Kiste kommt „In der Hütte schlafen“. Die Meldung beim ersten Herankommen kommt genau einmal.
+- **WL-AK-40** Apfelbäume: etwa 10 % der Bäume (5–15 %), immer gleich je Seed. „Äpfel schütteln“
+  gibt 2 Äpfel, dann kommt „Holz hacken“; nach einem halben Spieltag hängen wieder Äpfel dran.
+- **WL-AK-41** Pilze: Eine neue Welt hat Pilze nur auf freien Waldfeldern; „Pilz sammeln“ gibt
+  einen Pilz, nach einem halben Spieltag gibt es wieder gleich viele.
+- **WL-AK-42** Essen: Pilz +8 %, Beere +12 %, Apfel +20 %, Dose +35 % Hunger (max. 100); jede
+  Sorte höchstens 20 im Inventar; Essen ohne Vorrat ändert nichts. Speichern/Laden und
+  Mehrspieler-Schnappschüsse übertragen Vorräte, Kiste, Äpfel und Pilze; ungültige Werte werden
+  abgewiesen.
+- **WL-AK-43** (E2E) Zur Hütte gehen → Meldung, „Kiste öffnen“ → 🥫 2; einen Apfelbaum schütteln →
+  🍎 2; „Essen“ zeigt die Auswahl-Leiste, Apfel essen erhöht den Hunger-Wert; auch auf Mobile.
 
 ## Nicht-Ziele (MVP)
 

@@ -13,6 +13,10 @@ import {
   addPlayer,
   isColor,
   markTrail,
+  FOODS,
+  foodsOf,
+  hasApples,
+  type FoodKind,
   build,
   buildSpot,
   canBridgeAt,
@@ -70,7 +74,7 @@ layer.innerHTML = `
       <div class="wl-bar" data-n="hunger"><span>Hunger</span><i><b></b></i></div>
       <div class="wl-bar" data-n="rest"><span>Müdigkeit</span><i><b></b></i></div>
       <div class="wl-bar" data-n="fitness"><span>Fitness</span><i><b></b></i></div>
-      <div class="wl-inv"><span data-h="wood">🪵 0</span> <span data-h="berries">🫐 0</span></div>
+      <div class="wl-inv"><span data-h="wood">🪵 0</span> <span data-h="berries">🫐 0</span> <span data-h="apples" hidden></span> <span data-h="mushrooms" hidden></span> <span data-h="cans" hidden></span></div>
     </div>
     <div class="wl-side">
       <div class="wl-clock" data-h="clock">07:00</div>
@@ -85,6 +89,7 @@ layer.innerHTML = `
     <button class="wl-btn" type="button" data-b="bridge">Brücke (${COSTS.bridge} Holz)</button>
     <button class="wl-btn" type="button" data-b="cancel">✕</button>
   </div>
+  <div class="wl-buildbar wl-eatbar" role="group" aria-label="Was möchtest du essen?" hidden></div>
   <div class="wl-bottom">
     <div class="wl-stick" role="slider" aria-label="Laufen"><div class="wl-knob"></div></div>
     <div class="wl-actions">
@@ -198,13 +203,43 @@ function doAct() {
   if (mode === "guest") return guestSend({ v: 1, k: "act" });
   toast(act(world, state, me()), 1.2);
 }
-function doEat() {
+/** Essen (WL-AK-42): eine Sorte → direkt; mehrere → Auswahl-Leiste */
+function doEat(kind?: FoodKind) {
   if (!canPlay()) return;
-  if (mode === "guest") return guestSend({ v: 1, k: "eat" });
-  toast(eat(me()), 1.5);
+  const have = foodsOf(me());
+  if (!kind && have.length > 1) return toggleEat(!!eatBar.hidden);
+  toggleEat(false);
+  if (mode === "guest")
+    return guestSend(kind ? { v: 1, k: "eat", food: kind } : { v: 1, k: "eat" });
+  toast(eat(me(), kind), 1.5);
+}
+const eatBar = $(".wl-eatbar");
+function toggleEat(on: boolean) {
+  if (on && !canPlay()) return;
+  if (on) {
+    toggleBuild(false);
+    const p = me();
+    eatBar.innerHTML =
+      foodsOf(p)
+        .map(
+          (k, i) =>
+            `<button class="wl-btn" type="button" data-food="${k}" aria-label="${FOODS[k].one} essen (${p[k]})">${FOODS[k].icon} ${FOODS[k].one} (${p[k]})<small> ${i + 1}</small></button>`,
+        )
+        .join("") +
+      `<button class="wl-btn" type="button" data-food="x" aria-label="Schließen">✕</button>`;
+    eatBar
+      .querySelectorAll<HTMLButtonElement>("[data-food]")
+      .forEach((b) =>
+        b.addEventListener("click", () =>
+          b.dataset.food === "x" ? toggleEat(false) : doEat(b.dataset.food as FoodKind),
+        ),
+      );
+  }
+  eatBar.hidden = !on;
 }
 function toggleBuild(on = !building) {
   if (!canPlay() && on) return;
+  if (on) toggleEat(false);
   building = on;
   buildBar.hidden = !on;
 }
@@ -253,11 +288,17 @@ window.addEventListener("keydown", (e) => {
     openBook(() => resume());
   }
   if (e.code === "KeyB") toggleBuild();
+  if (!eatBar.hidden && /^Digit[1-4]$/.test(e.code)) {
+    const k = foodsOf(me())[Number(e.code.slice(5)) - 1];
+    if (k) doEat(k);
+    return;
+  }
   if (building && e.code === "Digit1") doBuild("tent");
   if (building && e.code === "Digit2") doBuild("fire");
   if (building && e.code === "Digit3") doBuild("bridge");
   if (e.code === "Escape") {
-    if (building) toggleBuild(false);
+    if (!eatBar.hidden) toggleEat(false);
+    else if (building) toggleBuild(false);
     else openMenu();
   }
 });
@@ -725,7 +766,7 @@ function onGuestMsg(id: string, d: unknown) {
       say(act(world, state, p));
       break;
     case "eat":
-      say(eat(p));
+      say(eat(p, g.food));
       break;
     case "build":
       say(build(world, state, p, g.kind));
@@ -936,6 +977,7 @@ class WorldScene extends Phaser.Scene {
     let gi = 0;
     let oi = 0;
     const bushes = bushIndex();
+    const shrooms = new Set(state.mushrooms);
     for (let y = y0; y <= y1; y++)
       for (let x = x0; x <= x1; x++) {
         const sx = isoX(x, y);
@@ -955,7 +997,11 @@ class WorldScene extends Phaser.Scene {
         if (tree) {
           const stump = isStump(state, tree - 1);
           this.pool(this.objects, oi++)
-            .setTexture(stump ? "stump" : `tree${hash(x, y) & 1}`)
+            .setTexture(
+              stump
+                ? "stump"
+                : `${hasApples(world, state, tree - 1) ? "apple" : "tree"}${hash(x, y) & 1}`,
+            )
             .setOrigin(0.5, stump ? 0.7 : 0.94)
             .setPosition(cx, cy)
             .setDepth((x + y + 1) * 10);
@@ -965,6 +1011,18 @@ class WorldScene extends Phaser.Scene {
           this.pool(this.objects, oi++)
             .setTexture(`debris${db % 3}`)
             .setOrigin(0.5, 0.7)
+            .setPosition(cx, cy)
+            .setDepth((x + y + 1) * 10);
+        if (x === world.hut.x && y === world.hut.y)
+          this.pool(this.objects, oi++)
+            .setTexture("hut")
+            .setOrigin(0.5, 0.82)
+            .setPosition(cx, cy)
+            .setDepth((x + y + 1) * 10);
+        if (shrooms.has(i))
+          this.pool(this.objects, oi++)
+            .setTexture("mushroom")
+            .setOrigin(0.5, 0.8)
             .setPosition(cx, cy)
             .setDepth((x + y + 1) * 10);
         const b = bushes.get(i);
@@ -1206,6 +1264,11 @@ function updateHud() {
   }
   hud("wood").textContent = `🪵 ${p.wood}`;
   hud("berries").textContent = `🫐 ${p.berries}`;
+  for (const k of ["apples", "mushrooms", "cans"] as const) {
+    const el = hud(k);
+    el.hidden = p[k] <= 0;
+    el.textContent = `${FOODS[k].icon} ${p[k]}`;
+  }
   hud("clock").textContent =
     `${phaseOf(state.total) === "nacht" ? "🌙" : "☀️"} ${clockOf(state.total)}`;
   const room = hud("room");
@@ -1241,6 +1304,37 @@ const game = new Phaser.Game({
 });
 openStart();
 
+/** Welche Aktion gäbe es an (x, y)? (nur für Test-Hilfen) */
+function actionAt(x: number, y: number) {
+  const p = me();
+  const [ox, oy] = [p.x, p.y];
+  p.x = x;
+  p.y = y;
+  const a = actionFor(world, state, p)?.kind ?? null;
+  p.x = ox;
+  p.y = oy;
+  return a;
+}
+function standFor(
+  tx: number,
+  ty: number,
+  kinds: string[],
+): [number, number, number, number] | null {
+  for (const [dx, dy] of [
+    [-1, 0],
+    [0, -1],
+    [1, 0],
+    [0, 1],
+  ] as const) {
+    const sx = tx + dx;
+    const sy = ty + dy;
+    if (!free(world, state, sx, sy)) continue;
+    const a = actionAt(sx + 0.5, sy + 0.5);
+    if (a && kinds.includes(a)) return [tx, ty, sx, sy];
+  }
+  return null;
+}
+
 if (debugEnabled) {
   window.__dampf = {
     state: () => {
@@ -1262,6 +1356,9 @@ if (debugEnabled) {
           needs: p.needs,
           wood: p.wood,
           berries: p.berries,
+          apples: p.apples,
+          mushrooms: p.mushrooms,
+          cans: p.cans,
           tent: p.tent,
           sleeping: p.sleeping,
           radio: p.radio,
@@ -1386,13 +1483,28 @@ if (debugEnabled) {
           if (world.bushes.some((b) => Math.hypot(b.x - (t.x + dx), b.y - (t.y + dy)) < 2.5))
             continue;
           const d = Math.hypot(t.x - p.x, t.y - p.y);
-          if (d < bd) {
-            bd = d;
-            best = [t.x, t.y, t.x + dx, t.y + dy];
-          }
+          if (d >= bd) continue;
+          // von dort muss „Holz hacken“ die Aktion sein (nicht Äpfel/Pilz)
+          if (actionAt(t.x + dx + 0.5, t.y + dy + 0.5) !== "chop") continue;
+          bd = d;
+          best = [t.x, t.y, t.x + dx, t.y + dy];
         }
       });
       return best;
+    },
+    // Hütte und Apfelbaum (WL-AK-43): Stehfeld, von dem aus die Aktion passt
+    hutSpot: () => standFor(world.hut.x, world.hut.y, ["open", "hutsleep"]),
+    appleSpot: () => {
+      const p = me();
+      const trees = world.trees
+        .map((t, k) => ({ t, k, d: Math.hypot(t.x - p.x, t.y - p.y) }))
+        .filter((o) => hasApples(world, state, o.k))
+        .sort((a, b) => a.d - b.d);
+      for (const o of trees) {
+        const r = standFor(o.t.x, o.t.y, ["shake"]);
+        if (r) return r;
+      }
+      return null;
     },
     nearestBush: () => {
       const p = me();

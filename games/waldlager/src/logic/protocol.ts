@@ -1,5 +1,14 @@
 import type { World } from "./world.ts";
-import { ANIMALS, isColor, type Animal, type Fire, type Player, type State } from "./sim.ts";
+import {
+  ANIMALS,
+  FOOD_KINDS,
+  isColor,
+  type Animal,
+  type Fire,
+  type FoodKind,
+  type Player,
+  type State,
+} from "./sim.ts";
 
 /** Netzwerk-Protokoll (WL-AK-12): JSON mit Versionsnummer, ungültige Nachrichten → null. */
 export const VERSION = 1;
@@ -17,7 +26,7 @@ export type GuestMsg =
       running: boolean;
     }
   | { v: 1; k: "act" }
-  | { v: 1; k: "eat" }
+  | { v: 1; k: "eat"; food?: FoodKind }
   | { v: 1; k: "build"; kind: "tent" | "fire" | "bridge" };
 
 export interface PlayerSnap {
@@ -34,6 +43,10 @@ export interface PlayerSnap {
   needs: { hunger: number; rest: number; fitness: number };
   wood: number;
   berries: number;
+  /** Vorräte (fehlen bei älteren Gastgebern → 0) */
+  apples?: number;
+  mushrooms?: number;
+  cans?: number;
   radio: boolean;
   landing: number;
 }
@@ -56,6 +69,10 @@ export interface Snap {
   /** [Art-Index, x, y] */
   animals: [number, number, number][];
   players: PlayerSnap[];
+  /** Hütte und Essen (WL-AK-42; fehlen bei älteren Gastgebern) */
+  appleEmpty?: [number, number][];
+  mushrooms?: number[];
+  hutCans?: number;
 }
 
 export type HostMsg =
@@ -88,8 +105,12 @@ export function parseGuest(d: unknown): GuestMsg | null {
           }
         : null;
     case "act":
+      return { v: 1, k: "act" };
     case "eat":
-      return { v: 1, k: d.k };
+      if (d.food === undefined) return { v: 1, k: "eat" };
+      return (FOOD_KINDS as unknown[]).includes(d.food)
+        ? { v: 1, k: "eat", food: d.food as FoodKind }
+        : null;
     case "build":
       return d.kind === "tent" || d.kind === "fire" || d.kind === "bridge"
         ? { v: 1, k: "build", kind: d.kind }
@@ -118,6 +139,7 @@ function playerSnap(p: unknown): p is PlayerSnap {
     num(p.needs.fitness) &&
     num(p.wood) &&
     num(p.berries) &&
+    (["apples", "mushrooms", "cans"] as const).every((k) => p[k] === undefined || num(p[k])) &&
     bool(p.radio) &&
     num(p.landing)
   );
@@ -139,6 +161,11 @@ export function parseHost(d: unknown): HostMsg | null {
     (d.trail !== undefined &&
       (!Array.isArray(d.trail) ||
         !d.trail.every((t) => Array.isArray(t) && t.length === 2 && t.every(num)))) ||
+    (d.appleEmpty !== undefined &&
+      (!Array.isArray(d.appleEmpty) ||
+        !d.appleEmpty.every((t) => Array.isArray(t) && t.length === 2 && t.every(num)))) ||
+    (d.mushrooms !== undefined && (!Array.isArray(d.mushrooms) || !d.mushrooms.every(num))) ||
+    (d.hutCans !== undefined && !num(d.hutCans)) ||
     !Array.isArray(d.fires) ||
     !d.fires.every((f) => obj(f) && num(f.id) && num(f.x) && num(f.y) && num(f.until)) ||
     !Array.isArray(d.animals) ||
@@ -175,6 +202,14 @@ export function toSnap(w: World, s: State, focus: { x: number; y: number }[]): S
     trail: Object.entries(s.trail)
       .map(([k, until]): [number, number] => [Number(k), until])
       .filter(([k, until]) => until > s.total && near(k % w.size, Math.floor(k / w.size))),
+    appleEmpty: Object.entries(s.appleEmpty)
+      .map(([k, until]): [number, number] => [Number(k), until])
+      .filter(([k]) => {
+        const t = w.trees[k];
+        return !!t && near(t.x, t.y);
+      }),
+    mushrooms: s.mushrooms.filter((m) => near(m % w.size, Math.floor(m / w.size))),
+    hutCans: s.hutCans,
     animals: s.animals
       .filter((a) => near(a.x, a.y))
       .map((a) => [ANIMALS.indexOf(a.kind), +a.x.toFixed(2), +a.y.toFixed(2)]),
@@ -192,6 +227,9 @@ export function toSnap(w: World, s: State, focus: { x: number; y: number }[]): S
       needs: p.needs,
       wood: p.wood,
       berries: p.berries,
+      apples: p.apples,
+      mushrooms: p.mushrooms,
+      cans: p.cans,
       radio: p.radio,
       landing: +p.landing.toFixed(2),
     })),
@@ -206,6 +244,9 @@ export function applySnap(s: State, snap: Snap, me: string, first: boolean) {
   s.fires = snap.fires;
   s.bridges = Object.fromEntries(snap.bridges.map((i) => [i, 1 as const]));
   s.trail = Object.fromEntries(snap.trail ?? []);
+  s.appleEmpty = Object.fromEntries(snap.appleEmpty ?? []);
+  s.mushrooms = snap.mushrooms ?? [];
+  if (snap.hutCans !== undefined) s.hutCans = snap.hutCans;
   s.animals = snap.animals.map(([k, x, y], i): Animal => {
     const prev = s.animals[i];
     return prev && prev.kind === ANIMALS[k]
@@ -219,6 +260,10 @@ export function applySnap(s: State, snap: Snap, me: string, first: boolean) {
       s.players[q.id] ??
       (s.players[q.id] = {
         ...q,
+        apples: 0,
+        mushrooms: 0,
+        cans: 0,
+        hutSeen: true,
         exhausted: false,
         running: false,
         chop: null,
@@ -232,6 +277,9 @@ export function applySnap(s: State, snap: Snap, me: string, first: boolean) {
       needs: q.needs,
       wood: q.wood,
       berries: q.berries,
+      apples: q.apples ?? 0,
+      mushrooms: q.mushrooms ?? 0,
+      cans: q.cans ?? 0,
       radio: q.radio,
       landing: q.landing,
       sleeping: local ? p.sleeping && q.sleeping : q.sleeping,
