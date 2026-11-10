@@ -47,7 +47,8 @@ const toLocalServer = (sender: string) => async (route: Route) => {
 
 async function openForm(page: Page) {
   await page.getByRole("button", { name: "Feedback geben" }).click();
-  const dialog = page.getByRole("dialog");
+  // gezielt das Feedback-Formular (Spiele können eigene Dialoge offen haben, z. B. Wichtelhaus)
+  const dialog = page.locator("dialog.dampf-fb");
   await expect(dialog).toBeVisible();
   return dialog;
 }
