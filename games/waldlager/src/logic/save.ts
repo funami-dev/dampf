@@ -117,7 +117,7 @@ export function load(store: Store): { world: World; state: State; me: string } |
     Object.assign(p, {
       x: me.x,
       y: me.y,
-      needs: me.needs,
+      needs: { ...me.needs, warmth: num(me.needs.warmth) ? me.needs.warmth : 100 },
       wood: me.wood,
       berries: me.berries,
       tent: me.tent ?? null,

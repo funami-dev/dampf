@@ -418,7 +418,7 @@ test("WL-AK-22: Tier entdecken – Meldung und Tierbuch", async ({ page }) => {
   await tap("Menü");
   const count = (await state(page)).book.length;
   await tap("Tierbuch");
-  await expect(page.getByText(`${count} / 32 entdeckt`)).toBeVisible();
+  await expect(page.getByText(`${count} / ${SPECIES.length} entdeckt`)).toBeVisible();
   await expect(page.getByText("???").first()).toBeVisible();
   const entry = page.locator(".wl-animal:not(.unseen)").first();
   await expect(entry).toBeVisible();
@@ -429,7 +429,7 @@ test("WL-AK-22: Tier entdecken – Meldung und Tierbuch", async ({ page }) => {
   await expect.poll(() => page.evaluate(() => !!window.__dampf), { timeout: 60_000 }).toBe(true);
   expect((await state(page)).book).toContain(a[2]);
   await page.getByRole("button", { name: "Tierbuch" }).click();
-  await expect(page.getByText(`${count} / 32 entdeckt`)).toBeVisible();
+  await expect(page.getByText(`${count} / ${SPECIES.length} entdeckt`)).toBeVisible();
   await expectNoErrors(errors);
 });
 
@@ -628,7 +628,7 @@ test("WL-AK-33: Tierbuch-Suche", async ({ page }) => {
   await tap("Tierbuch");
   const search = page.getByLabel("Tier suchen");
   const visible = page.locator(".wl-animal:visible");
-  await expect(visible).toHaveCount(32);
+  await expect(visible).toHaveCount(SPECIES.length);
 
   // Teil des Namens, anders geschrieben → nur passende entdeckte Tiere, keine „???“
   const part = sp.name.slice(0, Math.min(3, sp.name.length)).toUpperCase();
@@ -660,7 +660,7 @@ test("WL-AK-33: Tierbuch-Suche", async ({ page }) => {
 
   // leer → wieder alle
   await search.fill("");
-  await expect(visible).toHaveCount(32);
+  await expect(visible).toHaveCount(SPECIES.length);
   await expect(page.getByText("Kein entdecktes Tier heißt so.")).toBeHidden();
   await tap("Zurück");
   await expectNoErrors(errors);
@@ -835,5 +835,19 @@ test("WL-AK-47: Rauch über dem Wrack, umgeknickte Bäume sind begehbar", async 
   const c = await page.evaluate(([x, y]) => (window.__dampf as Hooks).cell(x!, y!), f);
   expect(c.free).toBe(true);
   expect(c.tree).toBeGreaterThan(0);
+  await expectNoErrors(errors);
+});
+
+test("WL-AK-48: nachts erscheint die Wärme-Leiste", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await page.getByRole("button", { name: "Los geht's" }).click();
+  await landed(page);
+  const bar = page.locator('.wl-bar[data-n="warmth"]');
+  await hooks(page, (h) => h.setTime(100));
+  await expect(bar).toBeHidden();
+  await hooks(page, (h) => h.setTime(500));
+  await expect(bar).toBeVisible();
+  await expect(bar).toContainText("Wärme");
   await expectNoErrors(errors);
 });

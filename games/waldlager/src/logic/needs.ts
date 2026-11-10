@@ -1,11 +1,13 @@
-/** Hunger, Müdigkeit, Fitness (WL-AK-03/04). 100 = gut, 0 = leer. */
+/** Hunger, Müdigkeit, Fitness, Wärme (WL-AK-03/04/48). 100 = gut, 0 = leer. */
 export interface Needs {
   hunger: number;
   rest: number;
   fitness: number;
+  /** Wärme: sinkt nachts draußen ohne Feuer (Feedback fb_gt0srcqv) */
+  warmth: number;
 }
 
-export const FULL: Needs = { hunger: 100, rest: 100, fitness: 100 };
+export const FULL: Needs = { hunger: 100, rest: 100, fitness: 100, warmth: 100 };
 
 export const RATES = {
   hungerPerSec: 100 / 720, // voll → leer in 12 Min.
@@ -15,8 +17,16 @@ export const RATES = {
   runPerSec: 100 / 30, // Rennen kostet Fitness (WL-AK-38: hält doppelt so lange wie früher)
   chopCost: 2.5, // pro Axthieb
   fitStand: 6,
-  fitWalk: 2,
+  /** Gehen kostet leicht Fitness (Feedback fb_n5p5gxk2), Erholung nur im Stehen/Sitzen/Schlafen */
+  fitWalk: -0.5,
   fitFire: 12,
+  /** Wärme (WL-AK-48): nachts draußen ohne Feuer in ca. 2,5 Min. leer */
+  coldPerSec: 100 / 150,
+  warmFire: 100 / 20,
+  warmSleep: 100 / 40,
+  warmDay: 100 / 60,
+  /** wer friert (Wärme unter FREEZE), verliert zusätzlich Fitness */
+  freezeFit: 4,
   berry: 12,
 };
 
@@ -26,7 +36,13 @@ export interface NeedsCtx {
   moving: boolean;
   sleeping: boolean;
   atFire: boolean;
+  /** Dämmerung oder Nacht: draußen wird es kalt (WL-AK-48) */
+  cold?: boolean;
 }
+
+export const FREEZE = 30;
+/** Frieren: Wärme unter 30 % */
+export const freezing = (n: Needs) => n.warmth < FREEZE;
 
 const clamp = (v: number) => Math.max(0, Math.min(100, v));
 
@@ -53,11 +69,20 @@ export function stepNeeds(n: Needs, dt: number, c: NeedsCtx): Needs {
   const f = fitnessFactor(n);
   if (c.running && c.moving) fitness -= RATES.runPerSec * f.cost * dt;
   else if (c.atFire && !c.moving) fitness += RATES.fitFire * f.recover * dt;
-  else fitness += (c.moving ? RATES.fitWalk : RATES.fitStand) * f.recover * dt;
+  else if (c.moving) fitness += RATES.fitWalk * f.cost * dt;
+  else fitness += RATES.fitStand * f.recover * dt;
+  // Wärme (WL-AK-48): Feuer und Schlafen (Zelt/Hütte) wärmen, nachts draußen wird es kalt
+  let warmth = n.warmth ?? 100;
+  if (c.atFire) warmth += RATES.warmFire * dt;
+  else if (c.sleeping) warmth += RATES.warmSleep * dt;
+  else if (c.cold) warmth -= RATES.coldPerSec * dt;
+  else warmth += RATES.warmDay * dt;
+  if ((n.warmth ?? 100) < FREEZE) fitness -= RATES.freezeFit * dt;
   return {
     hunger: clamp(n.hunger - RATES.hungerPerSec * dt),
     rest: clamp(rest),
     fitness: clamp(fitness),
+    warmth: clamp(warmth),
   };
 }
 

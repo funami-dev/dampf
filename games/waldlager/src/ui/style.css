@@ -463,3 +463,9 @@
   transform: translateX(-50%);
   font-size: 13px;
 }
+.wl-bar[data-n="warmth"] b {
+  background: #ff9a52;
+}
+.wl-bar[hidden] {
+  display: none;
+}

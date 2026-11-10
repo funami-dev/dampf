@@ -28,8 +28,10 @@ gegen Tiere. Rehe und andere Waldtiere laufen nur herum. Man kann nicht sterben.
   - Strand (Sand) an der Küste.
   - Wiese und Waldboden.
   - **Wald** mit vielen Bäumen.
-  - **Flüsse**, 3 bis 5, laufen vom Inland zum Meer. Sie sind nicht begehbar, und es gibt
-    **keine fertigen Brücken oder Furten**: Brücken muss man **selbst bauen** (siehe Tätigkeiten).
+  - **Flüsse**, 3 bis 5, laufen vom Inland zum Meer. Sie sind nicht begehbar. Es gibt **keine
+    fertigen Brücken**: Brücken muss man **selbst bauen** (siehe Tätigkeiten). Nur an **3–6 Stellen
+    pro Insel** gibt es eine **steinige Furt** (Trittsteine, höchstens 4 Felder breit, mindestens
+    25 Felder voneinander entfernt), über die man zu Fuß kommt (Feedback `fb_9bwz2s9o`).
   - **Hügel** in 2–3 Höhenstufen, als erhöhte Kacheln mit Kanten dargestellt und begehbar.
   - **Einige Berge** (Fels): nicht begehbar und nicht abbaubar.
 - **Meer und Fluss sehen verschieden aus:** Das Meer ist dunkler und hat Wellen am Strand.
@@ -102,7 +104,7 @@ gegen Tiere. Rehe und andere Waldtiere laufen nur herum. Man kann nicht sterben.
 
 ## Tiere entdecken (nie verletzbar)
 
-Waldlager ist auch ein **Entdeckerspiel**: Auf der Insel leben **32 Tierarten**. Wer ein Tier zum ersten
+Waldlager ist auch ein **Entdeckerspiel**: Auf der Insel leben **33 Tierarten**. Wer ein Tier zum ersten
 Mal sieht, trägt es ins **Tierbuch** ein.
 
 - Es gibt keine Aktion, die ein Tier verletzt, fängt, füttert oder tötet. Tiere blockieren den Weg
@@ -183,7 +185,7 @@ bei Gefahr zu einer stacheligen Kugel zusammen.“).
 - **Beim ersten Mal** je Art erscheint die Meldung „Neu entdeckt: Igel!“, beim Einhorn
   „✨ Ein Einhorn! ✨“. Danach kommt für diese Art keine Meldung mehr.
 - **Tierbuch** (Menüpunkt „Tierbuch“, Taste T):
-  - Liste aller 32 Arten mit Zähler, z. B. „12 / 32 entdeckt“.
+  - Liste aller 33 Arten mit Zähler, z. B. „12 / 33 entdeckt“.
   - **Entdeckte Arten:** Bild, Name, Lebensraum, Tageszeit und der kurze Satz.
   - **Unentdeckte Arten:** dunkle Silhouette und „???“, dazu nur ein Hinweis auf Lebensraum und
     Tageszeit (z. B. „Nachts im Wald“). Beim Einhorn steht nur „Sehr selten …“.
@@ -198,7 +200,7 @@ bei Gefahr zu einer stacheligen Kugel zusammen.“).
     Liste nur noch entdeckte Arten, deren Name den Text enthält (Groß-/Kleinschreibung egal,
     z. B. „hase“ → Hase). Unentdeckte Arten werden beim Suchen ausgeblendet, damit die Suche
     nichts verrät. Passt nichts: „Kein entdecktes Tier heißt so.“ Leeres Feld zeigt wieder alle.
-    Der Zähler „12 / 32 entdeckt“ bleibt unverändert.
+    Der Zähler „12 / 33 entdeckt“ bleibt unverändert.
 - **Das Tierbuch gehört der Spielerin bzw. dem Spieler, nicht der Welt.** Es bleibt bei „Neue Welt“
   erhalten und wird auch als Gast in fremden Welten weitergeführt. Im Mehrspieler entdeckt jeder
   für sich.
@@ -215,11 +217,12 @@ bei Gefahr zu einer stacheligen Kugel zusammen.“).
 
 Drei Leisten von 0 bis 100 % stehen immer oben im Bild:
 
-| Leiste        | sinkt …                                                              | steigt …                                                           |
-| ------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| **Hunger**    | langsam mit der Zeit (voll → leer in ca. 12 Min.)                    | Essen: Pilz +8 %, Beere +12 %, Apfel +20 %, Dose +35 %             |
-| **Müdigkeit** | mit der Zeit, nachts doppelt so schnell                              | Schlafen im eigenen Zelt (schnell); am Lagerfeuer sitzen (langsam) |
-| **Fitness**   | beim Rennen (voll → leer in ca. 30 s) und Holzhacken (2,5 % je Hieb) | beim Stehen oder Gehen (langsam), am Lagerfeuer schneller          |
+| Leiste        | sinkt …                                                                              | steigt …                                                           |
+| ------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| **Hunger**    | langsam mit der Zeit (voll → leer in ca. 12 Min.)                                    | Essen: Pilz +8 %, Beere +12 %, Apfel +20 %, Dose +35 %             |
+| **Müdigkeit** | mit der Zeit, nachts doppelt so schnell                                              | Schlafen im eigenen Zelt (schnell); am Lagerfeuer sitzen (langsam) |
+| **Fitness**   | beim Rennen (voll → leer in ca. 30 s), Holzhacken (2,5 % je Hieb), leicht beim Gehen | beim Stehen und Schlafen, am Lagerfeuer schneller                  |
+| **Wärme**     | nachts und in der Dämmerung draußen ohne Feuer (ca. 2,5 Min.)                        | am Feuer schnell, beim Schlafen, tagsüber                          |
 
 (Bei „Müdigkeit“ bedeutet 100 % ausgeruht und 0 % todmüde.)
 
@@ -392,7 +395,7 @@ Figur steht.
   - Es ist eine Insel: Alle Randfelder in 12 Feldern Breite sind Meer, und mindestens 35 % der
     Karte sind Land.
   - Es gibt Strand, Wiese, Wald, 3–5 Flüsse, Hügel und Berge.
-  - Es gibt keine fertigen Brücken oder Furten.
+  - Es gibt keine fertigen Brücken; nur 3–6 steinige Furten (WL-AK-50).
   - Zählt man Flussfelder als überbrückbar, hängen alle begehbaren Felder zusammen.
   - Das Erzeugen dauert höchstens 3 Sekunden.
 - **WL-AK-02** Kollision: Wasser (außer gebauten Brücken), Berge, Bäume und Zelte sind nicht
@@ -460,7 +463,7 @@ Figur steht.
   - Versteckte Tiere zählen nicht.
   - Das Tierbuch übersteht Neuladen und „Neue Welt“, kaputte Daten ergeben ein leeres Tierbuch.
 - **WL-AK-22** (E2E) In die Nähe eines Tieres gehen ergibt die Meldung „Neu entdeckt: …“. Das
-  Tierbuch zeigt dann „1 / 32 entdeckt“ (bzw. die passende Zahl) mit Name und Satz; unentdeckte
+  Tierbuch zeigt dann „1 / 33 entdeckt“ (bzw. die passende Zahl) mit Name und Satz; unentdeckte
   Arten zeigen „???“. Nach Neuladen ist der Eintrag noch da. Auf Mobile ist das Tierbuch
   bedienbar.
 
@@ -482,7 +485,7 @@ Figur steht.
 - **WL-AK-26** Hai:
   - Haie sind nur im Meer, verlassen es nie, und es gibt höchstens zwei.
   - Die Flosse ist zeitweise abgetaucht und dann weder sichtbar noch entdeckbar.
-  - Der Hai steht im Tierbuch (32 Arten).
+  - Der Hai steht im Tierbuch.
 - **WL-AK-44** Kompass und Karte: Die Richtung auf dem Bildschirm wird richtig berechnet (Norden
   0°, Osten 90°, Süden 180°, Westen 270°); Kartenpunkte liegen wie im Spielbild gedreht
   (Inselmitte in der Kartenmitte, Norden oben).
@@ -493,6 +496,18 @@ Figur steht.
   ihre Felder angesengt; immer gleich je Seed; Zahl und Lage aller Bäume unverändert.
 - **WL-AK-47** (E2E) Am Wrack steigt Rauch auf (Rauch-Teilchen sichtbar); ein Feld mit
   umgeknicktem Baum ist begehbar.
+- **WL-AK-48** Frieren (Feedback `fb_gt0srcqv`): In Dämmerung und Nacht sinkt draußen die
+  **Wärme** (voll → leer in ca. 2,5 Min.), am Feuer steigt sie schnell, beim Schlafen langsam,
+  tagsüber erholt sie sich. Unter 30 % friert man: Fitness sinkt zusätzlich 4 %/s, und es kommt
+  einmal die Meldung „🥶 Dir ist kalt – mach ein Feuer oder geh ins Zelt!“. Die Leiste „Wärme“
+  erscheint in Dämmerung und Nacht und solange sie nicht voll ist. Gehen kostet leicht Fitness
+  (0,5 %/s); erholen nur im Stehen, Sitzen und Schlafen (Feedback `fb_n5p5gxk2`).
+- **WL-AK-49** Einhorn wiehern (Feedback `fb_7rnu4uip`): Gibt es ein Einhorn und ist es weiter als
+  12 Felder weg, kommt im Mittel alle 2 Minuten „🦄 Du hörst ein Einhorn wiehern – irgendwo im
+  Nordosten!“ mit der richtigen Himmelsrichtung (8 Richtungen, Norden oben).
+- **WL-AK-50** Strandkrabben und Furten: Die Strandkrabbe (Feedback `fb_6hh2w8h7`) lebt nur auf
+  Sand am Meer und steht im Tierbuch; jede Insel hat 3–6 steinige Furten über Flüsse (höchstens
+  4 Felder breit, begehbar, mit Trittsteinen gezeichnet).
 - **WL-AK-27** (E2E) Neue Welt:
   - Fallschirm-Landung, danach laufen.
   - Mit Test-Hilfe zum Flugzeug: Meldung und Funk-Button erscheinen.
@@ -522,7 +537,7 @@ Figur steht.
   Figur hat diese Farbe, nach Neuladen auch.
 - **WL-AK-33** (E2E) Tierbuch-Suche: Mit einem entdeckten Tier zeigt „Tier suchen“ mit Teil des
   Namens nur dieses Tier, unentdeckte („???“) sind ausgeblendet; ein unpassender Text zeigt
-  „Kein entdecktes Tier heißt so.“; leeres Feld zeigt wieder alle 32. Tippen im Suchfeld löst
+  „Kein entdecktes Tier heißt so.“; leeres Feld zeigt wieder alle Arten. Tippen im Suchfeld löst
   keine Spieltasten aus. Auf Mobile bedienbar.
 
 - **WL-AK-34** Schwäche: Tempo 100 % ab 25 % Fitness, 80 % darunter, 60 % unter 10 % Fitness

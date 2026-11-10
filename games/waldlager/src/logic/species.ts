@@ -2,7 +2,7 @@
  * Tierarten (WL-AK-18). Grafiken als Pixel-Raster: jedes Zeichen ist ein Pixel,
  * „.“ ist durchsichtig, andere Zeichen stehen für eine Farbe aus der Palette der Art.
  */
-export type Habitat = "wald" | "wiese" | "wasser" | "huegel" | "meer";
+export type Habitat = "wald" | "wiese" | "wasser" | "huegel" | "meer" | "strand";
 export type Activity = "tag" | "nacht";
 export type Rarity = "haeufig" | "selten" | "sehr-selten";
 
@@ -537,6 +537,26 @@ export const SPECIES: readonly Species[] = [
     ],
   },
   {
+    // Feedback fb_6hh2w8h7: Krebse nur am Sandstrand
+    id: "krebs",
+    name: "Strandkrabbe",
+    habitat: "strand",
+    time: "tag",
+    rarity: "haeufig",
+    fact: "Strandkrabben laufen seitwärts und verstecken sich bei Gefahr blitzschnell im Sand.",
+    palette: { r: "#d9482b", d: "#a3311b", k: K, w: "#fff" },
+    pixels: [
+      ".w.w....w.w.",
+      ".k.k....k.k.",
+      "rr........rr",
+      "rr.rrrrrr.rr",
+      ".rrrrrrrrrr.",
+      "..rddddddr..",
+      ".r.r.rr.r.r.",
+      "r..r....r..r",
+    ],
+  },
+  {
     id: "einhorn",
     name: "Einhorn",
     habitat: "wiese",
@@ -580,5 +600,6 @@ export const HABITAT_TEXT: Record<Habitat, string> = {
   wasser: "am Wasser",
   huegel: "auf den Hügeln",
   meer: "im Meer",
+  strand: "am Strand",
 };
 export const TIME_TEXT: Record<Activity, string> = { tag: "Tagsüber", nacht: "Nachts" };

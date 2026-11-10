@@ -30,7 +30,7 @@ describe("WL-AK-03: Leisten", () => {
     );
   });
   it("bleibt zwischen 0 und 100; Beere gibt +12 %", () => {
-    expect(stepNeeds(FULL, 1e6, idle)).toEqual({ hunger: 0, rest: 0, fitness: 100 });
+    expect(stepNeeds(FULL, 1e6, idle)).toEqual({ hunger: 0, rest: 0, fitness: 100, warmth: 100 });
     expect(eatBerry({ ...FULL, hunger: 50 }).hunger).toBe(62);
     expect(eatBerry(FULL).hunger).toBe(100);
   });

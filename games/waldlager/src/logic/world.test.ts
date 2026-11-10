@@ -43,8 +43,10 @@ describe("WL-AK-01: Insel", () => {
       expect(count(T.ROCK)).toBeGreaterThan(10);
       expect(w.rivers).toBeGreaterThanOrEqual(3);
       expect(w.rivers).toBeLessThanOrEqual(5);
-      // keine fertigen Übergänge
-      expect(count(T.FORD) + count(T.BRIDGE)).toBe(0);
+      // keine fertigen Brücken; nur wenige steinige Furten (WL-AK-50)
+      expect(count(T.BRIDGE)).toBe(0);
+      expect(count(T.FORD)).toBeGreaterThan(0);
+      expect(count(T.FORD)).toBeLessThanOrEqual(6 * 4);
       expect(w.height.reduce((m, h) => Math.max(m, h), 0)).toBeGreaterThanOrEqual(2);
       // Keine Klippen
       for (let y = 0; y < w.size; y++)
