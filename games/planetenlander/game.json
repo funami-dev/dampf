@@ -1,0 +1,25 @@
+{
+  "slug": "planetenlander",
+  "title": "Planetenlander",
+  "description": "Lande sanft auf Mond, Mars, Venus und Co. – jeweils mit der echten Schwerkraft. Wie stark zieht welcher Planet?",
+  "thumbnail": "thumbnail.png",
+  "controls": {
+    "keyboard": true,
+    "touch": true
+  },
+  "status": "published",
+  "order": 90,
+  "addedAt": "2026-11-09",
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-09",
+      "items": [
+        "Neues Spiel: Lande auf 8 Monden und Planeten mit echter Schwerkraft",
+        "Lern-Karte vor jedem Flug: Wie stark zieht der Planet im Vergleich zur Erde?",
+        "Jupiter, Saturn, Uranus und Neptun zum Anschauen – mit Erklärung, warum man dort nicht landen kann"
+      ]
+    }
+  ]
+}
