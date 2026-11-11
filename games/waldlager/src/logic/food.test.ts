@@ -8,6 +8,7 @@ import {
   HUT_CANS,
   MUSHROOMS,
   act,
+  chestMove,
   actionFor,
   addPlayer,
   createState,
@@ -71,19 +72,21 @@ describe("WL-AK-39: verlassene Hütte", () => {
     }
   });
 
-  it("Kiste: 2 Dosen, dann leer → In der Hütte schlafen; nach einem Spieltag wieder voll", () => {
+  it("Truhe: 2 Dosen, herausnehmen; leer → nach einem Spieltag wieder 2; Schlafen in der Hütte", () => {
     const { w, s, p } = setup();
     besides(w, s, p, w.hut.x, w.hut.y);
     s.mushrooms = [];
-    expect(actionFor(w, s, p)?.label).toBe("Kiste öffnen");
-    expect(act(w, s, p)).toBe("+2 Dosen");
+    expect(s.hutChest.cans).toBe(HUT_CANS.give);
+    expect(chestMove(w, s, p, "cans", "take")).toMatch(/genommen/);
+    expect(chestMove(w, s, p, "cans", "take")).toMatch(/genommen/);
     expect(p.cans).toBe(HUT_CANS.give);
+    expect(chestMove(w, s, p, "cans", "take")).toBe("Das ist nicht in der Truhe.");
     expect(actionFor(w, s, p)?.label).toBe("In der Hütte schlafen");
     act(w, s, p);
     expect(p.sleeping).toBe(true);
     p.sleeping = false;
     for (let t = 0; t < DAY + 2; t++) stepWorld(w, s, 1);
-    expect(s.hutCans).toBe(HUT_CANS.give);
+    expect(s.hutChest.cans).toBe(HUT_CANS.give);
   });
 
   it("Meldung beim ersten Herankommen genau einmal", () => {
@@ -179,7 +182,7 @@ describe("WL-AK-42: Essen, Speichern, Mehrspieler", () => {
   it("Speichern/Laden: Vorräte, Kiste, Äpfel, Pilze; kaputte Werte → sicher", () => {
     const { w, s, p } = setup(9);
     Object.assign(p, { apples: 3, mushrooms: 2, cans: 1, hutSeen: true });
-    s.hutCans = 0;
+    s.hutChest = { cans: 0, wood: 5 };
     s.hutRefill = 999;
     s.appleEmpty[4] = 777;
     const store = memory();
@@ -187,18 +190,19 @@ describe("WL-AK-42: Essen, Speichern, Mehrspieler", () => {
     const r = load(store)!;
     const q = r.state.players.me!;
     expect([q.apples, q.mushrooms, q.cans, q.hutSeen]).toEqual([3, 2, 1, true]);
-    expect([r.state.hutCans, r.state.hutRefill]).toEqual([0, 999]);
+    expect([r.state.hutChest, r.state.hutRefill]).toEqual([{ cans: 0, wood: 5 }, 999]);
     expect(r.state.appleEmpty[4]).toBe(777);
     expect(r.state.mushrooms).toEqual(s.mushrooms);
     // ältere Spielstände ohne die neuen Felder
     const raw = JSON.parse(store.get("dampf.waldlager.v1")!);
     delete raw.state.mushrooms;
-    delete raw.state.hutCans;
+    delete raw.state.hutChest;
+    raw.state.hutCans = 1;
     raw.state.players.me.apples = "viele";
     store.set("dampf.waldlager.v1", JSON.stringify(raw));
     const old = load(store)!;
     expect(old.state.players.me!.apples).toBe(0);
-    expect(old.state.hutCans).toBe(HUT_CANS.give);
+    expect(old.state.hutChest).toEqual({ cans: 1 });
     expect(old.state.mushrooms.length).toBeGreaterThan(0);
     void w;
   });
@@ -206,20 +210,25 @@ describe("WL-AK-42: Essen, Speichern, Mehrspieler", () => {
   it("Schnappschuss überträgt Vorräte, Kiste, Äpfel und Pilze; Gäste wählen die Sorte", () => {
     const { w, s, p } = setup(5);
     Object.assign(p, { apples: 2, cans: 1 });
-    s.hutCans = 1;
+    s.hutChest = { cans: 1 };
     const near = s.mushrooms.find(
       (m) => Math.abs((m % w.size) - p.x) < 25 && Math.abs(Math.floor(m / w.size) - p.y) < 25,
     );
     const snap = JSON.parse(JSON.stringify(toSnap(w, s, [p])));
-    expect(snap.hutCans).toBe(1);
+    expect(snap.hutChest).toEqual({ cans: 1 });
     if (near !== undefined) expect(snap.mushrooms).toContain(near);
     const ok = parseHost(snap)!;
     const g = createState(w);
     applySnap(g, ok as never, "gast", true);
     expect(g.players.me!.apples).toBe(2);
     expect(g.players.me!.cans).toBe(1);
-    expect(g.hutCans).toBe(1);
-    for (const bad of [{ hutCans: "x" }, { mushrooms: ["a"] }, { appleEmpty: [[1]] }])
+    expect(g.hutChest).toEqual({ cans: 1 });
+    for (const bad of [
+      { hutCans: "x" },
+      { hutChest: { gold: 1 } },
+      { mushrooms: ["a"] },
+      { appleEmpty: [[1]] },
+    ])
       expect(parseHost({ ...snap, ...bad })).toBeNull();
     expect(parseGuest({ v: 1, k: "eat", food: "apples" })).toEqual({
       v: 1,

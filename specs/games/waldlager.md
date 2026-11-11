@@ -272,6 +272,13 @@ Drei Leisten von 0 bis 100 % stehen immer oben im Bild:
   - Im Bau-Menü steht „Brücke (3 Holz)“, Taste 3.
 - **Lagerfeuer bauen:** kostet 3 Holz. Es brennt 3 Minuten, jedes nachgelegte Holz gibt
   +2 Minuten. Am Feuer sitzen erholt Fitness und Müdigkeit. Das Feuer **leuchtet nachts**.
+- **Truhe im Zelt** (Feedback `fb_7fx13soz`): Jedes Zelt hat eine Truhe mit 10 Plätzen. Wer am
+  Zelt steht (auch an fremden), sieht „📦 Truhe“ und kann hineinlegen und **herausnehmen** – das
+  gilt für alle Spieler. Die Truhe zieht mit, wenn man sein Zelt neu aufbaut.
+- **Essen geben** (Feedback `fb_dd6yud2j`): Steht man höchstens 2 Felder neben einem wachen
+  Mitspieler und hat Essen dabei, erscheint „🤝 Geben“ (Taste G). Man wählt eine Sorte; ein Stück
+  geht in dessen Inventar (wenn er noch Platz hat). Beide bekommen eine Meldung, z. B. „🍎 Lea hat
+  dir einen Apfel gegeben!“.
 - **Inventar:** Holz (max. 30), Beeren, Äpfel, Pilze, Dosen und Fische (je max. 20).
 - **Werkzeuge** (Feedback `fb_ch2wfaa6`): Im Inventar gibt es eine Werkzeug-Zeile. Die **Axt** 🪓
   hat man von Anfang an. Eine **Angel** 🎣 baut man aus 5 Holz (Bau-Menü „Angel (5 Holz)“,
@@ -290,10 +297,12 @@ Drei Leisten von 0 bis 100 % stehen immer oben im Bild:
   Landeplatz aus zu Fuß (ggf. mit Brücken) erreichbar. Man kann nicht durch sie hindurchlaufen.
   - Kommt man zum ersten Mal auf 4 Felder heran: Meldung „Eine verlassene Hütte! In der Kiste
     ist vielleicht etwas zu essen.“
-  - **Vorratskiste:** „Kiste öffnen“ gibt 2 Dosen 🥫 (solange Platz ist). Danach ist die Kiste
-    leer und füllt sich nach einem Spieltag wieder.
-  - **Schlafen in der Hütte** geht wie im Zelt („In der Hütte schlafen“), wenn die Kiste leer ist
-    oder man keinen Platz mehr hat.
+  - **Truhe** (Feedback `fb_7fx13soz`, ersetzt die Vorratskiste): eine **gemeinsame Truhe für
+    alle** in der Welt, 40 Plätze. Steht man an der Hütte, erscheint der Knopf „📦 Truhe“ (Taste C).
+    Man legt Holz, Beeren, Äpfel, Pilze, Dosen und Fische hinein und nimmt sie wieder heraus –
+    **jeder darf alles herausnehmen** (auch „klauen“). Anfangs liegen 2 Dosen darin; ist die
+    letzte Dose genommen, liegen nach einem Spieltag wieder 2 Dosen darin.
+  - **Schlafen in der Hütte** geht wie im Zelt („In der Hütte schlafen“, Aktionstaste).
 - **Apfelbäume:** Etwa jeder zehnte Baum ist ein Apfelbaum (rote Punkte in der Krone).
   „Äpfel schütteln“ gibt 2 Äpfel; danach hängen nach einem halben Spieltag neue Äpfel dran.
   Solange Äpfel dran sind, kommt beim Apfelbaum zuerst „Äpfel schütteln“, danach „Holz hacken“.
@@ -606,10 +615,21 @@ Figur steht.
   einen Pilz, nach einem halben Spieltag gibt es wieder gleich viele.
 - **WL-AK-42** Essen: Pilz +8 %, Beere +12 %, Apfel +20 %, Dose +35 % Hunger (max. 100); jede
   Sorte höchstens 20 im Inventar; Essen ohne Vorrat ändert nichts. Speichern/Laden und
-  Mehrspieler-Schnappschüsse übertragen Vorräte, Kiste, Äpfel und Pilze; ungültige Werte werden
+  Mehrspieler-Schnappschüsse übertragen Vorräte, Truhen, Äpfel und Pilze; ungültige Werte werden
   abgewiesen.
-- **WL-AK-43** (E2E) Zur Hütte gehen → Meldung, „Kiste öffnen“ → 🥫 2; einen Apfelbaum schütteln →
+- **WL-AK-43** (E2E) Zur Hütte gehen → Meldung, „📦 Truhe“ → zwei Dosen nehmen → 🥫 2; einen Apfelbaum schütteln →
   🍎 2; „Essen“ zeigt die Auswahl-Leiste, Apfel essen erhöht den Hunger-Wert; auch auf Mobile.
+
+- **WL-AK-56** Truhen (Feedback `fb_7fx13soz`): Hütten-Truhe für alle mit 40 Plätzen, Zelt-Truhe
+  mit 10 Plätzen; hineinlegen nur, was man hat und solange Platz ist; herausnehmen darf jeder, nur
+  bis zur Taschengrenze; ohne Truhe in Reichweite passiert nichts; leere Dosen kommen nach einem
+  Spieltag (2) nach; Truhen überstehen Neuladen (eigene Zelt-Truhe) und gehen an die Gäste; ältere
+  Spielstände übernehmen die Dosen der alten Kiste.
+- **WL-AK-57** Essen geben (Feedback `fb_dd6yud2j`): nur an einen wachen Mitspieler in höchstens
+  2 Feldern; ein Stück wandert, beide bekommen eine Meldung; nichts dabei, Taschen des anderen
+  voll oder niemand da → nichts ändert sich.
+- **WL-AK-58** (E2E) An der Hütte „📦 Truhe“ öffnen, Holz hineinlegen und wieder nehmen; zwei
+  Browser: Gastgeber gibt dem Gast eine Beere, der Gast bekommt sie und sieht die Meldung.
 
 ## Nicht-Ziele (MVP)
 

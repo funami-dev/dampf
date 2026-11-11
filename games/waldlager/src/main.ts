@@ -15,7 +15,15 @@ import {
   markTrail,
   FISHING,
   FOODS,
+  ITEM_ICON,
+  ITEM_KINDS,
+  chestCount,
+  chestMove,
+  chestNear,
   foodsOf,
+  giveFood,
+  nearbyPlayer,
+  type ItemKind,
   hasApples,
   type FoodKind,
   build,
@@ -105,6 +113,8 @@ layer.innerHTML = `
     <div class="wl-stick" role="slider" aria-label="Laufen"><div class="wl-knob"></div></div>
     <div class="wl-actions">
       <button class="wl-btn" type="button" data-b="radio" hidden>📻 Funk</button>
+      <button class="wl-btn" type="button" data-b="chest" hidden>📦 Truhe</button>
+      <button class="wl-btn" type="button" data-b="give" hidden>🤝 Geben</button>
       <button class="wl-btn" type="button" data-b="build">Bauen</button>
       <button class="wl-btn" type="button" data-b="eat">Essen</button>
       <button class="wl-btn primary wl-act" type="button" data-b="act" aria-label="Aktion">Aktion</button>
@@ -234,6 +244,7 @@ function toggleEat(on: boolean) {
   if (on) {
     toggleBuild(false);
     const p = me();
+    eatBar.dataset.mode = "eat";
     eatBar.innerHTML =
       foodsOf(p)
         .map(
@@ -252,6 +263,96 @@ function toggleEat(on: boolean) {
   }
   eatBar.hidden = !on;
 }
+/** Essen geben (WL-AK-57): Sorte wählen, ein Stück geht an den Mitspieler daneben */
+function toggleGive(on: boolean) {
+  if (on && !canPlay()) return;
+  const p = me();
+  const q = nearbyPlayer(state, p);
+  if (on && !q) return toast("Hier ist niemand, dem du etwas geben kannst.", 2);
+  if (on) {
+    toggleBuild(false);
+    eatBar.dataset.mode = "give";
+    eatBar.innerHTML =
+      `<span class="wl-give-to">An ${escapeHtml(q!.name)}:</span>` +
+      foodsOf(p)
+        .map(
+          (k) =>
+            `<button class="wl-btn" type="button" data-give="${k}" aria-label="${FOODS[k].one} geben (${p[k]})">${FOODS[k].icon} ${p[k]}</button>`,
+        )
+        .join("") +
+      `<button class="wl-btn" type="button" data-give="x" aria-label="Schließen">✕</button>`;
+    eatBar.querySelectorAll<HTMLButtonElement>("[data-give]").forEach((b) =>
+      b.addEventListener("click", () => {
+        if (b.dataset.give === "x") return toggleEat(false);
+        doGive(b.dataset.give as FoodKind);
+        toggleEat(false);
+      }),
+    );
+  }
+  eatBar.hidden = !on;
+}
+function doGive(kind: FoodKind) {
+  if (!canPlay()) return;
+  if (mode === "guest") return guestSend({ v: 1, k: "give", food: kind });
+  const r = giveFood(state, me(), kind);
+  toast(r.text, 2.5);
+  if (r.to) onEvent(r.to);
+}
+
+/** Truhe in Hütte oder Zelt (WL-AK-56): hineinlegen und herausnehmen */
+let chestTimer: ReturnType<typeof setInterval> | null = null;
+function openChest() {
+  if (!canPlay()) return;
+  if (!chestNear(world, state, me())) return toast("Hier ist keine Truhe.", 2);
+  toggleBuild(false);
+  toggleEat(false);
+  const el = panel(`<h2>📦 <span data-c="title"></span></h2>
+    <div class="wl-chest">
+      <div><h3>Du hast</h3><div data-c="mine"></div></div>
+      <div><h3>In der Truhe <small data-c="count"></small></h3><div data-c="box"></div></div>
+    </div>
+    <button class="wl-btn primary" type="button" data-a="back">Fertig</button>`);
+  el.classList.add("wl-panel-scroll");
+  const draw = () => {
+    if (!el.isConnected) {
+      if (chestTimer) clearInterval(chestTimer);
+      chestTimer = null;
+      return;
+    }
+    const p = me();
+    const c = chestNear(world, state, p);
+    if (!c) return resume();
+    el.querySelector("[data-c=title]")!.textContent = c.label;
+    el.querySelector("[data-c=count]")!.textContent = `${chestCount(c.chest)}/${c.cap}`;
+    const row = (k: ItemKind, n: number, dir: "put" | "take") =>
+      `<button class="wl-btn" type="button" data-move="${dir}" data-k="${k}" ${n > 0 ? "" : "disabled"} aria-label="${dir === "put" ? "Hineinlegen" : "Nehmen"}: ${ITEM_ICON[k]}">${ITEM_ICON[k]} ${n} ${dir === "put" ? "➡" : "⬅"}</button>`;
+    const set = (sel: string, html: string) => {
+      const box = el.querySelector<HTMLElement>(sel)!;
+      // nur neu zeichnen, wenn sich etwas geändert hat (sonst gehen Klicks verloren)
+      if (box.dataset.html !== html) {
+        box.dataset.html = html;
+        box.innerHTML = html;
+      }
+    };
+    set("[data-c=mine]", ITEM_KINDS.map((k) => row(k, p[k], "put")).join(""));
+    set("[data-c=box]", ITEM_KINDS.map((k) => row(k, c.chest[k] ?? 0, "take")).join(""));
+  };
+  // ein Klick-Handler für alle Knöpfe
+  el.addEventListener("click", (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>("[data-move]");
+    if (!b || b.disabled) return;
+    const kind = b.dataset.k as ItemKind;
+    const dir = b.dataset.move as "put" | "take";
+    if (mode === "guest") guestSend({ v: 1, k: "chest", kind, dir });
+    else toast(chestMove(world, state, me(), kind, dir), 1.2);
+    draw();
+  });
+  draw();
+  if (chestTimer) clearInterval(chestTimer);
+  chestTimer = setInterval(draw, 500);
+  el.querySelector('[data-a="back"]')!.addEventListener("click", () => resume());
+}
+
 function toggleBuild(on = !building) {
   if (!canPlay() && on) return;
   if (on) toggleEat(false);
@@ -275,6 +376,8 @@ function doBuild(kind: BuildKind) {
 actBtn.addEventListener("click", () => doAct());
 $('[data-b="eat"]').addEventListener("click", () => doEat());
 $('[data-b="radio"]').addEventListener("click", () => openRadio());
+$('[data-b="chest"]').addEventListener("click", () => openChest());
+$('[data-b="give"]').addEventListener("click", () => toggleGive(true));
 $('[data-b="build"]').addEventListener("click", () => toggleBuild());
 $('[data-b="tent"]').addEventListener("click", () => doBuild("tent"));
 $('[data-b="fire"]').addEventListener("click", () => doBuild("fire"));
@@ -304,7 +407,9 @@ window.addEventListener("keydown", (e) => {
     openBook(() => resume());
   }
   if (e.code === "KeyB") toggleBuild();
-  if (!eatBar.hidden && /^Digit[1-5]$/.test(e.code)) {
+  if (e.code === "KeyC") openChest();
+  if (e.code === "KeyG") toggleGive(eatBar.hidden === true);
+  if (!eatBar.hidden && eatBar.dataset.mode === "eat" && /^Digit[1-5]$/.test(e.code)) {
     const k = foodsOf(me())[Number(e.code.slice(5)) - 1];
     if (k) doEat(k);
     return;
@@ -833,6 +938,15 @@ function onGuestMsg(id: string, d: unknown) {
     case "build":
       say(build(world, state, p, g.kind));
       break;
+    case "chest":
+      say(chestMove(world, state, p, g.kind, g.dir));
+      break;
+    case "give": {
+      const r = giveFood(state, p, g.food);
+      say(r.text);
+      if (r.to) onEvent(r.to);
+      break;
+    }
   }
 }
 
@@ -1417,6 +1531,9 @@ function updateHud() {
       ? `Online · ${Object.keys(state.players).length}`
       : `Gast · ${Object.keys(state.players).length}`;
   $<HTMLButtonElement>('[data-b="radio"]').hidden = !p.radio;
+  $<HTMLButtonElement>('[data-b="chest"]').hidden = !chestNear(world, state, p);
+  $<HTMLButtonElement>('[data-b="give"]').hidden =
+    !nearbyPlayer(state, p) || foodsOf(p).length === 0;
   const a = screen === "play" ? actionFor(world, state, p) : null;
   actBtn.textContent = a ? a.label : "Aktion";
   actBtn.disabled = !a;
@@ -1692,7 +1809,7 @@ if (debugEnabled) {
       const t = world.trees.find((q) => q.fallen);
       return t ? [t.x, t.y] : null;
     },
-    hutSpot: () => standFor(world.hut.x, world.hut.y, ["open", "hutsleep"]),
+    hutSpot: () => standFor(world.hut.x, world.hut.y, ["hutsleep"]),
     appleSpot: () => {
       const p = me();
       const trees = world.trees

@@ -2,8 +2,11 @@ import type { World } from "./world.ts";
 import {
   ANIMALS,
   FOOD_KINDS,
+  ITEM_KINDS,
   isColor,
   type Animal,
+  type Chest,
+  type ItemKind,
   type Fire,
   type FoodKind,
   type Player,
@@ -27,7 +30,9 @@ export type GuestMsg =
     }
   | { v: 1; k: "act" }
   | { v: 1; k: "eat"; food?: FoodKind }
-  | { v: 1; k: "build"; kind: "tent" | "fire" | "bridge" | "rod" };
+  | { v: 1; k: "build"; kind: "tent" | "fire" | "bridge" | "rod" }
+  | { v: 1; k: "chest"; kind: ItemKind; dir: "put" | "take" }
+  | { v: 1; k: "give"; food: FoodKind };
 
 export interface PlayerSnap {
   id: string;
@@ -76,7 +81,11 @@ export interface Snap {
   /** Hütte und Essen (WL-AK-42; fehlen bei älteren Gastgebern) */
   appleEmpty?: [number, number][];
   mushrooms?: number[];
+  /** ältere Gastgeber (vor der Truhe) */
   hutCans?: number;
+  /** Truhen (WL-AK-56) */
+  hutChest?: Chest;
+  tentChests?: Record<string, Chest>;
   /** ruhende Fischstellen [Index, bis] (WL-AK-54) */
   fishRest?: [number, number][];
 }
@@ -120,6 +129,15 @@ export function parseGuest(d: unknown): GuestMsg | null {
     case "build":
       return d.kind === "tent" || d.kind === "fire" || d.kind === "bridge" || d.kind === "rod"
         ? { v: 1, k: "build", kind: d.kind }
+        : null;
+    case "chest":
+      return (ITEM_KINDS as readonly unknown[]).includes(d.kind) &&
+        (d.dir === "put" || d.dir === "take")
+        ? { v: 1, k: "chest", kind: d.kind as ItemKind, dir: d.dir }
+        : null;
+    case "give":
+      return (FOOD_KINDS as unknown[]).includes(d.food)
+        ? { v: 1, k: "give", food: d.food as FoodKind }
         : null;
     default:
       return null;
@@ -176,6 +194,9 @@ export function parseHost(d: unknown): HostMsg | null {
         !d.appleEmpty.every((t) => Array.isArray(t) && t.length === 2 && t.every(num)))) ||
     (d.mushrooms !== undefined && (!Array.isArray(d.mushrooms) || !d.mushrooms.every(num))) ||
     (d.hutCans !== undefined && !num(d.hutCans)) ||
+    (d.hutChest !== undefined && !isChest(d.hutChest)) ||
+    (d.tentChests !== undefined &&
+      (!obj(d.tentChests) || !Object.values(d.tentChests).every(isChest))) ||
     (d.fishRest !== undefined &&
       (!Array.isArray(d.fishRest) ||
         !d.fishRest.every((t) => Array.isArray(t) && t.length === 2 && t.every(num)))) ||
@@ -222,7 +243,13 @@ export function toSnap(w: World, s: State, focus: { x: number; y: number }[]): S
         return !!t && near(t.x, t.y);
       }),
     mushrooms: s.mushrooms.filter((m) => near(m % w.size, Math.floor(m / w.size))),
-    hutCans: s.hutCans,
+    hutChest: { ...s.hutChest },
+    tentChests: Object.fromEntries(
+      Object.entries(s.tentChests).filter(([id]) => {
+        const t = s.players[id]?.tent;
+        return !!t && near(t.x, t.y);
+      }),
+    ),
     fishRest: Object.entries(s.fishRest)
       .map(([k, until]): [number, number] => [Number(k), until])
       .filter(([k, until]) => {
@@ -267,7 +294,9 @@ export function applySnap(s: State, snap: Snap, me: string, first: boolean) {
   s.trail = Object.fromEntries(snap.trail ?? []);
   s.appleEmpty = Object.fromEntries(snap.appleEmpty ?? []);
   s.mushrooms = snap.mushrooms ?? [];
-  if (snap.hutCans !== undefined) s.hutCans = snap.hutCans;
+  if (snap.hutChest) s.hutChest = snap.hutChest;
+  else if (snap.hutCans !== undefined) s.hutChest = { cans: snap.hutCans };
+  if (snap.tentChests) s.tentChests = snap.tentChests;
   s.fishRest = Object.fromEntries(snap.fishRest ?? []);
   s.animals = snap.animals.map(([k, x, y], i): Animal => {
     const prev = s.animals[i];
@@ -314,4 +343,14 @@ export function applySnap(s: State, snap: Snap, me: string, first: boolean) {
     if (!local) Object.assign(p, { x: q.x, y: q.y, fx: q.fx, fy: q.fy, moving: q.moving });
   }
   for (const id of Object.keys(s.players)) if (!keep.has(id)) delete s.players[id];
+}
+
+/** Truhen-Inhalt: nur bekannte Sachen mit Zahlen */
+export function isChest(c: unknown): c is Chest {
+  return (
+    obj(c) &&
+    Object.entries(c).every(
+      ([k, v]) => (ITEM_KINDS as readonly string[]).includes(k) && num(v) && v >= 0,
+    )
+  );
 }
