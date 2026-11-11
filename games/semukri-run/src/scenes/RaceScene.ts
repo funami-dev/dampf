@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { fresh } from "../keys.ts";
 import {
   DISTANCE,
   abort,
@@ -71,9 +72,10 @@ export class RaceScene extends Phaser.Scene {
 
     // Eingabe: Tastatur und zwei große Touch-Buttons (SR-AK-13)
     const kb = this.input.keyboard!;
-    const onKey = (side: Side) => (e: KeyboardEvent) => {
-      if (!e.repeat) this.tap(side);
-    };
+    const onKey = (side: Side) =>
+      fresh((e: KeyboardEvent) => {
+        if (!e.repeat) this.tap(side);
+      });
     kb.on("keydown-LEFT", onKey("left"));
     kb.on("keydown-A", onKey("left"));
     kb.on("keydown-RIGHT", onKey("right"));

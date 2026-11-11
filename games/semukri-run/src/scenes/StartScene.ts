@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { fresh } from "../keys.ts";
 import { CHARACTERS, type CharacterId } from "../sprites.ts";
 import { formatTime } from "../logic/race.ts";
 import { canSave, loadData } from "../store.ts";
@@ -71,10 +72,22 @@ export class StartScene extends Phaser.Scene {
     button(this, WIDTH / 2, 565, "Rekorde", () => this.scene.start("records"), { name: "records" });
 
     const kb = this.input.keyboard!;
-    kb.on("keydown-LEFT", () => this.move(-1));
-    kb.on("keydown-RIGHT", () => this.move(1));
-    kb.on("keydown-A", () => this.move(-1));
-    kb.on("keydown-D", () => this.move(1));
+    kb.on(
+      "keydown-LEFT",
+      fresh(() => this.move(-1)),
+    );
+    kb.on(
+      "keydown-RIGHT",
+      fresh(() => this.move(1)),
+    );
+    kb.on(
+      "keydown-A",
+      fresh(() => this.move(-1)),
+    );
+    kb.on(
+      "keydown-D",
+      fresh(() => this.move(1)),
+    );
     kb.once("keydown-ENTER", () => this.go());
     kb.once("keydown-SPACE", () => this.go());
     this.render();
