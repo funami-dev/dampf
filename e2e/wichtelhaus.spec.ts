@@ -18,6 +18,7 @@ interface WhState {
   lantern: number | null;
   calmSeconds: number | null;
   sprites: number;
+  bathing: boolean;
 }
 interface Hooks {
   state(): WhState;
@@ -156,6 +157,31 @@ test("WH-AK-16: feinere Bilder für Räume, Möbel, Wichtel und Haustier", async
   // 6 Räume, 16 Möbel, Wichtel und Haustier
   await expect.poll(async () => (await state(page)).sprites).toBeGreaterThanOrEqual(24);
   await expect(page.locator("canvas").first()).toBeVisible();
+  await expectNoErrors(errors);
+});
+
+test("WH-AK-17: Baden auf Bitte, Geschenke einzeln pro Tag", async ({ page }) => {
+  test.setTimeout(90_000);
+  const errors = trackErrors(page);
+  await open(page);
+  await moveIn(page);
+  // jedes Geschenk einmal am Tag
+  await press(page, "🎁 Geschenk");
+  await press(page, "🧸 Teddy");
+  await expect.poll(async () => (await state(page)).bubble).toMatch(/Teddy/);
+  await press(page, "🎁 Geschenk");
+  await expect(page.getByRole("button", { name: "🧸 Teddy" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "📖 Buch" })).toBeEnabled();
+  await expect(page.locator(".wh-gifts button")).toHaveCount(19);
+  await press(page, "📖 Buch");
+  // Baden
+  await page.evaluate(() =>
+    (window.__dampf as Hooks).setNeeds({ clean: 50, energy: 90, hunger: 90 }),
+  );
+  await press(page, "🚪 Anklopfen");
+  await press(page, "🛁 Geh doch baden!");
+  await expect.poll(async () => (await state(page)).activity).toBe("baden");
+  await expect.poll(async () => (await state(page)).bathing, { timeout: 30_000 }).toBe(true);
   await expectNoErrors(errors);
 });
 

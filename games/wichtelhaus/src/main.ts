@@ -26,6 +26,7 @@ import {
   catchUp,
   dayOf,
   foodCount,
+  giftedToday,
   giveGift,
   isNight,
   load,
@@ -242,13 +243,14 @@ function openShop() {
 function openGift() {
   if (!world) return;
   const w = world;
-  const done = w.lastGiftDay === dayOf(w.t);
+  const all = Object.keys(GIFTS) as Gift[];
+  const left = all.filter((g) => !giftedToday(w, g)).length;
   const el = drawer(
-    `<h2>🎁 Geschenk</h2><p>${done ? "Heute gab es schon ein Geschenk. Morgen wieder!" : "Was möchtest du schenken?"}</p>
-    <div class="wh-choices">${(Object.keys(GIFTS) as Gift[])
+    `<h2>🎁 Geschenk</h2><p>${left ? "Was möchtest du schenken? Jedes Geschenk einmal am Tag." : "Heute hat er schon alles bekommen. Morgen wieder!"}</p>
+    <div class="wh-choices wh-gifts">${all
       .map(
         (g) =>
-          `<button class="wh-btn" type="button" data-g="${g}" ${done ? "disabled" : ""}>${GIFTS[g].icon} ${GIFTS[g].name}</button>`,
+          `<button class="wh-btn" type="button" data-g="${g}" ${giftedToday(w, g) ? "disabled" : ""}>${GIFTS[g].icon} ${GIFTS[g].name}</button>`,
       )
       .join("")}</div>`,
     "Geschenk",
@@ -275,6 +277,7 @@ function openKnock() {
       `🐾 Spiel mit ${PETS[w.pet] === "kleiner Drache" ? "dem Drachen" : PETS[w.pet] === "Igel" ? "dem Igel" : "der Katze"}!`,
     ],
     ["schlafen", "🌙 Geh schlafen!"],
+    ["baden", "🛁 Geh doch baden!"],
   ];
   const el = drawer(
     `<h2>🚪 Anklopfen</h2><p>Worum möchtest du ${escapeHtml(w.name)} bitten?</p>
@@ -554,11 +557,15 @@ const mix = (a: number, b: number, t: number) => {
 };
 /** Zahl der gezeigten Bilder (WH-AK-16, für Tests) */
 let spritesShown = 0;
+/** sitzt er gerade in der Wanne? (WH-AK-17, für Tests) */
+let bathingShown = false;
 const walker = { x: 0, y: 0, init: false, facing: 1, moving: false };
 
 class HouseScene extends Phaser.Scene {
   g!: Phaser.GameObjects.Graphics;
   fg!: Phaser.GameObjects.Graphics;
+  /** vor dem Wichtel: Wannenrand und Schaum (WH-AK-17) */
+  fx!: Phaser.GameObjects.Graphics;
   bubble!: Phaser.GameObjects.Text;
   imgs = new Map<string, Phaser.GameObjects.Image>();
   seen = new Set<string>();
@@ -568,6 +575,7 @@ class HouseScene extends Phaser.Scene {
   create() {
     this.g = this.add.graphics().setDepth(0);
     this.fg = this.add.graphics().setDepth(2.5);
+    this.fx = this.add.graphics().setDepth(3.5);
     this.bubble = this.add
       .text(0, 0, "", {
         fontFamily: "system-ui, sans-serif",
@@ -710,6 +718,7 @@ class HouseScene extends Phaser.Scene {
     }
     const f = this.fg;
     f.clear();
+    this.fx.clear();
     const tint = night ? 0x8a8aa8 : t > 0.62 ? 0xf2dcc8 : 0xffffff;
     this.seen.clear();
     for (const r of Object.keys(ROOMS) as Room[]) {
@@ -786,8 +795,18 @@ class HouseScene extends Phaser.Scene {
       f.fillStyle(c, a);
       f.fillRect(X(x), Y(y), ww * k, hh * k);
     };
+    const has = (g: Gift) => !!w?.gifts.includes(g);
     switch (r) {
       case "kueche": {
+        // Blume in der Vase auf dem Tisch (Geschenk)
+        if (has("blume")) {
+          const t = at("tisch");
+          F(t.x + 13, t.y - 7, 6, 7, 0x5b8fc7);
+          F(t.x + 13, t.y - 7, 1, 7, 0x8ab4e0);
+          F(t.x + 15, t.y - 12, 1, 5, 0x3f8a3a);
+          F(t.x + 13, t.y - 15, 5, 3, 0xf6d55c);
+          F(t.x + 15, t.y - 14, 1, 1, 0xe67e22);
+        }
         // Vorratsgläser im Schrank (je Fach fünf)
         const s = at("schrank");
         const n = w ? foodCount(w) : 0;
@@ -801,6 +820,21 @@ class HouseScene extends Phaser.Scene {
         break;
       }
       case "wohnzimmer": {
+        // Pflanze auf der Fensterbank (Geschenk)
+        if (has("pflanze")) {
+          const wr = windowRect(L.roomW);
+          const sill = ry + wr.y + wr.h + 2;
+          const px = rx + wr.x + 4;
+          F(px, sill - 5, 7, 5, 0xb5651d);
+          F(px, sill - 5, 7, 1, 0xd2843a);
+          for (const [dx, dy, ww, hh] of [
+            [1, -11, 2, 6],
+            [4, -12, 2, 7],
+            [-1, -9, 3, 2],
+            [5, -9, 3, 2],
+          ] as const)
+            F(px + dx, sill + dy, ww, hh, 0x3f8a3a);
+        }
         // ruhiges Kaminfeuer (Zyklus 6 s, kein Flackern)
         const kz = at("kamin");
         const fl = sway(clock / slow, IDLE_CYCLES.kerze!);
@@ -856,6 +890,17 @@ class HouseScene extends Phaser.Scene {
         break;
       }
       case "schlafzimmer": {
+        // Teddy auf dem Bett (Geschenk)
+        if (has("teddy")) {
+          const b = at("bett");
+          const tx = b.x + 22; // neben dem Kissen
+          F(tx, b.y + 3, 8, 8, 0xa0683a);
+          F(tx - 1, b.y + 1, 3, 3, 0xa0683a);
+          F(tx + 6, b.y + 1, 3, 3, 0xa0683a);
+          F(tx + 2, b.y + 6, 4, 3, 0xd9a877);
+          F(tx + 2, b.y + 4, 1, 1, 0x2b2b2b);
+          F(tx + 5, b.y + 4, 1, 1, 0x2b2b2b);
+        }
         // Laterne mit langsamem Atem-Rhythmus (10 s)
         const l = sway(clock / slow, IDLE_CYCLES.laterne!);
         const la = at("laterne");
@@ -869,10 +914,14 @@ class HouseScene extends Phaser.Scene {
   wichtel(w: World, X: (x: number) => number, Y: (y: number) => number, k: number, tint: number) {
     const f = this.fg;
     const target = roomCenter(w.activity.room);
+    const tub = itemBox(FURNITURE.bad[0]!, L.roomW);
+    const bathing = w.activity.kind === "baden" && w.activity.room === "bad";
     const tx =
       w.activity.kind === "musik" && w.activity.room === "musik"
         ? roomX("musik") + 36 // am Klavier auf dem Hocker
-        : target.x + (w.activity.kind === "schlafen" ? 20 : -14);
+        : bathing
+          ? roomX("bad") + tub.x + tub.w / 2 // in der Wanne
+          : target.x + (w.activity.kind === "schlafen" ? 20 : -14);
     const ty = target.y;
     if (!walker.init) {
       walker.x = tx;
@@ -914,14 +963,39 @@ class HouseScene extends Phaser.Scene {
       f.fillCircle(X(x + 18), Y(walker.y - 30 - breath * 6), 2.5 * k);
     } else {
       const frame = walker.moving ? (Math.floor(clock * 4) % 2 ? "walk0" : "walk1") : "stand";
+      const inTub = bathing && !walker.moving;
       this.img("wichtel", `w-${w.hat}-${frame}`, () => wichtelArt(w.hat, frame))
         .setOrigin(0.5, 1)
-        .setPosition(X(x), Y(y))
+        .setPosition(X(x), Y(inTub ? walker.y - 6 : y))
         .setScale(k)
         .setFlipX(flip)
         .setDepth(3)
         .setTint(tint);
     }
+    if (bathing && !walker.moving) {
+      // Wannenrand vor ihm, Wasser und ruhig aufsteigender Schaum (6 s)
+      const fx = this.fx;
+      const bx = roomX("bad") + tub.x;
+      const by = walker.y - tub.h + 4;
+      const B = (xx: number, yy: number, ww: number, hh: number, c: number, a = 1) => {
+        fx.fillStyle(c, a);
+        fx.fillRect(X(xx), Y(yy), ww * k, hh * k);
+      };
+      B(bx, by + 4, tub.w, tub.h - 8, 0xf4f6f7);
+      B(bx, by + 4, tub.w, 1, 0xffffff);
+      B(bx, by + tub.h - 5, tub.w, 1, 0xc9ced4);
+      B(bx + 2, by + 3, tub.w - 4, 2, 0x9fd3e8);
+      for (let n = 0; n < 6; n++) {
+        const p = (clock / slow / 6 + n / 6) % 1;
+        fx.fillStyle(0xffffff, (1 - p) * 0.85);
+        fx.fillCircle(
+          X(bx + 8 + ((n * 37) % (tub.w - 16)) + Math.sin(p * 6 + n) * 2),
+          Y(by + 2 - p * 18),
+          (1.5 + (n % 3)) * k,
+        );
+      }
+      bathingShown = true;
+    } else bathingShown = false;
     // Haustier folgt gemütlich
     const px = x - walker.facing * 18;
     const pb = sway(clock / slow, IDLE_CYCLES.haustier!) * 1;
@@ -986,6 +1060,7 @@ if (debugEnabled) {
       calmSeconds: calm ? clock - calm.started : null,
       reduced,
       sprites: spritesShown,
+      bathing: bathingShown,
       t: world?.t ?? 0,
     }),
     advance: (s: number) => {

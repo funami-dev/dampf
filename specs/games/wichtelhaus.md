@@ -106,11 +106,19 @@ Das Spiel macht **keine Gesundheitsversprechen**.
 
 - **Vorratsschrank füllen:** Knopf „Einkaufen“ → Auswahl (Brot, Gemüse, Obst, Kuchen, Suppe);
   höchstens 10 Vorräte. Kuchen macht besonders glücklich, aber satt macht Suppe am meisten.
-- **Geschenk bringen** (einmal pro Spieltag): Buch, Ball, Bastelholz, Blume. Geschenke stehen im
-  Haus und werden benutzt.
+- **Geschenk bringen** (Feedback `fb_4eg9mcaw`): **19 Geschenke** zur Auswahl – Buch, Ball,
+  Bastelholz, Blume, Tasse Kakao, warme Socken, Muschel, Kerze, Malkasten, Flöte, Puzzle, Teddy,
+  Schal, Glöckchen, Kekse, Sternkarte, Kreisel, Duftseife, Pflanze. **Jedes Geschenk einmal pro
+  Spieltag** (schon geschenkte sind heute ausgegraut). Jedes hat eine kleine Wirkung (z. B. Kakao
+  und Kekse gegen Hunger, Duftseife macht sauber, Socken/Teddy/Kerze/Schal geben etwas Energie,
+  die anderen machen Spaß). Freundschaft: das erste Geschenk am Tag +2, jedes weitere weniger
+  (+2 geteilt durch die Zahl der Geschenke heute). Blume (Vase auf dem Küchentisch), Pflanze
+  (Fensterbank im Wohnzimmer) und Teddy (auf dem Bett) stehen danach sichtbar im Haus.
 - **Anklopfen / Bitten:** Knöpfe mit Bildern – „Spiel etwas vor!“, „Bastel etwas!“, „Lies vor!“,
-  „Geh schlafen!“, „Spiel mit {Haustier}!“. Er macht es, wenn er Lust hat (abhängig von Bedürfnissen
+  „Geh schlafen!“, „Spiel mit {Haustier}!“, „Geh doch baden!“ (Feedback `fb_571tpi5c`; ist er
+  schon ganz sauber: „Ich bin doch ganz sauber!“). Er macht es, wenn er Lust hat (abhängig von Bedürfnissen
   und Laune); sonst antwortet er freundlich, z. B. „Jetzt nicht, ich bin so müde …“.
+- **Baden:** Er sitzt sichtbar in der Wanne, ruhige Schaumblasen steigen langsam auf.
 - **Sprechblasen:** Er erzählt kurz, was er tut oder denkt („Mmh, Suppe!“, „Wo ist mein Ball?“).
 
 ## Briefe und Fortschritt
@@ -150,7 +158,8 @@ Das Spiel macht **keine Gesundheitsversprechen**.
   → Schlafzimmer usw.); ohne Vorräte wird er traurig statt satt.
 - **WH-AK-03** Einkaufen legt Vorräte an (max. 10); Essen verbraucht einen Vorrat und füllt Hunger
   je Sorte unterschiedlich.
-- **WH-AK-04** Geschenk geht einmal pro Spieltag; Bitten werden je nach Laune angenommen oder
+- **WH-AK-04** Jedes der 19 Geschenke geht einmal pro Spieltag, mit eigener Wirkung; die
+  Freundschaft steigt mit jedem weiteren Geschenk am selben Tag weniger; Bitten werden je nach Laune angenommen oder
   freundlich abgelehnt (immer mit Antwort).
 - **WH-AK-05** Abwesenheit: Beim Laden läuft höchstens ein Spieltag nach; Bedürfnisse fallen dabei
   nicht unter 20 %.
@@ -173,6 +182,9 @@ Das Spiel macht **keine Gesundheitsversprechen**.
   44 Punkte hoch, alle Laufbilder sind gleich groß.
 - **WH-AK-16** (E2E) Das Haus zeigt die neuen Bilder (Räume, Möbel, Wichtel, Haustier) ohne Fehler
   auf Desktop und Mobile.
+- **WH-AK-17** Baden auf Bitte: „Geh doch baden!“ wird angenommen, wenn er nicht ganz sauber ist
+  (unter 95 %), sonst „Ich bin doch ganz sauber!“; danach ist er im Bad und hinterher sauber
+  (Vitest); im Spiel sitzt er in der Wanne (E2E).
 - **WH-AK-10** Fokusverlust pausiert; Spiel erscheint im Portal mit Version 1.0.0.
 - **WH-AK-11** Ruhe-Regeln (Vitest + E2E): keine Zeitlimits, kein Verlieren, keine Punkte; alle
   Leerlauf-Animationen haben Zyklen ≥ 4 s (Atmen/Laterne 10 s); nichts blinkt schneller als 3 Hz;

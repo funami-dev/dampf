@@ -152,6 +152,10 @@
   gap: 6px;
   justify-content: center;
 }
+.wh-gifts .wh-btn {
+  font-size: 13px;
+  padding: 7px 9px;
+}
 .wh-color {
   width: 34px;
   height: 34px;
