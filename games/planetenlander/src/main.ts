@@ -31,6 +31,20 @@ import { loadProgress, record, saveProgress, type Store } from "./logic/progress
 import { WIDTH, groundAt, makeTerrain, type Terrain } from "./logic/terrain.ts";
 import { debugEnabled } from "./debug.ts";
 
+// Steuer-Knöpfe nur mit gezeichneten Bildern, ohne Text – auf dem iPhone lässt sich so beim
+// langen Drücken nichts markieren (Feedback fb_h1hi7qx7)
+const svg = (body: string) =>
+  `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true" focusable="false">${body}</svg>`;
+const ICON_LEFT = svg(
+  '<path d="M7 7a8 8 0 1 1-1.8 8.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M3 4v6h6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>',
+);
+const ICON_RIGHT = svg(
+  '<path d="M17 7a8 8 0 1 0 1.8 8.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M21 4v6h-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>',
+);
+const ICON_FLAME = svg(
+  '<path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-7 0 2 1 3 2 3 0-3-1-5 1-8z" fill="#c0392b"/><path d="M12 12c.5 2 3 3 3 5.5a3 3 0 0 1-6 0c0-1.5 1-2.5 1.5-3.5.3 1 .8 1.5 1.5 1.5 0-1.5-.5-2.5 0-3.5z" fill="#ffd166"/>',
+);
+
 const stage = mountGameShell({
   title: manifest.title,
   slug: manifest.slug,
@@ -71,10 +85,10 @@ layer.innerHTML = `
   <button class="pl-btn pl-pause" type="button" data-b="pause" hidden>Pause</button>
   <div class="pl-controls" hidden>
     <div class="pl-turn">
-      <button class="pl-btn pl-big" type="button" data-c="left" aria-label="Links drehen">⟲</button>
-      <button class="pl-btn pl-big" type="button" data-c="right" aria-label="Rechts drehen">⟳</button>
+      <button class="pl-btn pl-big" type="button" data-c="left" data-hold aria-label="Links drehen">${ICON_LEFT}</button>
+      <button class="pl-btn pl-big" type="button" data-c="right" data-hold aria-label="Rechts drehen">${ICON_RIGHT}</button>
     </div>
-    <button class="pl-btn pl-big pl-thrust" type="button" data-c="thrust" aria-label="Schub">🔥 Schub</button>
+    <button class="pl-btn pl-big pl-thrust" type="button" data-c="thrust" data-hold aria-label="Schub">${ICON_FLAME}</button>
   </div>`;
 stage.append(layer);
 const $ = <E extends HTMLElement>(s: string) => layer.querySelector<E>(s)!;

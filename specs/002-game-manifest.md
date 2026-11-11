@@ -112,3 +112,8 @@ gemeinsam genutzt.
   wird). `game-kit` bietet dafür `fresh(handler)`, das jedes Browser-Ereignis je Handler nur einmal
   durchlässt. Alle Phaser-Spiele nutzen es für Tasten, die etwas umschalten oder weiterzählen
   (Figurenwahl, Pause, Richtung, Rennen) (Vitest).
+- **MANIFEST-AK-12** Kein Markieren beim langen Drücken: Im Spielbereich lässt sich kein Text
+  markieren, und es erscheint kein Kontextmenü (außer in Eingabefeldern). Knöpfe, die man hält
+  (`data-hold`, z. B. Schub und Drehen im Planetenlander, Halte-Tätigkeiten im Wichtelhaus,
+  „Benutzen“ in Hilden), fangen schon die Berührung ab, damit Safari auf dem iPhone nichts
+  markiert; das Spiel bekommt das Drücken und Loslassen trotzdem (Feedback `fb_h1hi7qx7`, E2E).

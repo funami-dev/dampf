@@ -10,8 +10,16 @@
   "status": "published",
   "order": 90,
   "addedAt": "2026-11-09",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "changelog": [
+    {
+      "version": "1.2.1",
+      "date": "2026-11-11",
+      "time": "21:46",
+      "items": [
+        "Die Steuer-Knöpfe zeigen jetzt Bilder statt Schrift – langes Drücken markiert auf dem iPhone nichts mehr"
+      ]
+    },
     {
       "version": "1.2.0",
       "date": "2026-11-11",

@@ -309,7 +309,7 @@ function openCalm() {
     `<h2>🕯️ Ruhe</h2>
     <button class="wh-btn wh-primary" type="button" data-m>Ruhemoment: Atme mit ${escapeHtml(w.name)}</button>
     <p class="wh-hint">Halte einen Knopf gedrückt – ganz in Ruhe.</p>
-    <div class="wh-choices">${TASKS.map(([id, t]) => `<button class="wh-btn wh-hold" type="button" data-t="${id}">${t}<span class="wh-prog"></span></button>`).join("")}</div>`,
+    <div class="wh-choices">${TASKS.map(([id, t]) => `<button class="wh-btn wh-hold" type="button" data-hold data-t="${id}">${t}<span class="wh-prog"></span></button>`).join("")}</div>`,
     "Ruhe",
   );
   el.querySelector("[data-m]")!.addEventListener("click", openBreath);

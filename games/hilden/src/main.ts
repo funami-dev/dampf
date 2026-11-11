@@ -59,7 +59,7 @@ layer.innerHTML = `
   <div class="hi-bottom">
     <div class="hi-stick" role="slider" aria-label="Laufen"><div class="hi-knob"></div></div>
     <div class="hi-actions">
-      <button class="hi-btn primary hi-use" type="button" data-b="use" hidden>Benutzen</button>
+      <button class="hi-btn primary hi-use" type="button" data-b="use" data-hold hidden>Benutzen</button>
     </div>
   </div>`;
 const $ = <T extends HTMLElement>(sel: string) => layer.querySelector<T>(sel)!;
