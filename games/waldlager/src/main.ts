@@ -161,7 +161,9 @@ function withLoading(fn: () => void) {
   setTimeout(fn, 40);
 }
 
-function newWorld(seed = Date.now() & 0x7fffffff || 1) {
+/** feste Insel für Tests (?e2e&seed=…) */
+const testSeed = debugEnabled ? Number(params.get("seed")) || 0 : 0;
+function newWorld(seed = testSeed || Date.now() & 0x7fffffff || 1) {
   world = generateWorld(seed);
   state = createState(world);
   meId = "me";

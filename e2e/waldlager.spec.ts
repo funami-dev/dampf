@@ -80,8 +80,9 @@ const hooks = <R>(page: Page, fn: (h: Hooks) => R) =>
 const state = (page: Page) => hooks(page, (h) => h.state());
 
 /** relay: Adresse des Raum-Servers; leer = nur Einzelspieler (WL-AK-16) */
-async function open(page: Page, relay = "") {
-  await page.goto(`/games/waldlager/?e2e&relay=${encodeURIComponent(relay)}`);
+async function open(page: Page, relay = "", seed = 0) {
+  const fixed = seed ? `&seed=${seed}` : "";
+  await page.goto(`/games/waldlager/?e2e&relay=${encodeURIComponent(relay)}${fixed}`);
   await expect.poll(() => page.evaluate(() => !!window.__dampf), { timeout: 60_000 }).toBe(true);
 }
 
@@ -829,7 +830,8 @@ test("WL-AK-45: Kompass, Hütten-Nadel mit Funkgerät, Hütte auf der Karte", as
 test("WL-AK-47: Rauch über dem Wrack, umgeknickte Bäume sind begehbar", async ({ page }) => {
   test.setTimeout(120_000);
   const errors = trackErrors(page);
-  await open(page);
+  // feste Insel mit umgeknickten Bäumen (nicht jede Schneise trifft Bäume)
+  await open(page, "", 7932);
   await page.getByRole("button", { name: "Los geht's" }).click();
   await landed(page);
   const s1 = await state(page);
