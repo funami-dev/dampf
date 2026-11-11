@@ -25,6 +25,7 @@ import {
   type Controls,
   type Lander,
   type Verdict,
+  margins,
 } from "./logic/physics.ts";
 import { loadProgress, record, saveProgress, type Store } from "./logic/progress.ts";
 import { WIDTH, groundAt, makeTerrain, type Terrain } from "./logic/terrain.ts";
@@ -271,9 +272,20 @@ function finish() {
   const el = panel(`<h2>${v.landed ? "Gelandet! 🎉" : "Rumms! 💥"}</h2>
     ${v.landed ? `<p class="pl-big-stars" aria-label="${s} von 3 Sternen">${starText(s)}</p>` : `<p>${REASON[v.reason]}</p>`}
     <dl class="pl-values">
-      <dt>Sinken</dt><dd>${de(v.down)} m/s</dd>
-      <dt>Seitlich</dt><dd>${de(v.side)} m/s</dd>
-      <dt>Neigung</dt><dd>${Math.round((v.tilt * 180) / Math.PI)}°</dd>
+      ${margins(v)
+        .map((m) => {
+          const n = (x: number) => (m.key === "tilt" ? `${Math.round(x)}` : de(x));
+          const sep = m.key === "tilt" ? "" : " ";
+          const val = `${n(m.value)}${sep}${m.unit}`;
+          // knapp drüber zeigt mindestens 0,1 m/s bzw. 1°, damit nie „0,0 zu schnell“ dasteht
+          const over = Math.max(m.key === "tilt" ? 1 : 0.1, m.over);
+          const verdict =
+            m.over > 0
+              ? `<span class="pl-over">${n(over)}${sep}${m.unit} ${m.word}</span>`
+              : `<span class="pl-ok">✓</span>`;
+          return `<dt>${m.label}</dt><dd>${val} <small>· erlaubt ${n(m.limit)}${sep}${m.unit}</small> · ${verdict}</dd>`;
+        })
+        .join("")}
       <dt>Treibstoff</dt><dd>${Math.round((lander.fuel / LANDER.fuel) * 100)} %</dd>
     </dl>
     <div class="pl-row">

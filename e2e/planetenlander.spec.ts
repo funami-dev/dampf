@@ -111,6 +111,9 @@ test("PL-AK-10: zu schnell → Bruchlandung mit Nochmal", async ({ page }) => {
   await place(page, 0.5, -6);
   await expect(page.getByRole("heading", { name: "Rumms! 💥" })).toBeVisible();
   await expect(page.getByText("Zu schnell aufgesetzt – bremse früher mit der Düse.")).toBeVisible();
+  // PL-AK-13: Grenze und wie viel zu viel
+  await expect(page.getByText("erlaubt 2,0 m/s")).toBeVisible();
+  await expect(page.locator(".pl-over").first()).toHaveText(/^\d+,\d m\/s zu schnell$/);
   expect((await state(page)).result).toMatchObject({ landed: false, reason: "hart", stars: 0 });
   expect((await state(page)).best.mond).toBeUndefined();
   await page.getByRole("button", { name: "Nochmal" }).click();
