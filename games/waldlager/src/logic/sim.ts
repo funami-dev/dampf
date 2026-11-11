@@ -141,9 +141,11 @@ export interface State {
   mushrooms: number[];
   /** Zeitpunkte, an denen ein neuer Pilz wächst */
   mushroomRespawn: number[];
-  /** Dosen in der Vorratskiste der Hütte und wann sie wieder voll ist */
-  hutCans: number;
+  /** gemeinsame Truhe in der Hütte (WL-AK-56); Dosen kommen täglich nach (hutRefill) */
+  hutChest: Chest;
   hutRefill: number | null;
+  /** Truhe je Zelt, nach Besitzer (WL-AK-56) */
+  tentChests: Record<string, Chest>;
   /** ruhende Fischstellen: Index in world.fish → wieder da ab (WL-AK-54) */
   fishRest: Record<number, number>;
 }
@@ -260,8 +262,9 @@ export function createState(w: World): State {
     appleEmpty: {},
     mushrooms: [],
     mushroomRespawn: [],
-    hutCans: HUT_CANS.give,
+    hutChest: { cans: HUT_CANS.give },
     hutRefill: null,
+    tentChests: {},
     fishRest: {},
   };
   const awayFromStart = (x: number, y: number) => Math.hypot(x - w.start.x, y - w.start.y) >= 6;
@@ -492,7 +495,8 @@ export function stepWorld(w: World, s: State, dt: number): GameEvent[] {
     }
   // Hütte, Äpfel, Pilze (WL-AK-39..41)
   if (s.hutRefill !== null && s.hutRefill <= s.total) {
-    s.hutCans = HUT_CANS.give;
+    const room = CHEST.hut - chestCount(s.hutChest) + (s.hutChest.cans ?? 0);
+    s.hutChest.cans = Math.max(s.hutChest.cans ?? 0, Math.min(HUT_CANS.give, room));
     s.hutRefill = null;
   }
   for (const [k, at] of Object.entries(s.appleEmpty))
@@ -665,7 +669,6 @@ export type ActionKind =
   | "inspect"
   | "shake"
   | "gather"
-  | "open"
   | "hutsleep"
   | "fish";
 
@@ -684,9 +687,7 @@ export function actionFor(
   {
     const d = Math.hypot(w.hut.x + 0.5 - p.x, w.hut.y + 0.5 - p.y);
     if (d <= REACH + 0.3) {
-      if (s.hutCans > 0 && p.cans < LIMITS.food)
-        opts.push({ kind: "open", label: "Kiste öffnen", target: -1, d });
-      else opts.push({ kind: "hutsleep", label: "In der Hütte schlafen", target: -1, d });
+      opts.push({ kind: "hutsleep", label: "In der Hütte schlafen", target: -1, d });
     }
   }
   const cx = Math.floor(p.x);
@@ -800,13 +801,6 @@ export function act(w: World, s: State, p: Player): string | null {
       s.mushroomRespawn.push(s.total + MUSHROOMS.regrow);
       return "+1 Pilz";
     }
-    case "open": {
-      const n = Math.min(s.hutCans, LIMITS.food - p.cans);
-      p.cans += n;
-      s.hutCans -= n;
-      if (s.hutCans === 0 && s.hutRefill === null) s.hutRefill = s.total + HUT_CANS.refill;
-      return n === 1 ? "+1 Dose" : `+${n} Dosen`;
-    }
     case "hutsleep":
       p.sleeping = true;
       p.chop = null;
@@ -908,4 +902,116 @@ export function build(w: World, s: State, p: Player, kind: BuildKind): string {
   }
   s.fires.push({ id: s.nextFire++, x, y, until: s.total + FIRE.burn });
   return "Das Lagerfeuer brennt!";
+}
+
+// --- Truhen und Teilen (WL-AK-56/57) -------------------------------------------------
+export const CHEST = { hut: 40, tent: 10 };
+export const ITEM_KINDS = ["wood", "berries", "apples", "mushrooms", "cans", "fish"] as const;
+export type ItemKind = (typeof ITEM_KINDS)[number];
+export type Chest = Partial<Record<ItemKind, number>>;
+export const ITEM_ICON: Record<ItemKind, string> = {
+  wood: "🪵",
+  berries: FOODS.berries.icon,
+  apples: FOODS.apples.icon,
+  mushrooms: FOODS.mushrooms.icon,
+  cans: FOODS.cans.icon,
+  fish: FOODS.fish.icon,
+};
+const ITEM_ONE: Record<ItemKind, string> = {
+  wood: "Holz",
+  berries: "eine Beere",
+  apples: "einen Apfel",
+  mushrooms: "einen Pilz",
+  cans: "eine Dose",
+  fish: "einen Fisch",
+};
+export const itemLimit = (k: ItemKind) =>
+  k === "wood" ? LIMITS.wood : k === "berries" ? LIMITS.berries : LIMITS.food;
+export const chestCount = (c: Chest) => Object.values(c).reduce((a: number, b) => a + (b ?? 0), 0);
+
+/** Welche Truhe ist in Reichweite? Hütte vor Zelten, dann das nächste Zelt */
+export function chestNear(
+  w: World,
+  s: State,
+  p: Player,
+): { where: string; chest: Chest; cap: number; label: string } | null {
+  const reach = REACH + 0.6;
+  if (Math.hypot(w.hut.x + 0.5 - p.x, w.hut.y + 0.5 - p.y) <= reach)
+    return { where: "hut", chest: s.hutChest, cap: CHEST.hut, label: "Truhe in der Hütte" };
+  let best: { where: string; d: number } | null = null;
+  for (const q of Object.values(s.players)) {
+    if (!q.tent) continue;
+    const d = Math.hypot(q.tent.x + 0.5 - p.x, q.tent.y + 0.5 - p.y);
+    if (d <= reach && (!best || d < best.d)) best = { where: q.id, d };
+  }
+  if (!best) return null;
+  const owner = s.players[best.where]!;
+  const chest = (s.tentChests[owner.id] ??= {});
+  return {
+    where: owner.id,
+    chest,
+    cap: CHEST.tent,
+    label: owner.id === p.id ? "Truhe in deinem Zelt" : `Truhe in ${owner.name}s Zelt`,
+  };
+}
+
+/** Ein Stück hineinlegen oder herausnehmen; jeder darf alles nehmen (Feedback fb_7fx13soz) */
+export function chestMove(
+  w: World,
+  s: State,
+  p: Player,
+  kind: ItemKind,
+  dir: "put" | "take",
+): string {
+  const c = chestNear(w, s, p);
+  if (!c) return "Hier ist keine Truhe.";
+  const inChest = c.chest[kind] ?? 0;
+  if (dir === "put") {
+    if (p[kind] <= 0) return "Davon hast du nichts dabei.";
+    if (chestCount(c.chest) >= c.cap) return "Die Truhe ist voll.";
+    p[kind]--;
+    c.chest[kind] = inChest + 1;
+    return `${ITEM_ICON[kind]} in die Truhe gelegt`;
+  }
+  if (inChest <= 0) return "Das ist nicht in der Truhe.";
+  if (p[kind] >= itemLimit(kind)) return "Deine Taschen sind voll.";
+  p[kind]++;
+  c.chest[kind] = inChest - 1;
+  if (c.where === "hut" && kind === "cans" && c.chest.cans === 0 && s.hutRefill === null)
+    s.hutRefill = s.total + HUT_CANS.refill;
+  return `${ITEM_ICON[kind]} aus der Truhe genommen`;
+}
+
+/** nächster wacher Mitspieler in Reichweite (zum Essen geben) */
+export function nearbyPlayer(s: State, p: Player, reach = 2): Player | null {
+  let best: Player | null = null;
+  let bd = reach;
+  for (const q of Object.values(s.players)) {
+    if (q.id === p.id || q.sleeping || q.landing > 0) continue;
+    const d = Math.hypot(q.x - p.x, q.y - p.y);
+    if (d <= bd) {
+      bd = d;
+      best = q;
+    }
+  }
+  return best;
+}
+
+/** Essen geben (WL-AK-57): ein Stück an den Mitspieler daneben */
+export function giveFood(
+  s: State,
+  p: Player,
+  kind: FoodKind,
+): { text: string; to?: { player: string; text: string } } {
+  const q = nearbyPlayer(s, p);
+  if (!q) return { text: "Hier ist niemand, dem du etwas geben kannst." };
+  if (p[kind] <= 0) return { text: `Kein ${FOODS[kind].one} dabei.` };
+  if (q[kind] >= itemLimit(kind)) return { text: `${q.name} kann nichts mehr tragen.` };
+  p[kind]--;
+  q[kind]++;
+  const what = ITEM_ONE[kind];
+  return {
+    text: `Du hast ${q.name} ${what} gegeben ${FOODS[kind].icon}`,
+    to: { player: q.id, text: `${FOODS[kind].icon} ${p.name} hat dir ${what} gegeben!` },
+  };
 }

@@ -357,17 +357,56 @@ test("WL-AK-15: zwei Browser – Welt ist offen, Liste im Hauptmenü, beitreten,
 
   // Gast hackt selbst: Holz kommt vom Gastgeber zurück
   const t = (await hooks(guest, (h) => h.nearestTree()))!;
+  await guest.bringToFront();
   await guest.evaluate(
     (t) =>
       (window.__dampf as Hooks).teleport(t[2]! + 0.5, t[3]! + 0.5, t[0]! - t[2]!, t[1]! - t[3]!),
     t,
   );
+  // erst hacken, wenn der Gastgeber den Gast am Baum sieht (sonst hackt er ins Leere)
+  await expect
+    .poll(
+      async () => {
+        const g = (await state(page)).players.find((q) => q.name === gast);
+        return !!g && Math.hypot(g.x - (t[2]! + 0.5), g.y - (t[3]! + 0.5)) < 0.3;
+      },
+      { timeout: 15_000 },
+    )
+    .toBe(true);
+  await page.bringToFront();
   await guest.waitForTimeout(400);
   for (let i = 0; i < 4; i++) {
     await guest.keyboard.press("e");
     await guest.waitForTimeout(150);
   }
   await expect.poll(async () => (await state(guest)).me.wood, { timeout: 15_000 }).toBe(3);
+
+  // Essen geben (WL-AK-58): Gastgeber gibt dem Gast eine Beere
+  if (await page.getByRole("button", { name: "Weiterspielen" }).isVisible())
+    await page.getByRole("button", { name: "Weiterspielen" }).click();
+  const hp2 = (await state(page)).me;
+  await guest.bringToFront();
+  await guest.evaluate((p) => (window.__dampf as Hooks).teleport(p.x + 1, p.y), hp2);
+  await expect
+    .poll(
+      async () => {
+        const g = (await state(page)).players.find((q) => q.name === gast);
+        return !!g && Math.hypot(g.x - (hp2.x + 1), g.y - hp2.y) < 0.3;
+      },
+      { timeout: 15_000 },
+    )
+    .toBe(true);
+  await page.bringToFront();
+  await hooks(page, (h) => h.give({ berries: 2 }));
+  const beforeB = (await state(guest)).me.berries;
+  await expect(page.getByRole("button", { name: "🤝 Geben" })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: "🤝 Geben" }).click();
+  await page.getByRole("button", { name: /^Beere geben/ }).click();
+  await expect(guest.getByText(`🫐 ${host} hat dir eine Beere gegeben!`)).toBeVisible();
+  await expect.poll(async () => (await state(page)).me.berries).toBe(1);
+  await expect
+    .poll(async () => (await state(guest)).me.berries, { timeout: 15_000 })
+    .toBe(beforeB + 1);
 
   // Gastgeber geht → Hinweis beim Gast, Welt verschwindet aus der Liste
   await page.close();
@@ -722,7 +761,7 @@ test("WL-AK-37: Regenbogenspur wird gezeichnet, auch nachts", async ({ page }) =
   await expectNoErrors(errors);
 });
 
-test("WL-AK-43: Hütte, Kiste, Apfelbaum und Ess-Auswahl", async ({ page }) => {
+test("WL-AK-43/58: Hütte, Truhe, Apfelbaum und Ess-Auswahl", async ({ page }) => {
   test.setTimeout(120_000);
   // volles Tierbuch: sonst kann „Neu entdeckt“ die Meldungen überdecken
   await page.addInitScript(
@@ -759,9 +798,22 @@ test("WL-AK-43: Hütte, Kiste, Apfelbaum und Ess-Auswahl", async ({ page }) => {
   expect(hut).not.toBeNull();
   await go(hut);
   await expect(page.getByText(/^Eine verlassene Hütte!/)).toBeVisible();
-  await expect.poll(async () => (await resumeIfPaused(), (await state(page)).action)).toBe("open");
-  await act();
+  // Truhe: zwei Dosen nehmen, Holz hineinlegen und wieder nehmen (WL-AK-58)
+  await resumeIfPaused();
+  await tap("📦 Truhe");
+  const box = page.locator(".wl-chest [data-c=box]");
+  await box.getByRole("button", { name: "Nehmen: 🥫" }).click();
+  await box.getByRole("button", { name: "Nehmen: 🥫" }).click();
   await expect.poll(async () => (await state(page)).me.cans).toBe(2);
+  await hooks(page, (h) => h.give({ wood: 3 }));
+  await page
+    .locator(".wl-chest [data-c=mine]")
+    .getByRole("button", { name: "Hineinlegen: 🪵" })
+    .click();
+  await expect.poll(async () => (await state(page)).me.wood).toBe(2);
+  await box.getByRole("button", { name: "Nehmen: 🪵" }).click();
+  await expect.poll(async () => (await state(page)).me.wood).toBe(3);
+  await tap("Fertig");
   await expect(page.getByText("🥫 2")).toBeVisible();
 
   // Apfelbaum schütteln

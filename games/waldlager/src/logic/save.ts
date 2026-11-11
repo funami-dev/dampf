@@ -1,5 +1,6 @@
 import { COLORS, addPlayer, free, isColor, createState, type Player, type State } from "./sim.ts";
 import { SIZE, T, generateWorld, idx, inside, type World } from "./world.ts";
+import { isChest } from "./protocol.ts";
 
 /** Speicherstand (WL-AK-10), localStorage-Schlüssel dampf.waldlager.v1 */
 export const KEY = "dampf.waldlager.v1";
@@ -92,6 +93,7 @@ export function load(store: Store): { world: World; state: State; me: string } |
     if (d?.v !== 1 || !num(d.seed) || typeof d.me !== "string") return null;
     if (d.size !== SIZE && !(num(d.size) && d.size >= 64 && d.size <= SIZE)) return null;
     const s = d.state;
+    const old = s as unknown as { hutCans?: unknown };
     if (!s || !num(s.total) || !Array.isArray(s.berries) || !Array.isArray(s.fires)) return null;
     const me = s.players?.[d.me];
     if (!validPlayer(me)) return null;
@@ -118,7 +120,14 @@ export function load(store: Store): { world: World; state: State; me: string } |
           : fresh.mushrooms,
       mushroomRespawn:
         Array.isArray(s.mushroomRespawn) && s.mushroomRespawn.every(num) ? s.mushroomRespawn : [],
-      hutCans: num(s.hutCans) ? Math.max(0, Math.min(2, Math.floor(s.hutCans))) : fresh.hutCans,
+      // Truhen (WL-AK-56); ältere Spielstände hatten nur Dosen in der Kiste
+      hutChest: isChest(s.hutChest)
+        ? s.hutChest
+        : num(old.hutCans)
+          ? { cans: Math.max(0, Math.min(2, Math.floor(old.hutCans))) }
+          : fresh.hutChest,
+      tentChests:
+        s.tentChests && isChest(s.tentChests[me.id]) ? { [me.id]: s.tentChests[me.id]! } : {},
       hutRefill: num(s.hutRefill) ? s.hutRefill : null,
       fishRest: numRecord(s.fishRest) ?? {},
       players: {},
