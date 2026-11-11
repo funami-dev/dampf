@@ -75,6 +75,13 @@ Das Spiel macht **keine Gesundheitsversprechen**.
 | Schlafzimmer | schlafen                                             |
 | Dachboden    | anfangs verschlossen, wird später frei (siehe unten) |
 
+- **Hochformat** (Feedback `fb_4d0tejx6`): Ist der Spielbereich höher als breit, stehen nur 2 Räume
+  pro Etage – dieselben 6 Räume auf **3 Etagen** plus Dachboden (unten Küche und Wohnzimmer, Mitte
+  Werkstatt und Bad, oben Musikzimmer und Schlafzimmer). Im Querformat bleiben es 3 Räume auf
+  2 Etagen. Das Haus füllt die Breite aus und steht unten auf der Wiese; das **Dach ist flach**
+  genug, dass oben nicht viel leerer Himmel bleibt (Feedback `fb_96pg9w7f`).
+- **Musikzimmer:** ein großes Klavier mit Tasten und Hocker; spielt der Wichtel, sitzt er davor
+  und kleine Noten steigen auf.
 - Er läuft sichtbar durch die Räume und nutzt die Treppe; das Haustier folgt ihm oder schläft.
 - **Tag und Nacht** im Spiel: ein Spieltag dauert 6 Minuten; nachts ist das Haus dunkel, Fenster
   leuchten, der Wichtel schläft meist.
@@ -104,6 +111,10 @@ Das Spiel macht **keine Gesundheitsversprechen**.
 ## Steuerung
 
 - Maus/Touch: Knöpfe unten („Einkaufen“, „Geschenk“, „Anklopfen“, „Ruhemoment“, „Briefe“, 🔈),
+  **auf kleinen Bildschirmen** (bis 600 px breit oder bis 450 px hoch) stattdessen ein runder **Menü-Knopf ☰ unten
+  rechts**; er öffnet die fünf Aktionen als kleine Liste darüber, ein ungelesener Brief zeigt sich
+  als Punkt am Menü-Knopf. Esc, ein Tipp daneben oder eine gewählte Aktion schließt die Liste
+  (Feedback `fb_96pg9w7f`).
   Antippen eines Raums zoomt sanft hinein (nur Ansicht); Ruhe-Tätigkeiten durch Antippen und Halten.
 - Tastatur: 1–4 für die Knöpfe, Esc schließt Menüs. Pause bei Fokusverlust. Kein Doppeltipp-Zoom.
 
@@ -137,6 +148,11 @@ Das Spiel macht **keine Gesundheitsversprechen**.
   Wichtel läuft; Einkaufen füllt den Schrank; Neuladen behält alles.
 - **WH-AK-08** (E2E) Anklopfen → „Spiel etwas vor!“ → Sprechblase mit Antwort; Brief lesen.
 - **WH-AK-09** (E2E Mobile 375×667) Haus und Knöpfe sichtbar und bedienbar, kein Querscrollen.
+- **WH-AK-13** (Vitest) Hausplan: Querformat 3 Räume × 2 Etagen, Hochformat 2 Räume × 3 Etagen;
+  jeder der 6 Räume hat genau einen Platz, keine zwei Räume teilen sich einen; der Dachboden liegt
+  über der obersten Etage; das Dach ist höchstens 75 % einer Etage hoch.
+- **WH-AK-14** (E2E Mobile) Menü-Knopf: Die Knopfreihe ist versteckt, ☰ öffnet die Aktionen,
+  „Einkaufen“ darüber funktioniert, die Liste schließt danach; am Desktop gibt es keinen Menü-Knopf.
 - **WH-AK-10** Fokusverlust pausiert; Spiel erscheint im Portal mit Version 1.0.0.
 - **WH-AK-11** Ruhe-Regeln (Vitest + E2E): keine Zeitlimits, kein Verlieren, keine Punkte; alle
   Leerlauf-Animationen haben Zyklen ≥ 4 s (Atmen/Laterne 10 s); nichts blinkt schneller als 3 Hz;

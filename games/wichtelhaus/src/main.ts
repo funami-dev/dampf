@@ -43,6 +43,7 @@ import {
   type World,
 } from "./logic/wichtel.ts";
 import { debugEnabled } from "./debug.ts";
+import { fit, layoutFor, type Layout } from "./logic/layout.ts";
 
 const stage = mountGameShell({
   title: manifest.title,
@@ -100,7 +101,8 @@ layer.innerHTML = `
       <button class="wh-btn wh-small" type="button" data-b="sound" aria-label="Klang">🔈</button>
     </div>
   </div>
-  <div class="wh-bar" hidden>
+  <button class="wh-btn wh-fab" type="button" data-b="menu" aria-label="Menü" aria-expanded="false" hidden>☰<span class="wh-dot" data-h="dot" hidden></span></button>
+  <div class="wh-bar" id="wh-actions" hidden>
     <button class="wh-btn" type="button" data-b="shop">🧺 Einkaufen</button>
     <button class="wh-btn" type="button" data-b="gift">🎁 Geschenk</button>
     <button class="wh-btn" type="button" data-b="knock">🚪 Anklopfen</button>
@@ -136,8 +138,17 @@ function closeDrawer() {
 }
 const tap = (fn: () => void) => () => {
   sound.start();
+  setMenu(false);
   fn();
 };
+
+// Menü-Knopf auf schmalen Bildschirmen (WH-AK-14): öffnet die Aktionen als Liste
+function setMenu(open: boolean) {
+  const bar = $(".wh-bar");
+  bar.classList.toggle("open", open);
+  $('[data-b="menu"]').setAttribute("aria-expanded", String(open));
+}
+const menuOpen = () => $(".wh-bar").classList.contains("open");
 
 // --- Einzug (WH-AK-01/07) ---------------------------------------------------------
 function openSetup() {
@@ -192,6 +203,8 @@ function openSetup() {
 function showUi(on: boolean) {
   $(".wh-top").hidden = !on;
   $(".wh-bar").hidden = !on;
+  $('[data-b="menu"]').hidden = !on;
+  if (!on) setMenu(false);
 }
 
 const GREET: Record<World["trait"], string> = {
@@ -385,11 +398,22 @@ $('[data-b="knock"]').addEventListener("click", tap(openKnock));
 $('[data-b="calm"]').addEventListener("click", tap(openCalm));
 $('[data-b="letters"]').addEventListener("click", tap(openLetters));
 $('[data-b="sound"]').addEventListener("click", tap(openSound));
+$('[data-b="menu"]').addEventListener("click", (e) => {
+  e.stopPropagation();
+  sound.start();
+  setMenu(!menuOpen());
+});
+// Tipp daneben schließt das Menü
+window.addEventListener("pointerdown", (e) => {
+  const t = e.target as HTMLElement;
+  if (menuOpen() && !t.closest(".wh-bar") && !t.closest('[data-b="menu"]')) setMenu(false);
+});
 
 window.addEventListener("keydown", (e) => {
   if ((e.target as HTMLElement)?.tagName === "INPUT") return;
   if (e.code === "Escape") {
     if (paused) return setPaused(false);
+    if (menuOpen()) return setMenu(false);
     if (overlay && world) closeDrawer();
     return;
   }
@@ -484,6 +508,7 @@ function updateHud() {
   h("heart").textContent = `💛 ${Math.floor(w.friendship)}`;
   const unread = w.letters.filter((l) => !l.read).length;
   h("unread").hidden = unread === 0;
+  h("dot").hidden = unread === 0;
   h("unread").textContent = String(unread);
   if (calm && overlay) {
     const s = clock - calm.started;
@@ -496,20 +521,17 @@ function updateHud() {
 }
 
 // --- Grafik ---------------------------------------------------------------------
-const W0 = 480;
-const H0 = 600;
-const ROOM_W = 120;
-const FLOOR_H = 110;
-const HOUSE_X = (W0 - ROOM_W * 3) / 2;
-const GROUND = 520;
-const floorY = (f: number) => GROUND - (f + 1) * FLOOR_H; // Oberkante der Etage
-const roomCenter = (r: Room) => {
-  const o = ROOMS[r];
-  const w = o.floor === 2 ? ROOM_W * 1.6 : ROOM_W;
-  const x = o.floor === 2 ? W0 / 2 : HOUSE_X + ROOM_W * o.x + ROOM_W / 2;
-  return { x: x + (o.floor === 2 ? 0 : 0), y: floorY(o.floor) + FLOOR_H - 8, w };
-};
-const STAIR_X = HOUSE_X + ROOM_W * 3 - 14;
+// Hausplan je nach Bildformat (WH-AK-13); wird in draw() neu bestimmt
+let L: Layout = layoutFor(480, 600);
+let GROUND = 520;
+const houseW = () => L.roomW * L.cols;
+const floorY = (f: number) => GROUND - (f + 1) * L.floorH; // Oberkante der Etage
+const roomX = (r: Room) => L.houseX + L.roomW * L.rooms[r].col;
+const roomCenter = (r: Room) => ({
+  x: r === "dachboden" ? L.width / 2 : roomX(r) + L.roomW / 2,
+  y: floorY(L.rooms[r].floor) + L.floorH - 8,
+});
+const stairX = () => L.houseX + houseW() - 14;
 const WALLS: Record<Room, number> = {
   kueche: 0xe9d8b4,
   wohnzimmer: 0xd9c6a5,
@@ -560,9 +582,15 @@ class HouseScene extends Phaser.Scene {
     const g = this.g;
     const Wd = this.scale.width;
     const Hd = this.scale.height;
-    const k = Math.min(Wd / W0, Hd / H0);
-    const ox = (Wd - W0 * k) / 2;
-    const oy = (Hd - H0 * k) / 2;
+    const next = layoutFor(Wd, Hd);
+    if (next.portrait !== L.portrait) walker.init = false; // neuer Plan: Wichtel neu hinstellen
+    L = next;
+    const fitted = fit(L, Wd, Hd);
+    const k = fitted.k;
+    const ox = fitted.ox;
+    const oy = 0;
+    GROUND = fitted.ground;
+    const W0 = L.width;
     g.clear();
     const w = world;
     const t = w ? timeOfDay(w.t) : 0.3;
@@ -587,24 +615,25 @@ class HouseScene extends Phaser.Scene {
     if (night)
       for (let i = 0; i < 40; i++) {
         const sx = (i * 97) % W0;
-        const sy = (i * 53) % 260;
+        const sy = (i * 53) % Math.max(60, floorY(L.floors - 1) - L.roofH);
         R(sx, sy, 2, 2, 0xffffff, 0.35 + 0.35 * sway(clock / slow, 9, i * 0.13));
       }
     // Hügel und Bäume (wiegen sich langsam)
     g.fillStyle(night ? 0x22362a : 0x7fae6a, 1);
-    g.fillEllipse(X(80), Y(GROUND + 20), 360 * k, 160 * k);
-    g.fillEllipse(X(420), Y(GROUND + 30), 360 * k, 140 * k);
+    g.fillEllipse(X(W0 * 0.17), Y(GROUND + 20), 360 * k, 160 * k);
+    g.fillEllipse(X(W0 * 0.87), Y(GROUND + 30), 360 * k, 140 * k);
     for (const [tx, s] of [
-      [24, 1],
-      [452, 0.9],
-      [60, 0.7],
+      [W0 * 0.05, 1],
+      [W0 * 0.94, 0.9],
+      [W0 * 0.125, 0.7],
     ] as const) {
       const sw = (sway(clock / slow, IDLE_CYCLES.baeume!, tx / 100) - 0.5) * 4;
       R(tx - 3, GROUND - 40 * s, 6, 40 * s, 0x6b4a2e);
       g.fillStyle(night ? 0x1f3a26 : 0x4f8a43, 1);
       g.fillCircle(X(tx + sw), Y(GROUND - 52 * s), 22 * s * k);
     }
-    R(0, GROUND, W0, H0 - GROUND, night ? 0x2c3b2a : 0x6a9a58);
+    g.fillStyle(night ? 0x2c3b2a : 0x6a9a58, 1);
+    g.fillRect(0, Y(GROUND), Wd, Hd - Y(GROUND));
     // Regen (langsam fallende, dünne Striche)
     if (w && rainy(w)) {
       g.lineStyle(1 * k, 0xcfe3f2, 0.35);
@@ -614,53 +643,43 @@ class HouseScene extends Phaser.Scene {
         g.lineBetween(X(rx), Y(ry), X(rx - 3), Y(ry + 10));
       }
     }
-    // Haus: Dach, Dachboden, zwei Etagen
-    const roofY = floorY(2) + 12;
+    // Haus: flaches Dach mit Dachboden, darunter die Etagen (WH-AK-13)
+    const top = floorY(L.floors - 1);
+    const cx = W0 / 2;
+    const hx0 = L.houseX;
+    const hx1 = L.houseX + houseW();
     g.fillStyle(0x7a3b2e, 1);
-    g.fillTriangle(
-      X(HOUSE_X - 20),
-      Y(roofY + 68),
-      X(W0 / 2),
-      Y(roofY - 50),
-      X(HOUSE_X + ROOM_W * 3 + 20),
-      Y(roofY + 68),
-    );
+    g.fillTriangle(X(hx0 - 20), Y(top + 2), X(cx), Y(top - L.roofH), X(hx1 + 20), Y(top + 2));
     const dim = night ? 0.55 : 1;
     // Dachboden
     const attic = w ? atticOpen(w) : false;
     g.fillStyle(mix(0x3a2a20, WALLS.dachboden, attic ? dim : 0.35), 1);
-    g.fillTriangle(
-      X(HOUSE_X + 20),
-      Y(roofY + 62),
-      X(W0 / 2),
-      Y(roofY - 30),
-      X(HOUSE_X + ROOM_W * 3 - 20),
-      Y(roofY + 62),
-    );
+    g.fillTriangle(X(hx0 + 18), Y(top), X(cx), Y(top - L.roofH + 20), X(hx1 - 18), Y(top));
     if (attic) {
       // Teleskop
-      R(W0 / 2 + 30, roofY + 30, 4, 30, 0x55433a);
+      R(cx + 30, top - 28, 4, 28, 0x55433a);
       g.lineStyle(5 * k, 0x8a7a6a, 1);
-      g.lineBetween(X(W0 / 2 + 32), Y(roofY + 30), X(W0 / 2 + 52), Y(roofY + 12));
+      g.lineBetween(X(cx + 32), Y(top - 28), X(cx + 52), Y(top - 44));
     } else {
       g.lineStyle(3 * k, 0x2a1d16, 0.8);
-      g.lineBetween(X(W0 / 2 - 40), Y(roofY + 30), X(W0 / 2 + 40), Y(roofY + 50));
-      g.lineBetween(X(W0 / 2 - 40), Y(roofY + 50), X(W0 / 2 + 40), Y(roofY + 30));
+      g.lineBetween(X(cx - 36), Y(top - 8), X(cx + 36), Y(top - 34));
+      g.lineBetween(X(cx - 36), Y(top - 34), X(cx + 36), Y(top - 8));
     }
     for (const r of Object.keys(ROOMS) as Room[]) {
-      const o = ROOMS[r];
-      if (o.floor === 2) continue;
-      const rx = HOUSE_X + ROOM_W * o.x;
-      const ry = floorY(o.floor);
-      R(rx, ry, ROOM_W, FLOOR_H, mix(0x241c2c, WALLS[r], dim));
+      if (r === "dachboden") continue;
+      const rx = roomX(r);
+      const ry = floorY(L.rooms[r].floor);
+      R(rx, ry, L.roomW, L.floorH, mix(0x241c2c, WALLS[r], dim));
       // Boden und Wände
-      R(rx, ry + FLOOR_H - 8, ROOM_W, 8, 0x8a6a4a);
-      R(rx, ry, 3, FLOOR_H, 0x5a4434);
+      R(rx, ry + L.floorH - 8, L.roomW, 8, 0x8a6a4a);
+      R(rx, ry, 3, L.floorH, 0x5a4434);
       this.furniture(r, rx, ry, X, Y, R, night);
     }
-    R(HOUSE_X + ROOM_W * 3 - 3, floorY(1), 3, FLOOR_H * 2, 0x5a4434);
-    // Treppe (rechts innen)
-    for (let s = 0; s < 8; s++) R(STAIR_X - s * 5, GROUND - 8 - s * (FLOOR_H / 8), 12, 3, 0x6b4f37);
+    R(hx1 - 3, top, 3, L.floorH * L.floors, 0x5a4434);
+    // Treppe (rechts innen), eine je Etage
+    for (let f = 0; f < L.floors - 1; f++)
+      for (let st = 0; st < 8; st++)
+        R(stairX() - st * 5, floorY(f) + L.floorH - 8 - st * (L.floorH / 8), 12, 3, 0x6b4f37);
     // Wichtel und Haustier
     if (w) this.wichtel(w, X, Y, R, k);
     else this.bubble.setVisible(false);
@@ -676,7 +695,7 @@ class HouseScene extends Phaser.Scene {
     night: boolean,
   ) {
     const g = this.g;
-    const floor = ry + FLOOR_H - 8;
+    const floor = ry + L.floorH - 8;
     // Fenster
     const win = night ? 0x2a3560 : 0xbfe0f5;
     R(rx + 44, ry + 18, 30, 24, 0x5a4434);
@@ -732,13 +751,34 @@ class HouseScene extends Phaser.Scene {
         break;
       }
       case "musik": {
-        R(rx + 10, floor - 30, 44, 30, 0x2b2b2b); // Klavier
-        R(rx + 12, floor - 24, 40, 5, 0xffffff);
-        R(rx + 86, floor - 30, 8, 30, 0xd4a017); // Notenständer
+        // großes Klavier mit Tasten, Notenpult und Hocker
+        R(rx + 6, floor - 46, 60, 34, 0x2b2b2b);
+        R(rx + 6, floor - 50, 60, 4, 0x3d3d3d);
+        R(rx + 8, floor - 30, 56, 6, 0xffffff);
+        for (let i = 0; i < 8; i++)
+          if (i % 4 !== 2) R(rx + 13 + i * 6.5, floor - 30, 3, 3.5, 0x111111);
+        R(rx + 26, floor - 44, 20, 9, 0xf3ead8); // Noten
+        R(rx + 8, floor - 12, 4, 12, 0x2b2b2b);
+        R(rx + 60, floor - 12, 4, 12, 0x2b2b2b);
+        R(rx + 26, floor - 12, 20, 4, 0x8a5a3a); // Hocker
+        R(rx + 28, floor - 8, 3, 8, 0x8a5a3a);
+        R(rx + 41, floor - 8, 3, 8, 0x8a5a3a);
+        R(rx + 92, floor - 30, 6, 30, 0xd4a017); // Notenständer
         if (w?.activity.kind === "musik") {
-          const p = (clock / slow) % 6;
-          g.fillStyle(0x3a2f45, Math.max(0, 1 - p / 6));
-          g.fillCircle(X(rx + 40 + p * 6), Y(floor - 44 - p * 6), 3);
+          // drei Noten steigen nacheinander langsam auf (6 s)
+          for (let n = 0; n < 3; n++) {
+            const p = ((clock / slow + n * 2) % 6) / 6;
+            g.fillStyle(0x3a2f45, Math.max(0, 1 - p) * 0.8);
+            g.fillCircle(X(rx + 40 + p * 30 + n * 4), Y(floor - 56 - p * 30), 3 * (X(1) - X(0)));
+            R(
+              rx + 42.5 + p * 30 + n * 4,
+              floor - 66 - p * 30,
+              1,
+              10,
+              0x3a2f45,
+              Math.max(0, 1 - p) * 0.8,
+            );
+          }
         }
         break;
       }
@@ -766,7 +806,10 @@ class HouseScene extends Phaser.Scene {
   ) {
     const g = this.g;
     const target = roomCenter(w.activity.room);
-    const tx = target.x + (w.activity.kind === "schlafen" ? 20 : -14);
+    const tx =
+      w.activity.kind === "musik" && w.activity.room === "musik"
+        ? roomX("musik") + 36 // am Klavier auf dem Hocker
+        : target.x + (w.activity.kind === "schlafen" ? 20 : -14);
     const ty = target.y;
     if (!walker.init) {
       walker.x = tx;
@@ -778,10 +821,10 @@ class HouseScene extends Phaser.Scene {
     const dt = 1 / 60;
     walker.moving = false;
     if (Math.abs(walker.y - ty) > 1) {
-      if (Math.abs(walker.x - STAIR_X) > 1) {
-        walker.facing = Math.sign(STAIR_X - walker.x);
-        walker.x +=
-          Math.sign(STAIR_X - walker.x) * Math.min(speed * dt, Math.abs(STAIR_X - walker.x));
+      const sx = stairX();
+      if (Math.abs(walker.x - sx) > 1) {
+        walker.facing = Math.sign(sx - walker.x);
+        walker.x += Math.sign(sx - walker.x) * Math.min(speed * dt, Math.abs(sx - walker.x));
       } else walker.y += Math.sign(ty - walker.y) * Math.min(speed * dt, Math.abs(ty - walker.y));
       walker.moving = true;
     } else if (Math.abs(walker.x - tx) > 1) {
@@ -825,7 +868,7 @@ class HouseScene extends Phaser.Scene {
       .setVisible(!!show)
       .setText(show ? bubble : "")
       .setScale(1)
-      .setPosition(X(Math.max(110, Math.min(W0 - 110, x))), Y(y - 48));
+      .setPosition(X(Math.max(110, Math.min(L.width - 110, x))), Y(y - 48));
     void BREATH_CYCLE;
     void DAY;
     void activityInfo;

@@ -34,10 +34,15 @@ async function open(page: Page) {
   await page.goto("/games/wichtelhaus/?e2e");
   await expect.poll(() => page.evaluate(() => !!window.__dampf), { timeout: 60_000 }).toBe(true);
 }
-const press = (page: Page, name: string | RegExp) =>
-  isMobile(page)
-    ? page.getByRole("button", { name }).first().tap()
-    : page.getByRole("button", { name }).first().click();
+const hit = (page: Page, l: ReturnType<Page["getByRole"]>) =>
+  isMobile(page) ? l.tap() : l.click();
+/** Knopf drücken; auf kleinen Bildschirmen liegen die Aktionen im Menü (WH-AK-14) */
+async function press(page: Page, name: string | RegExp) {
+  const b = page.getByRole("button", { name }).first();
+  const menu = page.getByRole("button", { name: "Menü" });
+  if (!(await b.isVisible()) && (await menu.isVisible())) await hit(page, menu);
+  await hit(page, b);
+}
 
 async function moveIn(page: Page, name = "Pip") {
   await page.getByLabel("Name des Wichtels").fill(name);
@@ -96,6 +101,7 @@ test("WH-AK-09: Mobile – Haus und Knöpfe sichtbar, kein Querscrollen", async 
   await moveIn(page);
   const vw = page.viewportSize()!.width;
   const vh = page.viewportSize()!.height;
+  await page.getByRole("button", { name: "Menü" }).tap();
   for (const name of ["🧺 Einkaufen", "🎁 Geschenk", "🚪 Anklopfen", "🕯️ Ruhe", /Briefe/]) {
     const b = (await page.getByRole("button", { name }).first().boundingBox())!;
     expect(b.x).toBeGreaterThanOrEqual(0);
@@ -106,6 +112,40 @@ test("WH-AK-09: Mobile – Haus und Knöpfe sichtbar, kein Querscrollen", async 
     await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
   ).toBeLessThanOrEqual(0);
   await expect(page.locator("canvas").first()).toBeVisible();
+});
+
+test("WH-AK-14: Menü-Knopf auf dem Handy, Knopfreihe am Desktop", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await moveIn(page);
+  const menu = page.getByRole("button", { name: "Menü" });
+  const shop = page.getByRole("button", { name: "🧺 Einkaufen" });
+  if (!isMobile(page)) {
+    await expect(menu).toBeHidden();
+    await expect(shop).toBeVisible();
+    return;
+  }
+  await expect(shop).toBeHidden();
+  await expect(menu).toBeVisible();
+  const vw = page.viewportSize()!.width;
+  const vh = page.viewportSize()!.height;
+  const m = (await menu.boundingBox())!;
+  expect(m.x + m.width).toBeGreaterThan(vw * 0.7);
+  expect(m.y + m.height).toBeGreaterThan(vh * 0.8);
+  await menu.tap();
+  await expect(menu).toHaveAttribute("aria-expanded", "true");
+  const before = (await state(page)).food;
+  await shop.tap();
+  await expect(shop).toBeHidden();
+  await press(page, "🍰 Kuchen");
+  expect((await state(page)).food).toBe(before + 1);
+  await press(page, "Schließen");
+  // Tipp daneben schließt das Menü
+  await menu.tap();
+  await expect(shop).toBeVisible();
+  await page.mouse.click(vw * 0.3, vh * 0.5);
+  await expect(shop).toBeHidden();
+  await expectNoErrors(errors);
 });
 
 test("WH-AK-10: Fokusverlust pausiert", async ({ page }) => {

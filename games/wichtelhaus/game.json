@@ -7,8 +7,18 @@
   "status": "published",
   "order": 100,
   "addedAt": "2026-11-10",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-11-11",
+      "time": "07:30",
+      "items": [
+        "Auf dem Handy liegen die Knöpfe jetzt in einem Menü unten rechts – so siehst du das ganze Haus",
+        "Im Hochformat hat das Haus drei Etagen und ein flacheres Dach",
+        "Im Musikzimmer steht ein großes Klavier, an dem der Wichtel spielt"
+      ]
+    },
     {
       "version": "1.0.0",
       "date": "2026-11-10",
