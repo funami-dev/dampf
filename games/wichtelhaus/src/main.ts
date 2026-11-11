@@ -454,7 +454,10 @@ function tick(dt: number) {
   clock += dt;
   if (!world || paused) return;
   const w = world;
+  // Die Tätigkeit läuft erst, wenn er angekommen ist (sonst wäre sie bei langen Wegen schon vorbei)
+  const before = w.activity;
   const text = step(w, dt);
+  if (walker.moving && w.activity === before) before.left += dt;
   if (text && clock > bubbleUntil) say(text, 4);
   // Ruhe-Tätigkeit durch Halten (3 s)
   if (task && !task.done) {

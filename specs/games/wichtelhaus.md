@@ -82,6 +82,7 @@ Das Spiel macht **keine Gesundheitsversprechen**.
   genug, dass oben nicht viel leerer Himmel bleibt (Feedback `fb_96pg9w7f`).
 - **Musikzimmer:** ein großes Klavier mit Tasten und Hocker; spielt der Wichtel, sitzt er davor
   und kleine Noten steigen auf.
+- Eine Tätigkeit beginnt erst, wenn er im Raum angekommen ist (der Weg zählt nicht mit).
 - Er läuft sichtbar durch die Räume und nutzt die Treppe; das Haustier folgt ihm oder schläft.
 - **Tag und Nacht** im Spiel: ein Spieltag dauert 6 Minuten; nachts ist das Haus dunkel, Fenster
   leuchten, der Wichtel schläft meist.
