@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { fresh } from "@dampf/game-kit/keys";
 import { CHARACTERS, COLORS, FIGURE_SCALE, FONT, type CharacterId } from "../theme.ts";
 import { button, sky, title } from "./ui.ts";
 
@@ -83,10 +84,22 @@ export class SelectScene extends Phaser.Scene {
     button(this, width / 2, 560, "Los!", () => this.start(), { name: "start" });
 
     const kb = this.input.keyboard;
-    kb?.on("keydown-LEFT", () => this.move(-1));
-    kb?.on("keydown-RIGHT", () => this.move(1));
-    kb?.on("keydown-A", () => this.move(-1));
-    kb?.on("keydown-D", () => this.move(1));
+    kb?.on(
+      "keydown-LEFT",
+      fresh(() => this.move(-1)),
+    );
+    kb?.on(
+      "keydown-RIGHT",
+      fresh(() => this.move(1)),
+    );
+    kb?.on(
+      "keydown-A",
+      fresh(() => this.move(-1)),
+    );
+    kb?.on(
+      "keydown-D",
+      fresh(() => this.move(1)),
+    );
     kb?.once("keydown-SPACE", () => this.start());
     kb?.once("keydown-ENTER", () => this.start());
     this.render();

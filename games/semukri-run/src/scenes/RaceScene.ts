@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { fresh } from "../keys.ts";
+import { fresh } from "@dampf/game-kit/keys";
 import {
   DISTANCE,
   abort,

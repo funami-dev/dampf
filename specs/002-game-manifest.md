@@ -107,3 +107,8 @@ gemeinsam genutzt.
   zweite Tipp eines Doppeltipps (< 350 ms) wird nicht als Zoom-Geste weitergegeben, und
   `gesturestart` wird verhindert. Das Spiel bekommt beide Tipps trotzdem. Die Startseite ist
   davon nicht betroffen (E2E).
+- **MANIFEST-AK-10** Jeder Tastendruck zählt genau einmal: Phaser meldet ein schon behandeltes
+  `keydown` manchmal ein zweites Mal (wenn seine Warteschlange zwischen zwei Bildern nicht geleert
+  wird). `game-kit` bietet dafür `fresh(handler)`, das jedes Browser-Ereignis je Handler nur einmal
+  durchlässt. Alle Phaser-Spiele nutzen es für Tasten, die etwas umschalten oder weiterzählen
+  (Figurenwahl, Pause, Richtung, Rennen) (Vitest).

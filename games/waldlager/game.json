@@ -10,8 +10,16 @@
   "status": "published",
   "order": 80,
   "addedAt": "2026-11-08",
-  "version": "1.11.0",
+  "version": "1.11.1",
   "changelog": [
+    {
+      "version": "1.11.1",
+      "date": "2026-11-11",
+      "time": "10:45",
+      "items": [
+        "Kleine Verbesserungen im Hintergrund, damit wir Waldlager zuverlässiger testen können"
+      ]
+    },
     {
       "version": "1.11.0",
       "date": "2026-11-11",

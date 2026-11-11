@@ -116,7 +116,7 @@ Module (`ghost.ts`, `records.ts`) mit einer austauschbaren Speicher-Schnittstell
 - **SR-AK-13** (E2E Mobile 375×667) Buttons „L“ und „R“ vollständig sichtbar; Tippen bringt
   die Figur ins Ziel.
 - **SR-AK-14** Fokusverlust während des Rennens bricht den Lauf ab; es wird nichts gespeichert.
-- **SR-AK-15** Jeder Tastendruck zählt genau einmal: Auch wenn Phaser ein Tasten-Ereignis doppelt
+- **SR-AK-15** Jeder Tastendruck zählt genau einmal (siehe MANIFEST-AK-10): Auch wenn Phaser ein Tasten-Ereignis doppelt
   meldet, springt die Figurenwahl nur um eine Figur weiter und im Rennen zählt es nur einmal.
 
 ## Nicht-Ziele (MVP)

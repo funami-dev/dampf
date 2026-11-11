@@ -10,8 +10,14 @@
   "status": "published",
   "order": 20,
   "addedAt": "2026-11-01",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "changelog": [
+    {
+      "version": "1.1.1",
+      "date": "2026-11-11",
+      "time": "08:15",
+      "items": ["Figur wählen und Pause per Taste reagieren genau einmal pro Tastendruck"]
+    },
     {
       "version": "1.1.0",
       "date": "2026-11-09",

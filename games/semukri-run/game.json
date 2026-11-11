@@ -10,8 +10,14 @@
   "status": "published",
   "order": 30,
   "addedAt": "2026-11-01",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "changelog": [
+    {
+      "version": "1.1.2",
+      "date": "2026-11-11",
+      "time": "08:15",
+      "items": ["Jeder Tastendruck zählt jetzt überall genau einmal"]
+    },
     {
       "version": "1.1.1",
       "date": "2026-11-11",
