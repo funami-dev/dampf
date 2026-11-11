@@ -10,8 +10,14 @@
   "status": "published",
   "order": 10,
   "addedAt": "2026-11-01",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "changelog": [
+    {
+      "version": "1.1.1",
+      "date": "2026-11-11",
+      "time": "08:15",
+      "items": ["Pause per Taste schaltet nicht mehr manchmal sofort wieder zurück"]
+    },
     {
       "version": "1.1.0",
       "date": "2026-11-09",

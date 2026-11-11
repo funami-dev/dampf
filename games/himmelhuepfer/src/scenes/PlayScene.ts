@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { fresh } from "@dampf/game-kit/keys";
 import {
   START_CAMERA_Y,
   VIEW_HEIGHT,
@@ -122,8 +123,14 @@ export class PlayScene extends Phaser.Scene {
       a: kb.addKey("A"),
       d: kb.addKey("D"),
     };
-    kb.on("keydown-P", () => this.setPaused(!this.paused));
-    kb.on("keydown-ESC", () => this.setPaused(!this.paused));
+    kb.on(
+      "keydown-P",
+      fresh(() => this.setPaused(!this.paused)),
+    );
+    kb.on(
+      "keydown-ESC",
+      fresh(() => this.setPaused(!this.paused)),
+    );
     this.input.addPointer(2);
     this.input.on("pointerup", (p: Phaser.Input.Pointer) => {
       if (this.paused && p.y > HUD_HEIGHT) this.setPaused(false);

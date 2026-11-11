@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { fresh } from "./keys.ts";
 
-describe("SR-AK-15: jeder Tastendruck zählt genau einmal", () => {
+describe("MANIFEST-AK-10: jeder Tastendruck zählt genau einmal", () => {
   it("dasselbe Ereignis wird nur einmal behandelt, neue Ereignisse schon", () => {
     let n = 0;
     const h = fresh(() => n++);

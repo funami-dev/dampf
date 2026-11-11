@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { fresh } from "../keys.ts";
+import { fresh } from "@dampf/game-kit/keys";
 import { CHARACTERS, type CharacterId } from "../sprites.ts";
 import { formatTime } from "../logic/race.ts";
 import { canSave, loadData } from "../store.ts";

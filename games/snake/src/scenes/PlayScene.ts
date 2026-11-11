@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { fresh } from "@dampf/game-kit/keys";
 import {
   createGame,
   grow,
@@ -65,14 +66,17 @@ export class PlayScene extends Phaser.Scene {
       ])
       .setVisible(false);
 
-    this.input.keyboard?.on("keydown", (e: KeyboardEvent) => {
-      if (e.code === "KeyP" || e.code === "Escape") return this.setPaused(!this.paused);
-      const dir = KEY_DIRECTIONS[e.code];
-      if (dir && !this.paused) {
-        e.preventDefault();
-        this.state = turn(this.state, dir);
-      }
-    });
+    this.input.keyboard?.on(
+      "keydown",
+      fresh((e: KeyboardEvent) => {
+        if (e.code === "KeyP" || e.code === "Escape") return this.setPaused(!this.paused);
+        const dir = KEY_DIRECTIONS[e.code];
+        if (dir && !this.paused) {
+          e.preventDefault();
+          this.state = turn(this.state, dir);
+        }
+      }),
+    );
     onSwipe(this, (dir) => {
       if (!this.paused) this.state = turn(this.state, dir);
     });
