@@ -44,6 +44,8 @@ import {
 } from "./logic/wichtel.ts";
 import { debugEnabled } from "./debug.ts";
 import { fit, layoutFor, type Layout } from "./logic/layout.ts";
+import { FURNITURE, itemBox } from "./logic/furniture.ts";
+import { furnitureArt, petArt, roomArt, sleeperArt, wichtelArt, windowRect } from "./art/art.ts";
 
 const stage = mountGameShell({
   title: manifest.title,
@@ -541,7 +543,6 @@ const WALLS: Record<Room, number> = {
   schlafzimmer: 0xc9cfe8,
   dachboden: 0xb89a74,
 };
-const hex = (c: string) => Phaser.Display.Color.HexStringToColor(c).color;
 const mix = (a: number, b: number, t: number) => {
   const ca = Phaser.Display.Color.IntegerToColor(a);
   const cb = Phaser.Display.Color.IntegerToColor(b);
@@ -551,16 +552,22 @@ const mix = (a: number, b: number, t: number) => {
     Math.round(ca.blue + (cb.blue - ca.blue) * t),
   );
 };
+/** Zahl der gezeigten Bilder (WH-AK-16, für Tests) */
+let spritesShown = 0;
 const walker = { x: 0, y: 0, init: false, facing: 1, moving: false };
 
 class HouseScene extends Phaser.Scene {
   g!: Phaser.GameObjects.Graphics;
+  fg!: Phaser.GameObjects.Graphics;
   bubble!: Phaser.GameObjects.Text;
+  imgs = new Map<string, Phaser.GameObjects.Image>();
+  seen = new Set<string>();
   constructor() {
     super("house");
   }
   create() {
-    this.g = this.add.graphics();
+    this.g = this.add.graphics().setDepth(0);
+    this.fg = this.add.graphics().setDepth(2.5);
     this.bubble = this.add
       .text(0, 0, "", {
         fontFamily: "system-ui, sans-serif",
@@ -649,12 +656,41 @@ class HouseScene extends Phaser.Scene {
     const hx0 = L.houseX;
     const hx1 = L.houseX + houseW();
     g.fillStyle(0x7a3b2e, 1);
+    // Schornstein (hinter dem Dach)
+    const chx = hx1 - 70;
+    R(chx, top - L.roofH * 0.62 - 18, 16, 30, night ? 0x5a3a30 : 0x8a4a3a);
+    for (let y = 0; y < 30; y += 5) R(chx, top - L.roofH * 0.62 - 18 + y, 16, 1, 0x6a3a2c);
+    R(chx - 2, top - L.roofH * 0.62 - 21, 20, 4, 0x55433a);
+    g.fillStyle(night ? 0x5a2c22 : 0x7a3b2e, 1);
     g.fillTriangle(X(hx0 - 20), Y(top + 2), X(cx), Y(top - L.roofH), X(hx1 + 20), Y(top + 2));
+    // Dachziegel: Reihen mit versetzten Fugen
+    {
+      const apex = top - L.roofH;
+      const half = (y: number) => ((hx1 + 20 - cx) * (y - apex)) / (top + 2 - apex);
+      for (let y = apex + 6, row = 0; y < top; y += 6, row++) {
+        const hw = half(y);
+        R(cx - hw, y, hw * 2, 1, night ? 0x40201a : 0x5e2a20);
+        for (let x = cx - hw + (row % 2) * 5; x < cx + hw - 2; x += 10)
+          R(x, y + 1, 1, 5, night ? 0x40201a : 0x6a3226);
+        R(cx - hw, y + 1, hw * 2, 1, night ? 0x6a3a30 : 0x9a5040, 0.5);
+      }
+    }
     const dim = night ? 0.55 : 1;
     // Dachboden
     const attic = w ? atticOpen(w) : false;
     g.fillStyle(mix(0x3a2a20, WALLS.dachboden, attic ? dim : 0.35), 1);
     g.fillTriangle(X(hx0 + 18), Y(top), X(cx), Y(top - L.roofH + 20), X(hx1 - 18), Y(top));
+    // Bretter im Dachboden
+    {
+      const apex = top - L.roofH + 20;
+      const hw0 = cx - (hx0 + 18);
+      for (let x = hx0 + 30; x < hx1 - 24; x += 12) {
+        const d = Math.abs(x - cx) / hw0;
+        const yTop = apex + (top - apex) * d;
+        R(x, yTop, 1, top - yTop, 0x000000, 0.18);
+      }
+      R(hx0 + 18, top - 2, hx1 - hx0 - 36, 2, 0x5a4434);
+    }
     if (attic) {
       // Teleskop
       R(cx + 30, top - 28, 4, 28, 0x55433a);
@@ -665,146 +701,173 @@ class HouseScene extends Phaser.Scene {
       g.lineBetween(X(cx - 36), Y(top - 8), X(cx + 36), Y(top - 34));
       g.lineBetween(X(cx - 36), Y(top - 34), X(cx + 36), Y(top - 8));
     }
+    // Fensterglas zeigt den Himmel; die Raumbilder haben dort ein Loch
+    const glass = night ? 0x2a3560 : mix(sky, 0xffffff, 0.35);
+    for (const r of Object.keys(ROOMS) as Room[]) {
+      if (r === "dachboden") continue;
+      const wr = windowRect(L.roomW);
+      R(roomX(r) + wr.x, floorY(L.rooms[r].floor) + wr.y, wr.w, wr.h, glass);
+    }
+    const f = this.fg;
+    f.clear();
+    const tint = night ? 0x8a8aa8 : t > 0.62 ? 0xf2dcc8 : 0xffffff;
+    this.seen.clear();
     for (const r of Object.keys(ROOMS) as Room[]) {
       if (r === "dachboden") continue;
       const rx = roomX(r);
       const ry = floorY(L.rooms[r].floor);
-      R(rx, ry, L.roomW, L.floorH, mix(0x241c2c, WALLS[r], dim));
-      // Boden und Wände
-      R(rx, ry + L.floorH - 8, L.roomW, 8, 0x8a6a4a);
-      R(rx, ry, 3, L.floorH, 0x5a4434);
-      this.furniture(r, rx, ry, X, Y, R, night);
+      this.img(`room:${r}`, `room-${r}-${L.roomW}`, () => roomArt(r, L.roomW, L.floorH))
+        .setOrigin(0, 0)
+        .setPosition(X(rx), Y(ry))
+        .setScale(k)
+        .setDepth(1)
+        .setTint(tint);
+      for (const it of FURNITURE[r]) {
+        const b = itemBox(it, L.roomW);
+        this.img(`f:${r}:${it.key}`, `f-${it.key}`, () => furnitureArt(it.key, it.w, it.h))
+          .setOrigin(0, 0)
+          .setPosition(X(rx + b.x), Y(ry + b.y))
+          .setScale(k)
+          .setDepth(2)
+          .setTint(tint);
+      }
+      this.details(r, rx, ry, X, Y, k, night);
     }
-    R(hx1 - 3, top, 3, L.floorH * L.floors, 0x5a4434);
-    // Treppe (rechts innen), eine je Etage
-    for (let f = 0; f < L.floors - 1; f++)
-      for (let st = 0; st < 8; st++)
-        R(stairX() - st * 5, floorY(f) + L.floorH - 8 - st * (L.floorH / 8), 12, 3, 0x6b4f37);
+    // Außenwand rechts und Treppe (rechts innen), eine je Etage
+    const F = (x: number, y: number, ww: number, hh: number, c: number, a = 1) => {
+      f.fillStyle(c, a);
+      f.fillRect(X(x), Y(y), ww * k, hh * k);
+    };
+    F(hx1 - 3, top, 3, L.floorH * L.floors, 0x5a4434);
+    for (let fl = 0; fl < L.floors - 1; fl++)
+      for (let st = 0; st < 8; st++) {
+        const sx = stairX() - st * 5;
+        const sy = floorY(fl) + L.floorH - 8 - st * (L.floorH / 8);
+        F(sx, sy, 12, 3, night ? 0x4a3826 : 0x6b4f37);
+        F(sx, sy, 12, 1, night ? 0x5e4a36 : 0x8a6a4a);
+      }
     // Wichtel und Haustier
-    if (w) this.wichtel(w, X, Y, R, k);
+    if (w) this.wichtel(w, X, Y, k, tint);
     else this.bubble.setVisible(false);
+    for (const [id, im] of this.imgs) if (!this.seen.has(id)) im.setVisible(false);
+    spritesShown = this.seen.size;
   }
 
-  furniture(
+  /** Bild holen oder anlegen; die Textur entsteht nur einmal */
+  img(id: string, key: string, make: () => HTMLCanvasElement) {
+    this.seen.add(id);
+    if (!this.textures.exists(key)) this.textures.addCanvas(key, make());
+    let im = this.imgs.get(id);
+    if (!im) {
+      im = this.add.image(0, 0, key);
+      this.imgs.set(id, im);
+    } else if (im.texture.key !== key) im.setTexture(key);
+    return im.setVisible(true);
+  }
+
+  /** bewegte Kleinigkeiten über den Möbeln: Vorräte, Feuer, Basteleien, Noten, Laterne */
+  details(
     r: Room,
     rx: number,
     ry: number,
     X: (x: number) => number,
     Y: (y: number) => number,
-    R: (x: number, y: number, ww: number, hh: number, c: number, a?: number) => void,
+    k: number,
     night: boolean,
   ) {
-    const g = this.g;
-    const floor = ry + L.floorH - 8;
-    // Fenster
-    const win = night ? 0x2a3560 : 0xbfe0f5;
-    R(rx + 44, ry + 18, 30, 24, 0x5a4434);
-    R(rx + 46, ry + 20, 26, 20, win);
+    const f = this.fg;
     const w = world;
+    const at = (key: string) => {
+      const it = FURNITURE[r as Exclude<Room, "dachboden">].find((i) => i.key === key)!;
+      const b = itemBox(it, L.roomW);
+      return { x: rx + b.x, y: ry + b.y, w: b.w, h: b.h };
+    };
+    const F = (x: number, y: number, ww: number, hh: number, c: number, a = 1) => {
+      f.fillStyle(c, a);
+      f.fillRect(X(x), Y(y), ww * k, hh * k);
+    };
     switch (r) {
       case "kueche": {
-        R(rx + 8, floor - 34, 26, 34, 0x8b8f96); // Herd
-        R(rx + 10, floor - 30, 22, 4, 0x3b3f44);
-        R(rx + 80, floor - 44, 30, 44, 0xa77b4f); // Vorratsschrank
+        // Vorratsgläser im Schrank (je Fach fünf)
+        const s = at("schrank");
         const n = w ? foodCount(w) : 0;
-        for (let i = 0; i < n; i++)
-          R(rx + 84 + (i % 5) * 5, floor - 40 + Math.floor(i / 5) * 10, 4, 6, 0xf1c40f);
-        R(rx + 40, floor - 18, 30, 4, 0x8a5a3a); // Tisch
-        R(rx + 44, floor - 14, 3, 14, 0x8a5a3a);
-        R(rx + 63, floor - 14, 3, 14, 0x8a5a3a);
+        for (let i = 0; i < n; i++) {
+          const jx = s.x + 4 + (i % 5) * 5;
+          const jy = s.y + 9 + Math.floor(i / 5) * 12;
+          F(jx, jy, 4, 6, 0xf1c40f);
+          F(jx, jy, 4, 1, 0xc0392b);
+          F(jx, jy + 2, 1, 3, 0xfbe08a);
+        }
         break;
       }
       case "wohnzimmer": {
-        R(rx + 8, floor - 18, 40, 18, 0x9b4f4f); // Sofa
-        R(rx + 8, floor - 26, 8, 26, 0x8a4545);
-        R(rx + 86, floor - 50, 26, 50, 0x6b4a2e); // Regal
-        for (let i = 0; i < 4; i++)
-          R(rx + 89, floor - 46 + i * 12, 20, 8, [0xc0392b, 0x2e86c1, 0x27ae60, 0xd68910][i]!);
-        // Kamin mit ruhigem Feuer (Zyklus 6 s, kein Flackern)
-        R(rx + 56, floor - 26, 24, 26, 0x7a6a5a);
-        const f = sway(clock / slow, IDLE_CYCLES.kerze!);
-        g.fillStyle(0xf39c12, 0.6 + 0.3 * f);
-        g.fillTriangle(
-          X(rx + 61),
-          Y(floor - 4),
-          X(rx + 68),
-          Y(floor - 18 - 3 * f),
-          X(rx + 75),
-          Y(floor - 4),
+        // ruhiges Kaminfeuer (Zyklus 6 s, kein Flackern)
+        const kz = at("kamin");
+        const fl = sway(clock / slow, IDLE_CYCLES.kerze!);
+        const base = kz.y + kz.h - 6;
+        f.fillStyle(0xe67e22, 0.65 + 0.25 * fl);
+        f.fillTriangle(
+          X(kz.x + 8),
+          Y(base),
+          X(kz.x + 14),
+          Y(base - 14 - 3 * fl),
+          X(kz.x + 20),
+          Y(base),
         );
+        f.fillStyle(0xf9d56e, 0.7 + 0.2 * fl);
+        f.fillTriangle(
+          X(kz.x + 11),
+          Y(base),
+          X(kz.x + 14),
+          Y(base - 8 - 2 * fl),
+          X(kz.x + 17),
+          Y(base),
+        );
+        if (night) {
+          f.fillStyle(0xffb35c, 0.12 + 0.06 * fl);
+          f.fillCircle(X(kz.x + 14), Y(base - 6), 26 * k);
+        }
         break;
       }
       case "werkstatt": {
-        R(rx + 10, floor - 22, 50, 6, 0x8a5a3a); // Werkbank
-        R(rx + 14, floor - 16, 4, 16, 0x8a5a3a);
-        R(rx + 52, floor - 16, 4, 16, 0x8a5a3a);
-        R(rx + 72, floor - 56, 40, 4, 0x6b4a2e); // Regal mit Basteleien
+        const s = at("wandregal");
         const n = Math.min(8, w?.crafted ?? 0);
-        for (let i = 0; i < n; i++)
-          R(rx + 74 + i * 5, floor - 64, 4, 8, [0xe67e22, 0x16a085, 0x8e44ad][i % 3]!);
-        break;
-      }
-      case "bad": {
-        R(rx + 10, floor - 20, 50, 20, 0xffffff); // Wanne
-        R(rx + 12, floor - 18, 46, 6, 0x9fd3e8);
-        R(rx + 86, floor - 34, 20, 26, 0xd0e6ea); // Spiegel/Waschbecken
+        for (let i = 0; i < n; i++) {
+          const c = [0xe67e22, 0x16a085, 0x8e44ad][i % 3]!;
+          F(s.x + 2 + i * 4.5, s.y - 8, 4, 8, c);
+          F(s.x + 2 + i * 4.5, s.y - 8, 1, 8, 0xffffff, 0.35);
+        }
         break;
       }
       case "musik": {
-        // großes Klavier mit Tasten, Notenpult und Hocker
-        R(rx + 6, floor - 46, 60, 34, 0x2b2b2b);
-        R(rx + 6, floor - 50, 60, 4, 0x3d3d3d);
-        R(rx + 8, floor - 30, 56, 6, 0xffffff);
-        for (let i = 0; i < 8; i++)
-          if (i % 4 !== 2) R(rx + 13 + i * 6.5, floor - 30, 3, 3.5, 0x111111);
-        R(rx + 26, floor - 44, 20, 9, 0xf3ead8); // Noten
-        R(rx + 8, floor - 12, 4, 12, 0x2b2b2b);
-        R(rx + 60, floor - 12, 4, 12, 0x2b2b2b);
-        R(rx + 26, floor - 12, 20, 4, 0x8a5a3a); // Hocker
-        R(rx + 28, floor - 8, 3, 8, 0x8a5a3a);
-        R(rx + 41, floor - 8, 3, 8, 0x8a5a3a);
-        R(rx + 92, floor - 30, 6, 30, 0xd4a017); // Notenständer
         if (w?.activity.kind === "musik") {
+          const p0 = at("klavier");
           // drei Noten steigen nacheinander langsam auf (6 s)
           for (let n = 0; n < 3; n++) {
             const p = ((clock / slow + n * 2) % 6) / 6;
-            g.fillStyle(0x3a2f45, Math.max(0, 1 - p) * 0.8);
-            g.fillCircle(X(rx + 40 + p * 30 + n * 4), Y(floor - 56 - p * 30), 3 * (X(1) - X(0)));
-            R(
-              rx + 42.5 + p * 30 + n * 4,
-              floor - 66 - p * 30,
-              1,
-              10,
-              0x3a2f45,
-              Math.max(0, 1 - p) * 0.8,
-            );
+            const a = Math.max(0, 1 - p) * 0.8;
+            const nx = p0.x + 34 + p * 30 + n * 4;
+            const ny = p0.y - 6 - p * 30;
+            f.fillStyle(0x3a2f45, a);
+            f.fillEllipse(X(nx), Y(ny), 4 * k, 3 * k);
+            F(nx + 1.5, ny - 9, 1, 9, 0x3a2f45, a);
           }
         }
         break;
       }
       case "schlafzimmer": {
-        R(rx + 50, floor - 18, 60, 18, 0x6b8acb); // Bett
-        R(rx + 50, floor - 24, 14, 10, 0xffffff);
         // Laterne mit langsamem Atem-Rhythmus (10 s)
         const l = sway(clock / slow, IDLE_CYCLES.laterne!);
-        R(rx + 14, floor - 30, 10, 14, 0x5a4434);
-        g.fillStyle(0xffd27a, 0.35 + 0.4 * l);
-        g.fillCircle(X(rx + 19), Y(floor - 23), (6 + 3 * l) * (X(1) - X(0)));
+        const la = at("laterne");
+        f.fillStyle(0xffd27a, 0.18 + 0.22 * l);
+        f.fillCircle(X(la.x + la.w / 2), Y(la.y + la.h / 2), (8 + 4 * l) * k);
         break;
       }
-      case "dachboden":
-        break;
     }
   }
 
-  wichtel(
-    w: World,
-    X: (x: number) => number,
-    Y: (y: number) => number,
-    R: (x: number, y: number, ww: number, hh: number, c: number, a?: number) => void,
-    k: number,
-  ) {
-    const g = this.g;
+  wichtel(w: World, X: (x: number) => number, Y: (y: number) => number, k: number, tint: number) {
+    const f = this.fg;
     const target = roomCenter(w.activity.room);
     const tx =
       w.activity.kind === "musik" && w.activity.room === "musik"
@@ -837,31 +900,38 @@ class HouseScene extends Phaser.Scene {
     const bob = walker.moving ? Math.abs(Math.sin(clock * 4)) * 1.5 : breath * 1.2;
     const x = walker.x;
     const y = walker.y - bob;
+    const flip = walker.facing < 0;
     if (sleeping) {
       // liegt im Bett, Zzz sanft
-      R(x - 10, y - 10, 20, 7, hex(w.hat));
-      R(x + 8, y - 12, 8, 8, 0xf5d0b0);
-      g.fillStyle(0x3a2f45, 0.4 + 0.4 * breath);
-      g.fillCircle(X(x + 22), Y(y - 26 - breath * 6), 2.5 * k);
+      this.img("wichtel", `sleep-${w.hat}`, () => sleeperArt(w.hat))
+        .setOrigin(0.5, 1)
+        .setPosition(X(x), Y(walker.y - 10))
+        .setScale(k)
+        .setFlipX(false)
+        .setDepth(3)
+        .setTint(tint);
+      f.fillStyle(0x3a2f45, 0.4 + 0.4 * breath);
+      f.fillCircle(X(x + 18), Y(walker.y - 30 - breath * 6), 2.5 * k);
     } else {
-      R(x - 6, y - 16, 12, 14, 0x5d7a3a); // Körper
-      R(x - 5, y - 2, 4, 2, 0x3b2a1e);
-      R(x + 1, y - 2, 4, 2, 0x3b2a1e);
-      R(x - 5, y - 26, 10, 10, 0xf5d0b0); // Kopf
-      R(x - 5, y - 20, 10, 5, 0xffffff); // Bart
-      g.fillStyle(hex(w.hat), 1); // Zipfelmütze
-      g.fillTriangle(X(x - 7), Y(y - 25), X(x + 7), Y(y - 25), X(x + walker.facing * 6), Y(y - 42));
-      R(x + (walker.facing > 0 ? 1 : -3), y - 23, 2, 2, 0x2b2b2b);
+      const frame = walker.moving ? (Math.floor(clock * 4) % 2 ? "walk0" : "walk1") : "stand";
+      this.img("wichtel", `w-${w.hat}-${frame}`, () => wichtelArt(w.hat, frame))
+        .setOrigin(0.5, 1)
+        .setPosition(X(x), Y(y))
+        .setScale(k)
+        .setFlipX(flip)
+        .setDepth(3)
+        .setTint(tint);
     }
     // Haustier folgt gemütlich
     const px = x - walker.facing * 18;
     const pb = sway(clock / slow, IDLE_CYCLES.haustier!) * 1;
-    const pc = w.pet === "katze" ? 0xd68910 : w.pet === "igel" ? 0x7a5a3a : 0x48a36a;
-    R(px - 6, walker.y - 8 - pb, 12, 8, pc);
-    R(px + walker.facing * 4, walker.y - 12 - pb, 5, 5, pc);
-    if (w.pet === "igel")
-      for (let i = 0; i < 4; i++) R(px - 6 + i * 3, walker.y - 10 - pb, 2, 2, 0x4a3420);
-    if (w.pet === "drache") R(px - 2, walker.y - 11 - pb, 4, 2, 0x2e7d4f);
+    this.img("pet", `pet-${w.pet}`, () => petArt(w.pet))
+      .setOrigin(0.5, 1)
+      .setPosition(X(px), Y(walker.y - pb))
+      .setScale(k)
+      .setFlipX(flip)
+      .setDepth(3)
+      .setTint(tint);
     // Sprechblase
     const show = bubble && clock < bubbleUntil;
     this.bubble
@@ -915,6 +985,7 @@ if (debugEnabled) {
       lantern: calm ? lanternLevel((clock - calm.started) / slow) : null,
       calmSeconds: calm ? clock - calm.started : null,
       reduced,
+      sprites: spritesShown,
       t: world?.t ?? 0,
     }),
     advance: (s: number) => {

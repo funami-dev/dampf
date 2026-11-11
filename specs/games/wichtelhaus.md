@@ -87,6 +87,21 @@ Das Spiel macht **keine Gesundheitsversprechen**.
   leuchten, der Wichtel schläft meist.
 - **Fenster nach draußen:** Himmel, Bäume, Wetter (Sonne, Wolken, ab und zu Regen).
 
+## Grafik (Feedback `fb_81lnbuac`)
+
+- **Feinere Pixel-Art:** Ein Bildpunkt ist eine Haus-Einheit (ein Raum ist 120 bzw. 150 × 110
+  Punkte groß), statt grober Blöcke. Pixel bleiben scharf (kein Weichzeichnen), es bleibt klar
+  Pixel-Art, nur weniger grob.
+- **Räume:** je Raum eine eigene Tapete mit leisem Muster, Holzdielen mit Maserung, Fußleiste.
+  Fenster mit Rahmen, Sprossen und Gardinen; durchs Glas sieht man den Himmel (Tag, Abend, Nacht).
+- **Möbel** mit Licht und Schatten (hellere Kanten oben, dunklere unten) und kleinen Details
+  (Herdplatten, Buchrücken, Bettdecke mit Muster, Klaviertasten …).
+- **Wichtel** mit Augen, Nase, Bart, Armen und Schuhen, Mütze in seiner Farbe; zwei Laufbilder.
+  **Haustiere** (Katze, Igel, Drache) ebenso feiner gezeichnet.
+- Nachts wird alles sanft gedimmt; ruhige Bewegungen wie bisher (Ruhe-Design gilt weiter).
+- Alles per Code gezeichnet, keine Bilddateien. Bilder werden einmal erzeugt und nur verschoben,
+  damit es auch auf älteren Handys ruhig läuft.
+
 ## Zuschauen und helfen
 
 - **Vorratsschrank füllen:** Knopf „Einkaufen“ → Auswahl (Brot, Gemüse, Obst, Kuchen, Suppe);
@@ -153,6 +168,11 @@ Das Spiel macht **keine Gesundheitsversprechen**.
   über der obersten Etage; das Dach ist höchstens 75 % einer Etage hoch.
 - **WH-AK-14** (E2E Mobile) Menü-Knopf: Die Knopfreihe ist versteckt, ☰ öffnet die Aktionen,
   „Einkaufen“ darüber funktioniert, die Liste schließt danach; am Desktop gibt es keinen Menü-Knopf.
+- **WH-AK-15** (Vitest) Möbelplan: Jedes Möbelstück liegt in beiden Hausplänen (120 und 150
+  Punkte breite Räume) ganz im Raum und überdeckt das Fenster nicht; der Wichtel ist höchstens
+  44 Punkte hoch, alle Laufbilder sind gleich groß.
+- **WH-AK-16** (E2E) Das Haus zeigt die neuen Bilder (Räume, Möbel, Wichtel, Haustier) ohne Fehler
+  auf Desktop und Mobile.
 - **WH-AK-10** Fokusverlust pausiert; Spiel erscheint im Portal mit Version 1.0.0.
 - **WH-AK-11** Ruhe-Regeln (Vitest + E2E): keine Zeitlimits, kein Verlieren, keine Punkte; alle
   Leerlauf-Animationen haben Zyklen ≥ 4 s (Atmen/Laterne 10 s); nichts blinkt schneller als 3 Hz;
