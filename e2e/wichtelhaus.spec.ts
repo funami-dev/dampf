@@ -17,6 +17,7 @@ interface WhState {
   bubble: string;
   lantern: number | null;
   calmSeconds: number | null;
+  sprites: number;
 }
 interface Hooks {
   state(): WhState;
@@ -145,6 +146,16 @@ test("WH-AK-14: Menü-Knopf auf dem Handy, Knopfreihe am Desktop", async ({ page
   await expect(shop).toBeVisible();
   await page.mouse.click(vw * 0.3, vh * 0.5);
   await expect(shop).toBeHidden();
+  await expectNoErrors(errors);
+});
+
+test("WH-AK-16: feinere Bilder für Räume, Möbel, Wichtel und Haustier", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await moveIn(page);
+  // 6 Räume, 16 Möbel, Wichtel und Haustier
+  await expect.poll(async () => (await state(page)).sprites).toBeGreaterThanOrEqual(24);
+  await expect(page.locator("canvas").first()).toBeVisible();
   await expectNoErrors(errors);
 });
 
