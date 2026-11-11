@@ -144,3 +144,45 @@ export function stars(v: Verdict, fuel: number): 0 | 1 | 2 | 3 {
 /** Endgeschwindigkeit im freien Fall (PL-AK-04) */
 export const terminalVelocity = (b: Body, m: number) =>
   b.rho > 0 ? Math.sqrt((2 * m * b.g) / (b.rho * LANDER.cw * LANDER.area)) : Infinity;
+
+/** Wert, Grenze und Überschreitung je Prüfgröße für den Ergebnis-Bildschirm (PL-AK-13) */
+export interface Margin {
+  key: "down" | "side" | "tilt";
+  label: string;
+  unit: string;
+  value: number;
+  limit: number;
+  /** wie viel zu viel (0 = passt) */
+  over: number;
+  word: string;
+}
+export function margins(v: { down: number; side: number; tilt: number }): Margin[] {
+  const deg = (r: number) => (r * 180) / Math.PI;
+  const rows: Omit<Margin, "over">[] = [
+    {
+      key: "down",
+      label: "Sinken",
+      unit: "m/s",
+      value: v.down,
+      limit: SAFE.down,
+      word: "zu schnell",
+    },
+    {
+      key: "side",
+      label: "Seitlich",
+      unit: "m/s",
+      value: v.side,
+      limit: SAFE.side,
+      word: "zu schnell",
+    },
+    {
+      key: "tilt",
+      label: "Neigung",
+      unit: "°",
+      value: deg(v.tilt),
+      limit: deg(SAFE.tilt),
+      word: "zu schief",
+    },
+  ];
+  return rows.map((r) => ({ ...r, over: Math.max(0, r.value - r.limit) }));
+}

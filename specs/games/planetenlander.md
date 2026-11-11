@@ -76,6 +76,9 @@ Ein Rechenschritt mit fester Schrittweite (z. B. 1/120 s), unabhängig von der B
      („Zu felsig hier – ziel auf die Plattform!“).
    - Ergebnis-Bildschirm: Sinkgeschwindigkeit, Neigung, Rest-Treibstoff, Sterne; „Nochmal“,
      „Nächster Ort“ (wenn frei), „Zur Auswahl“.
+   - Bei Sinken, Seitlich und Neigung steht immer die **Grenze** dabei und **wie viel zu viel**
+     es war, z. B. „3,4 m/s · erlaubt 2,0 · 1,4 zu schnell“ (rot); passt es, steht „✓“ (grün)
+     (Feedback `fb_r93d4sb4`).
 5. **Sterne:** ★ gelandet · ★★ zusätzlich Sinken ≤ 1 m/s · ★★★ zusätzlich ≥ 30 % Treibstoff übrig.
    Bestwert je Ort wird lokal gespeichert (`dampf.planetenlander.v1`);
    kaputte Daten → Neustart ohne Absturz.
@@ -132,4 +135,7 @@ ohne Luft, Dunst-Schichten auf Titan/Venus. Kein Ton im MVP.
 - **PL-AK-10** (E2E Desktop) Zu schnell aufsetzen → Bruchlandung mit „Nochmal“.
 - **PL-AK-11** (E2E Mobile 375×667) Knöpfe Schub/Drehen sichtbar und bedienbar (auch
   gleichzeitig), Anzeigen lesbar, kein horizontales Scrollen.
+- **PL-AK-13** Ergebnis mit Grenzen: Für Sinken, Seitlich und Neigung gibt es Wert, Grenze und
+  Überschreitung (0, wenn es passt); im Ergebnis-Bildschirm steht bei einer Bruchlandung wegen
+  Tempo „… zu schnell“, wegen Neigung „… zu schief“ (Vitest + E2E).
 - **PL-AK-12** Fokusverlust pausiert; Spiel erscheint im Portal mit Version 1.0.0.

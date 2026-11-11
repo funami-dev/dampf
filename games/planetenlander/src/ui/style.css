@@ -217,6 +217,16 @@
   text-align: left;
   font-weight: 700;
 }
+.pl-values small {
+  font-weight: 400;
+  opacity: 0.8;
+}
+.pl-over {
+  color: #ff7a6b;
+}
+.pl-ok {
+  color: #7ddc8a;
+}
 @media (max-width: 420px) {
   .pl-hud {
     gap: 2px 8px;

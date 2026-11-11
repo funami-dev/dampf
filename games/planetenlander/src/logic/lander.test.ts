@@ -213,3 +213,18 @@ describe("PL-AK-07: Lern-Karte", () => {
     );
   });
 });
+
+describe("PL-AK-13: Ergebnis mit Grenzen", () => {
+  it("Wert, Grenze, Überschreitung", async () => {
+    const { margins, SAFE } = await import("./physics.ts");
+    const m = margins({ down: 3.4, side: 0.5, tilt: (15 * Math.PI) / 180 });
+    const by = Object.fromEntries(m.map((r) => [r.key, r]));
+    expect(by.down!.limit).toBe(SAFE.down);
+    expect(by.down!.over).toBeCloseTo(1.4);
+    expect(by.down!.word).toBe("zu schnell");
+    expect(by.side!.over).toBe(0);
+    expect(by.tilt!.limit).toBeCloseTo(10);
+    expect(by.tilt!.over).toBeCloseTo(5);
+    expect(by.tilt!.word).toBe("zu schief");
+  });
+});
