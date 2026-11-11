@@ -16,7 +16,26 @@ export type Needs = Record<NeedKey, number>;
 export type Pet = "katze" | "igel" | "drache";
 export type Trait = "musik" | "basteln" | "lesen" | "schlafen";
 export type Food = "brot" | "gemuese" | "obst" | "kuchen" | "suppe";
-export type Gift = "buch" | "ball" | "holz" | "blume";
+export type Gift =
+  | "buch"
+  | "ball"
+  | "holz"
+  | "blume"
+  | "kakao"
+  | "socken"
+  | "muschel"
+  | "kerze"
+  | "malkasten"
+  | "floete"
+  | "puzzle"
+  | "teddy"
+  | "schal"
+  | "gloeckchen"
+  | "kekse"
+  | "sternkarte"
+  | "kreisel"
+  | "seife"
+  | "pflanze";
 export type Room =
   "kueche" | "bad" | "wohnzimmer" | "musik" | "werkstatt" | "schlafzimmer" | "dachboden";
 export type ActivityKind =
@@ -31,7 +50,7 @@ export type ActivityKind =
   | "traurig"
   | "bummeln"
   | "sterne";
-export type Request = "musik" | "basteln" | "vorlesen" | "schlafen" | "spielen";
+export type Request = "musik" | "basteln" | "vorlesen" | "schlafen" | "spielen" | "baden";
 
 export const HAT_COLORS = ["#c0392b", "#2e86c1", "#27ae60", "#8e44ad", "#d68910", "#16a085"];
 export const PETS: Record<Pet, string> = { katze: "Katze", igel: "Igel", drache: "kleiner Drache" };
@@ -48,11 +67,27 @@ export const FOODS: Record<Food, { name: string; icon: string; hunger: number; f
   kuchen: { name: "Kuchen", icon: "🍰", hunger: 25, fun: 25 },
   suppe: { name: "Suppe", icon: "🍲", hunger: 50, fun: 5 },
 };
-export const GIFTS: Record<Gift, { name: string; icon: string }> = {
-  buch: { name: "Buch", icon: "📖" },
-  ball: { name: "Ball", icon: "⚽" },
-  holz: { name: "Bastelholz", icon: "🪵" },
-  blume: { name: "Blume", icon: "🌼" },
+/** Geschenke mit kleiner Wirkung (WH-AK-04, Feedback fb_4eg9mcaw) */
+export const GIFTS: Record<Gift, { name: string; icon: string; effect: Partial<Needs> }> = {
+  buch: { name: "Buch", icon: "📖", effect: { fun: 20 } },
+  ball: { name: "Ball", icon: "⚽", effect: { fun: 20 } },
+  holz: { name: "Bastelholz", icon: "🪵", effect: { fun: 15 } },
+  blume: { name: "Blume", icon: "🌼", effect: { fun: 15 } },
+  kakao: { name: "Tasse Kakao", icon: "☕", effect: { hunger: 15, fun: 10 } },
+  socken: { name: "warme Socken", icon: "🧦", effect: { energy: 10, fun: 10 } },
+  muschel: { name: "Muschel", icon: "🐚", effect: { fun: 15 } },
+  kerze: { name: "Kerze", icon: "🕯️", effect: { energy: 10, fun: 5 } },
+  malkasten: { name: "Malkasten", icon: "🎨", effect: { fun: 20 } },
+  floete: { name: "Flöte", icon: "🎶", effect: { fun: 20 } },
+  puzzle: { name: "Puzzle", icon: "🧩", effect: { fun: 20 } },
+  teddy: { name: "Teddy", icon: "🧸", effect: { energy: 10, fun: 15 } },
+  schal: { name: "Schal", icon: "🧣", effect: { energy: 5, fun: 10 } },
+  gloeckchen: { name: "Glöckchen", icon: "🔔", effect: { fun: 15 } },
+  kekse: { name: "Kekse", icon: "🍪", effect: { hunger: 15, fun: 10 } },
+  sternkarte: { name: "Sternkarte", icon: "🗺️", effect: { fun: 15 } },
+  kreisel: { name: "Kreisel", icon: "🌀", effect: { fun: 15 } },
+  seife: { name: "Duftseife", icon: "🧼", effect: { clean: 30 } },
+  pflanze: { name: "Pflanze", icon: "🪴", effect: { fun: 10 } },
 };
 
 /** Räume: Etage 0 = unten, 1 = oben, 2 = Dachboden; x = Mitte in Raumbreiten */
@@ -116,6 +151,8 @@ export interface World {
   food: Partial<Record<Food, number>>;
   gifts: Gift[];
   lastGiftDay: number;
+  /** heute schon geschenkt (jedes Geschenk einmal pro Spieltag) */
+  giftsToday: { day: number; given: Gift[] };
   friendship: number;
   crafted: number;
   activity: Activity;
@@ -156,6 +193,7 @@ export function newWichtel(
     food: { brot: 2, suppe: 1 },
     gifts: [],
     lastGiftDay: -1,
+    giftsToday: { day: -1, given: [] },
     friendship: 0,
     crafted: 0,
     activity: { kind: "bummeln", room: "wohnzimmer", left: 5 },
@@ -306,16 +344,26 @@ export function shop(w: World, f: Food): string {
   return `${FOODS[f].icon} ${FOODS[f].name} liegt im Schrank.`;
 }
 
-/** Geschenk – einmal pro Spieltag (WH-AK-04) */
+/** heute schon geschenkt? */
+export function giftedToday(w: World, g: Gift): boolean {
+  return w.giftsToday.day === dayOf(w.t) && w.giftsToday.given.includes(g);
+}
+
+/** Geschenk – jedes einmal pro Spieltag (WH-AK-04) */
 export function giveGift(w: World, g: Gift): string {
-  if (w.lastGiftDay === dayOf(w.t))
-    return "Heute hat er schon ein Geschenk bekommen. Morgen wieder!";
-  w.lastGiftDay = dayOf(w.t);
+  const day = dayOf(w.t);
+  if (w.giftsToday.day !== day) w.giftsToday = { day, given: [] };
+  if (w.giftsToday.given.includes(g))
+    return `${GIFTS[g].name} hat er heute schon bekommen. Morgen wieder!`;
+  w.giftsToday.given.push(g);
+  w.lastGiftDay = day;
   if (!w.gifts.includes(g)) w.gifts.push(g);
-  w.needs.fun = clamp(w.needs.fun + 20);
+  for (const [k, v] of Object.entries(GIFTS[g].effect) as [NeedKey, number][])
+    w.needs[k] = clamp(w.needs[k] + v);
   remember(w, `Danke für das Geschenk (${GIFTS[g].name})!`);
-  befriend(w, 2);
-  return `${GIFTS[g].icon} Oh, ein ${GIFTS[g].name}! Danke!`;
+  // das erste Geschenk am Tag zählt am meisten
+  befriend(w, 2 / w.giftsToday.given.length);
+  return `${GIFTS[g].icon} Oh, ${GIFTS[g].name}! Danke!`;
 }
 
 const REQ: Record<Request, ActivityKind> = {
@@ -324,6 +372,7 @@ const REQ: Record<Request, ActivityKind> = {
   vorlesen: "lesen",
   schlafen: "schlafen",
   spielen: "spielen",
+  baden: "baden",
 };
 
 /** Anklopfen und bitten – immer mit Antwort (WH-AK-04) */
@@ -342,6 +391,9 @@ export function ask(
   if (r === "schlafen") {
     ok = n.energy < 80 || isNight(w.t);
     no = "Ich bin noch gar nicht müde!";
+  } else if (r === "baden") {
+    ok = n.clean < 95;
+    no = "Ich bin doch ganz sauber!";
   } else if (n.energy < 20) {
     ok = false;
     no = "Jetzt nicht, ich bin so müde …";
@@ -361,6 +413,7 @@ export function ask(
     vorlesen: "Setz dich, ich lese dir vor.",
     schlafen: "Gute Idee … gähn.",
     spielen: "Au ja, wir spielen!",
+    baden: "Plitsch, platsch – ab in die Wanne!",
   };
   return { ok, text: yes[r] };
 }
@@ -412,6 +465,11 @@ export function load(s: Store): World | null {
       hat: w.hat,
       food: d.food && typeof d.food === "object" ? d.food : {},
       gifts: Array.isArray(d.gifts) ? d.gifts.filter((g) => g in GIFTS) : [],
+      giftsToday:
+        d.giftsToday && num(d.giftsToday.day) && Array.isArray(d.giftsToday.given)
+          ? { day: d.giftsToday.day, given: d.giftsToday.given.filter((g) => g in GIFTS) }
+          : // ältere Spielstände: das eine Geschenk von heute zählt mit
+            { day: num(d.lastGiftDay) ? d.lastGiftDay : -1, given: [] },
       letters: Array.isArray(d.letters) ? d.letters : [],
       today: Array.isArray(d.today) ? d.today : [],
       activity: d.activity && d.activity.kind in ACT ? d.activity : w.activity,

@@ -7,8 +7,18 @@
   "status": "published",
   "order": 100,
   "addedAt": "2026-11-10",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "changelog": [
+    {
+      "version": "1.3.0",
+      "date": "2026-11-11",
+      "time": "20:24",
+      "items": [
+        "Beim Anklopfen kannst du den Wichtel jetzt baden schicken – mit Schaumblasen in der Wanne",
+        "19 Geschenke zur Auswahl, jedes einmal am Tag",
+        "Blume, Pflanze und Teddy findest du danach im Haus"
+      ]
+    },
     {
       "version": "1.2.0",
       "date": "2026-11-11",

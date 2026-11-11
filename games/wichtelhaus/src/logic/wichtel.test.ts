@@ -14,6 +14,7 @@ import {
   DAY,
   FLOOR_AFTER_ABSENCE,
   FOODS,
+  GIFTS,
   KEY,
   MAX_FOOD,
   ROOMS,
@@ -24,6 +25,7 @@ import {
   chooseActivity,
   dayOf,
   foodCount,
+  giftedToday,
   giveGift,
   load,
   newWichtel,
@@ -106,13 +108,49 @@ describe("WH-AK-03/04: Einkaufen, Geschenke, Bitten", () => {
     expect(foodCount(w)).toBe(MAX_FOOD);
     expect(shop(w, "obst")).toBe("Der Vorratsschrank ist voll.");
   });
-  it("Geschenk einmal pro Spieltag", () => {
+  it("19 Geschenke, jedes einmal pro Spieltag, mit Wirkung; Freundschaft sinkt je weiterem", () => {
+    expect(Object.keys(GIFTS)).toHaveLength(19);
     const w = newWichtel({});
+    w.friendship = 0;
     expect(giveGift(w, "ball")).toMatch(/Danke/);
-    expect(giveGift(w, "buch")).toMatch(/schon ein Geschenk/);
-    w.t += DAY;
+    expect(w.friendship).toBeCloseTo(2);
+    expect(giveGift(w, "ball")).toMatch(/heute schon bekommen/);
+    expect(giftedToday(w, "ball")).toBe(true);
     expect(giveGift(w, "buch")).toMatch(/Danke/);
-    expect(w.gifts).toEqual(["ball", "buch"]);
+    expect(w.friendship).toBeCloseTo(3);
+    w.needs.clean = 40;
+    giveGift(w, "seife");
+    expect(w.needs.clean).toBe(70);
+    w.needs.hunger = 40;
+    giveGift(w, "kakao");
+    expect(w.needs.hunger).toBe(55);
+    w.t += DAY;
+    expect(giftedToday(w, "ball")).toBe(false);
+    expect(giveGift(w, "ball")).toMatch(/Danke/);
+    expect(w.gifts).toEqual(["ball", "buch", "seife", "kakao"]);
+  });
+  it("WH-AK-17: Baden auf Bitte", () => {
+    const w = newWichtel({});
+    w.t = DAY * 0.3;
+    w.needs = { hunger: 80, energy: 80, fun: 80, clean: 60 };
+    const yes = ask(w, "baden");
+    expect(yes.ok).toBe(true);
+    expect([w.activity.kind, w.activity.room]).toEqual(["baden", "bad"]);
+    for (let k = 0; k < 30; k++) step(w, 1, fixed(0.5));
+    expect(w.needs.clean).toBeGreaterThan(95);
+    w.needs.clean = 98;
+    expect(ask(w, "baden")).toEqual({ ok: false, text: "Ich bin doch ganz sauber!" });
+  });
+  it("alte Spielstände: Geschenk von heute zählt, neue Felder kommen dazu", () => {
+    const s = memory();
+    const w = newWichtel({ name: "Pip" });
+    const old = { ...w } as Partial<typeof w>;
+    delete old.giftsToday;
+    old.lastGiftDay = 0;
+    s.set(KEY, JSON.stringify(old));
+    const r = load(s)!;
+    expect(r.giftsToday).toEqual({ day: 0, given: [] });
+    expect(giveGift(r, "buch")).toMatch(/Danke/);
   });
   it("Bitten: immer eine Antwort; müde → freundliches Nein", () => {
     const w = newWichtel({});
@@ -126,7 +164,7 @@ describe("WH-AK-03/04: Einkaufen, Geschenke, Bitten", () => {
     expect(no).toEqual({ ok: false, text: "Jetzt nicht, ich bin so müde …" });
     w.needs.energy = 95;
     expect(ask(w, "schlafen").ok).toBe(false);
-    for (const r of ["musik", "basteln", "vorlesen", "schlafen", "spielen"] as const)
+    for (const r of ["musik", "basteln", "vorlesen", "schlafen", "spielen", "baden"] as const)
       expect(ask(w, r).text.length).toBeGreaterThan(5);
   });
 });
