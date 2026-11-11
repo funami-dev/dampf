@@ -236,3 +236,11 @@
     font-size: 13px;
   }
 }
+.pl-big svg {
+  display: block;
+  margin: auto;
+}
+.pl-thrust svg {
+  width: 42px;
+  height: 42px;
+}

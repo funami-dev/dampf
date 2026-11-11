@@ -46,3 +46,26 @@ export function installNoZoom(doc: Document = document): void {
     { passive: true },
   );
 }
+
+/**
+ * Kein Markieren, keine Lupe, kein Kontextmenü beim langen Drücken (MANIFEST-AK-12): Safari auf
+ * dem iPhone markiert sonst den Text eines gehaltenen Knopfs und zeigt „Kopieren …“. CSS allein
+ * reicht dort nicht; bei Halte-Knöpfen (`data-hold`) wird darum schon die Berührung abgefangen –
+ * die Pointer-Ereignisse fürs Spiel kommen trotzdem an.
+ */
+export function installNoSelect(doc: Document = document): void {
+  const inGame = (t: EventTarget | null) => {
+    const el = t instanceof Element ? t : (t as Node | null)?.parentElement;
+    return !!el?.closest?.(".dampf-stage") && !el.closest(EDITABLE);
+  };
+  doc.addEventListener("selectstart", (e) => inGame(e.target) && e.preventDefault());
+  doc.addEventListener("contextmenu", (e) => inGame(e.target) && e.preventDefault());
+  doc.addEventListener(
+    "touchstart",
+    (e) => {
+      const el = e.target instanceof Element ? e.target : null;
+      if (el?.closest?.("[data-hold]") && e.cancelable) e.preventDefault();
+    },
+    { passive: false },
+  );
+}

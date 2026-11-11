@@ -53,6 +53,40 @@ test.describe("Kein Zoom", () => {
     });
   }
 
+  test("MANIFEST-AK-12: kein Markieren und kein Kontextmenü beim langen Drücken", async ({
+    page,
+  }) => {
+    await page.goto("/games/planetenlander/");
+    await page.getByRole("button", { name: "Mond", exact: true }).click();
+    await page.getByRole("button", { name: "Los!" }).click();
+    const thrust = page.getByRole("button", { name: "Schub" });
+    await expect(thrust).toBeVisible();
+    // nur ein gezeichnetes Bild, kein Text und kein Emoji (Feedback fb_h1hi7qx7)
+    expect((await thrust.textContent())!.trim()).toBe("");
+    await expect(thrust.locator("svg")).toHaveCount(1);
+    const r = await page.evaluate(() => {
+      const fire = (el: Element, type: string) => {
+        const ev = new Event(type, { cancelable: true, bubbles: true });
+        el.dispatchEvent(ev);
+        return ev.defaultPrevented;
+      };
+      const hold = document.querySelector('[data-c="thrust"]')!;
+      const pause = [...document.querySelectorAll("button")].find(
+        (b) => b.textContent === "Pause",
+      )!;
+      return {
+        holdTouch: fire(hold, "touchstart"),
+        holdMenu: fire(hold, "contextmenu"),
+        select: fire(pause, "selectstart"),
+        pauseTouch: fire(pause, "touchstart"),
+        callout: getComputedStyle(pause).getPropertyValue("-webkit-touch-callout"),
+        userSelect: getComputedStyle(pause).userSelect,
+      };
+    });
+    expect(r).toMatchObject({ holdTouch: true, holdMenu: true, select: true, pauseTouch: false });
+    expect(r.userSelect).toBe("none");
+  });
+
   test("MANIFEST-AK-09: Doppeltipp auf einen Button – kein Zoom, aber beide Klicks kommen an", async ({
     page,
   }) => {

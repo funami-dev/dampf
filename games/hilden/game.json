@@ -10,8 +10,14 @@
   "status": "published",
   "order": 50,
   "addedAt": "2026-11-01",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "changelog": [
+    {
+      "version": "1.1.1",
+      "date": "2026-11-11",
+      "time": "21:46",
+      "items": ["Beim Halten von „Benutzen“ wird auf dem iPhone kein Text mehr markiert"]
+    },
     {
       "version": "1.1.0",
       "date": "2026-11-09",

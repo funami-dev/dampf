@@ -98,3 +98,9 @@ body.dampf-game {
   user-select: none;
   -webkit-touch-callout: none;
 }
+/* auch direkt an Knöpfen und Texten im Spiel (Safari erbt das nicht überall), MANIFEST-AK-12 */
+.dampf-stage :where(button, [role="button"], span, b, small, p, h2, h3, div) {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
