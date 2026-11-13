@@ -1,13 +1,13 @@
 /**
  * Welche E2E-Tests müssen laufen? (Spec 001, BUILD-AK-15)
- * - Nur ein Spiel geändert → dessen E2E-Datei + Smoke-Tests.
- * - Nur Doku/Specs → nur Smoke-Tests.
+ * - Nur ein Spiel geändert → nur dessen E2E-Datei (bei game.json zusätzlich die Startseite).
+ * - Nur Doku/Specs → keine E2E-Tests.
  * - Gemeinsamer Code (game-kit, Portal, Server, Skripte, Konfiguration, gemeinsame E2E-Dateien)
  *   oder Unbekanntes → alles.
  */
 export interface Selection {
   full: boolean;
-  /** E2E-Dateien zusätzlich zu den Smoke-Tests (leer bei full) */
+  /** E2E-Dateien, die laufen (leer bei full) */
   specs: string[];
   reason: string;
 }
@@ -38,7 +38,9 @@ export function selectE2E(files: readonly string[], slugs: readonly string[]): S
   return {
     full: false,
     specs: list,
-    reason: list.length ? `nur Spiele geändert: ${list.join(", ")}` : "nur Doku/Specs geändert",
+    reason: list.length
+      ? `nur Spiele geändert: ${list.join(", ")}`
+      : "nur Doku/Specs geändert – keine E2E-Tests nötig",
   };
 }
 
