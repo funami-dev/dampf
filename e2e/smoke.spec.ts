@@ -5,7 +5,7 @@ import { expectNoErrors, trackErrors } from "./helpers.ts";
 
 /**
  * Smoke-Tests (Spec 001, BUILD-AK-16): schnell, für jedes Spiel und die Startseite.
- * Laufen bei jeder Prüfung mit, auch wenn nur ein Spiel geändert wurde.
+ * Laufen beim vollen Lauf und bei gemeinsamem Code mit, nicht bei einzelnen Spielen.
  */
 const games = listedGames(loadManifests(fileURLToPath(new URL("../games/", import.meta.url))));
 

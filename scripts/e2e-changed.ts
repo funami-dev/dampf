@@ -1,15 +1,15 @@
 /**
- * Schnelle E2E-Prüfung (Spec 001, BUILD-AK-15/16):
- *   tsx scripts/e2e-changed.ts           lokal: baut und testet Smoke + geänderte Spiele
+ * E2E-Prüfung nur für den geänderten Bereich (Spec 001, BUILD-AK-15):
+ *   tsx scripts/e2e-changed.ts           lokal: baut und testet die geänderten Spiele
  *                                        (gegenüber origin/master, inkl. nicht committeter Dateien)
- *   tsx scripts/e2e-changed.ts --prod    gegen Production: Smoke + was der letzte Merge geändert hat
+ *   tsx scripts/e2e-changed.ts --prod    gegen Production: was der letzte Merge geändert hat
  *   --full                               immer alles
  * Bei gemeinsamem Code läuft automatisch alles.
  */
 import { execSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { loadManifests } from "../packages/game-kit/src/node.ts";
-import { SMOKE, selectE2E } from "./e2e-select.ts";
+import { selectE2E } from "./e2e-select.ts";
 
 const args = process.argv.slice(2);
 const prod = args.includes("--prod");
@@ -39,7 +39,8 @@ if (prod) {
 const sel = args.includes("--full")
   ? { full: true, specs: [], reason: "--full" }
   : selectE2E([...new Set(files)], slugs);
-console.log(`E2E-Auswahl: ${sel.full ? "alles" : "Smoke + Auswahl"} (${sel.reason})`);
+console.log(`E2E-Auswahl: ${sel.full ? "alles" : "nur Geändertes"} (${sel.reason})`);
+if (!sel.full && sel.specs.length === 0) process.exit(0);
 
 const env = { ...process.env, ...(prod ? { DAMPF_URL: "https://dampf.vercel.app" } : {}) };
 const run = (cmd: string, a: string[]) => {
@@ -47,4 +48,4 @@ const run = (cmd: string, a: string[]) => {
   if (r.status !== 0) process.exit(r.status ?? 1);
 };
 if (!prod) run("npm", ["run", "build"]);
-run("npx", ["playwright", "test", ...(sel.full ? [] : [SMOKE, ...sel.specs])]);
+run("npx", ["playwright", "test", ...(sel.full ? [] : sel.specs)]);

@@ -4,7 +4,7 @@ import { selectE2E } from "./e2e-select.ts";
 const slugs = ["waldlager", "snake", "pilot-pro"];
 
 describe("BUILD-AK-15: Auswahl der E2E-Tests", () => {
-  it("nur ein Spiel → dessen Tests (+ Smoke)", () => {
+  it("nur ein Spiel → nur dessen Tests", () => {
     expect(
       selectE2E(["games/waldlager/src/main.ts", "games/waldlager/game.json"], slugs),
     ).toMatchObject({ full: false, specs: ["e2e/portal.spec.ts", "e2e/waldlager.spec.ts"] });
@@ -16,7 +16,7 @@ describe("BUILD-AK-15: Auswahl der E2E-Tests", () => {
         .specs,
     ).toEqual(["e2e/pilot-pro.spec.ts", "e2e/snake.spec.ts"]);
   });
-  it("nur Doku → nur Smoke", () => {
+  it("nur Doku → keine E2E-Tests", () => {
     expect(selectE2E(["specs/003-portal.md", "CLAUDE.md"], slugs)).toMatchObject({
       full: false,
       specs: [],

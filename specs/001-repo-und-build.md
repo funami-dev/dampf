@@ -81,14 +81,18 @@ z. B. noch auf iPad Air 2, iPad mini 4 und iPad 5. Generation.
   es gibt keinen unbehandelten Fehler.
 - **BUILD-AK-14** (E2E) Auf aktuellen Browsern erscheint der Hinweis nicht.
 - **BUILD-AK-15** `npm run test:e2e:changed` wählt die E2E-Tests nach den Änderungen gegenüber
-  `origin/master` (inkl. nicht committeter Dateien): nur Doku/Specs → Smoke-Tests; nur Spiele →
-  Smoke + deren E2E-Dateien (bei `game.json` zusätzlich die Startseite); gemeinsamer Code
+  `origin/master` (inkl. nicht committeter Dateien): nur Doku/Specs → keine E2E-Tests; nur Spiele →
+  nur deren E2E-Dateien (bei `game.json` zusätzlich die Startseite), keine Tests anderer Spiele;
+  gemeinsamer Code
   (`packages/`, `apps/`, `services/`, `scripts/`, Konfiguration, gemeinsame E2E-Dateien) oder
   Unbekanntes → alles. `npm run test:prod:changed` wählt genauso nach dem letzten Merge und testet
   gegen Production.
 - **BUILD-AK-16** (E2E) Smoke-Tests (`e2e/smoke.spec.ts`): Die Startseite listet alle
   veröffentlichten Spiele ohne Fehler; jede Spielseite lädt ohne Fehler, hat den richtigen Titel,
-  zeigt die Version und zeichnet etwas.
+  zeigt die Version und zeichnet etwas. Sie laufen beim vollen Lauf (`npm run test:e2e`) und bei
+  Änderungen an gemeinsamem Code mit, nicht bei Änderungen an einzelnen Spielen.
+- Es gibt keine nächtliche Prüfung der Live-Seite mehr; geprüft wird nur der jeweils geänderte
+  Bereich.
 
 ## CI-Entscheidung
 

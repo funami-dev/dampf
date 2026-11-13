@@ -3,15 +3,16 @@
 - Sprache im Projekt: Deutsch (Specs, UI-Texte, Antworten). Commit-Messages auf Englisch.
 - Spec-driven arbeiten: erst `specs/` anpassen und abnehmen lassen, dann Tests, dann Code
   (siehe `specs/README.md`).
-- Vor jedem Push: `npm run lint`, `npm test` und `npm run test:e2e:changed` (Smoke-Tests aller
-  Spiele + die E2E-Tests der geänderten Spiele; bei gemeinsamem Code automatisch alles, siehe
-  Spec 001). `npm run test:e2e` (alles) bei größeren Umbauten oder wenn unsicher.
+- **Getestet wird nur der geänderte Bereich:** Vor jedem Push `npm run lint`, `npm test` und
+  `npm run test:e2e:changed` – das sind nur die E2E-Tests der geänderten Spiele (bei `game.json`
+  auch die Startseite), keine Tests anderer Spiele; nur Doku → keine E2E-Tests. Nur bei
+  gemeinsamem Code (game-kit, Portal, Server, Skripte, Konfiguration) läuft automatisch alles
+  (Spec 001). Den vollen Lauf `npm run test:e2e` nur auf Wunsch des Nutzers.
 - **Production prüfen:** Nach jedem Merge nach `master` die Live-Seite https://dampf.vercel.app
-  prüfen, sobald der Vercel-Deploy durch ist: `npm run test:prod:changed` (Smoke + was der Merge
-  geändert hat; `npm run test:prod` = alles). Ist die Domain aus der Umgebung nicht erreichbar,
-  den Nutzer darauf hinweisen, statt die Prüfung stillschweigend zu überspringen.
-- **Nächtliche Prüfung:** Eine geplante Aufgabe führt jede Nacht `npm run test:prod` (alles) gegen
-  die Live-Seite aus und meldet sich per Push-Benachrichtigung nur bei Fehlern.
+  prüfen, sobald der Vercel-Deploy durch ist: `npm run test:prod:changed` (nur was der Merge
+  geändert hat). Ist die Domain aus der Umgebung nicht erreichbar, den Nutzer darauf hinweisen,
+  statt die Prüfung stillschweigend zu überspringen.
+- Keine nächtliche Prüfung mehr (vom Nutzer abgeschaltet).
 - Während Tests laufen, nicht parallel bauen oder testen (Last macht Tests wackelig) und keine
   Dateien ändern, die die Tests lesen (`game.json`, `e2e/`).
 - **Versionen:** Jede Änderung an einem Spiel erhöht dessen `version` in `game.json` (SemVer: PATCH =
