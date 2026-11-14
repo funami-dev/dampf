@@ -1,0 +1,206 @@
+/* Kabelsalat: klare, kräftige Farben, große Tippflächen */
+.ks-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  color: #eaf2f8;
+}
+.ks-layer button,
+.ks-layer input,
+.ks-panel {
+  pointer-events: auto;
+}
+.ks-btn {
+  font:
+    700 14px/1.2 system-ui,
+    sans-serif;
+  color: #1d2b3a;
+  background: #eaf2f8;
+  border: 0;
+  border-radius: 10px;
+  padding: 9px 11px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  touch-action: manipulation;
+  white-space: nowrap;
+}
+.ks-btn[aria-pressed="true"] {
+  background: #f1c40f;
+}
+.ks-btn:disabled {
+  opacity: 0.45;
+}
+.ks-primary {
+  background: #2ecc71;
+}
+.ks-top {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  right: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.ks-goal {
+  background: rgba(10, 20, 30, 0.75);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 13px;
+  max-width: 46ch;
+  line-height: 1.3;
+}
+.ks-goal b {
+  display: block;
+  font-size: 14px;
+}
+.ks-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.ks-modes {
+  display: flex;
+  gap: 4px;
+}
+.ks-sel {
+  position: absolute;
+  right: 8px;
+  bottom: 74px;
+  display: flex;
+  gap: 6px;
+}
+.ks-sel[hidden],
+.ks-kit[hidden],
+.ks-toast[hidden] {
+  display: none;
+}
+.ks-kit {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 8px;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  background: rgba(10, 20, 30, 0.6);
+}
+.ks-part {
+  touch-action: none;
+  min-height: 44px;
+}
+.ks-part small {
+  background: #1d2b3a;
+  color: #fff;
+  border-radius: 8px;
+  padding: 0 6px;
+  margin-left: 2px;
+}
+.ks-toast {
+  position: absolute;
+  left: 50%;
+  top: 104px;
+  transform: translateX(-50%);
+  width: min(460px, calc(100% - 24px));
+  background: #fff8e1;
+  color: #3e2723;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+.ks-panel {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 20, 30, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+.ks-card {
+  background: #fdfefe;
+  color: #1d2b3a;
+  border-radius: 16px;
+  padding: 16px;
+  width: min(440px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: center;
+}
+.ks-card h2 {
+  margin: 0;
+  font-size: 20px;
+}
+.ks-card p {
+  margin: 0;
+  line-height: 1.45;
+}
+.ks-goaltext {
+  font-weight: 700;
+}
+.ks-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.ks-missions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ks-mission {
+  display: flex;
+  justify-content: space-between;
+  text-align: left;
+}
+.ks-book {
+  text-align: left;
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  line-height: 1.4;
+}
+.ks-locked {
+  opacity: 0.55;
+}
+.ks-field,
+.ks-check {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+@media (min-width: 860px) {
+  .ks-viewbtn {
+    display: none;
+  }
+}
+@media (max-width: 520px) {
+  .ks-btn {
+    font-size: 13px;
+    padding: 8px 9px;
+  }
+  .ks-goal {
+    font-size: 12px;
+    max-width: none;
+    width: 100%;
+  }
+}

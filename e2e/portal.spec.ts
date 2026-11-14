@@ -40,6 +40,8 @@ test.describe("Startseite", () => {
   });
 
   test("PORTAL-AK-03: Klick auf eine Karte lädt das Spiel ohne Fehler", async ({ page }) => {
+    // alle Spiele nacheinander: Zeit wächst mit der Zahl der Spiele
+    test.setTimeout(15_000 * games.length);
     for (const game of games) {
       const errors = trackErrors(page);
       await page.goto("/");
@@ -53,6 +55,8 @@ test.describe("Startseite", () => {
   });
 
   test("MANIFEST-AK-07: Zurück-Button führt zur Startseite", async ({ page }) => {
+    // alle Spiele nacheinander: Zeit wächst mit der Zahl der Spiele
+    test.setTimeout(15_000 * games.length);
     for (const game of games) {
       await page.goto(`/games/${game.slug}/`);
       await page.getByRole("link", { name: /Alle Spiele/ }).click();
