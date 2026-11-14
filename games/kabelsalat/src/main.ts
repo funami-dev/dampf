@@ -59,6 +59,8 @@ let mission: Mission | null = null;
 let circuit: Circuit = emptyCircuit();
 let result: Result = solve(circuit);
 let solved = false;
+/** Schalter seit der letzten Bau-Änderung ausprobiert? (zählt für Missionen mit Schaltern) */
+let tried = false;
 let selected: { part?: number; wire?: number } = {};
 /** angetippter erster Punkt eines Kabels */
 let pending: PinRef | null = null;
@@ -266,7 +268,8 @@ function deleteSelected() {
 // --- Rechnen, prüfen, speichern ---------------------------------------------------------
 let lastLit = new Set<number>();
 let lastShort = false;
-function changed() {
+function changed(byToggle = false) {
+  tried = byToggle ? true : false;
   result = solve(circuit);
   const lit = new Set(
     Object.entries(result.lamps)
@@ -286,7 +289,10 @@ function changed() {
   if (mission) {
     data.builds[mission.id] = clone(circuit);
     const v = checkMission(mission, circuit);
-    if (v.ok && !solved) {
+    const needsTry = circuit.parts.some((p) => p.kind === "schalter" || p.kind === "umschalter");
+    if (v.ok && needsTry && !tried && !solved) {
+      toast("Richtig verkabelt! Jetzt probier die Schalter aus: ▶ Ausprobieren.", 4);
+    } else if (v.ok && !solved) {
       solved = true;
       const stars = starsFor(mission, circuit);
       data.stars[mission.id] = Math.max(data.stars[mission.id] ?? 0, stars);
@@ -713,7 +719,7 @@ class Bench extends Phaser.Scene {
       if (hit.part && (hit.part.kind === "schalter" || hit.part.kind === "umschalter")) {
         toggle(circuit, hit.part.id);
         sound.clack();
-        changed();
+        changed(true);
       }
       return;
     }

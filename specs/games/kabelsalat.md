@@ -97,7 +97,8 @@ nötig verbaut hat. Missionen werden der Reihe nach frei.
 8. **Kurzschluss-Detektiv:** Eine fertige Schaltung hat einen Kurzschluss – finde und behebe ihn.
 
 Geprüft wird automatisch: Das Spiel schaltet die Schalter durch alle Stellungen und vergleicht,
-ob die Lämpchen wie verlangt leuchten.
+ob die Lämpchen wie verlangt leuchten. Bei Missionen mit Schaltern zählt sie erst, wenn man nach dem Verkabeln
+selbst einen Schalter umgelegt hat (sonst Hinweis „Jetzt probier die Schalter aus“).
 
 ### Freibau
 
