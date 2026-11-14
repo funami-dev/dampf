@@ -1,6 +1,6 @@
 # Spiel: Kabelsalat
 
-**Status:** Entwurf
+**Status:** Abgenommen
 **Slug:** `kabelsalat`
 
 ## Zweck

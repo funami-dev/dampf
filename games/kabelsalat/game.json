@@ -1,0 +1,26 @@
+{
+  "slug": "kabelsalat",
+  "title": "Kabelsalat",
+  "description": "Bau echte Stromkreise aus Batterie, Lämpchen und Schaltern, verbinde sie mit Kabeln und lerne Schaltpläne lesen.",
+  "thumbnail": "thumbnail.png",
+  "controls": {
+    "keyboard": true,
+    "touch": true
+  },
+  "status": "published",
+  "order": 110,
+  "addedAt": "2026-11-14",
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-14",
+      "time": "09:56",
+      "items": [
+        "Neues Spiel: Bau Stromkreise aus Blöcken und Kabeln – mit Schaltplan daneben",
+        "8 Missionen vom ersten Lämpchen bis zum Treppenhaus-Licht",
+        "Freibau, Bauteile-Buch und leise Klänge"
+      ]
+    }
+  ]
+}
