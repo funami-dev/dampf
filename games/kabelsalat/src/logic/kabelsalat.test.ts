@@ -296,3 +296,98 @@ describe("KS-AK-05: Speichern", () => {
     ).toEqual([]);
   });
 });
+
+describe("KS-AK-11: Tipps Schritt für Schritt", () => {
+  it("jede Mission 3–6 Schritte; leer nichts erledigt; richtige Lösung alles erledigt", async () => {
+    const { STEPS, stepsDone } = await import("./steps.ts");
+    const m = (id: number) => MISSIONS.find((x) => x.id === id)!;
+    const solutions: Record<number, Circuit> = {
+      1: build(
+        ["batterie", "lampe"],
+        [
+          [0, 0, 1, 0],
+          [1, 1, 0, 1],
+        ],
+      ),
+      2: build(
+        ["batterie", "lampe", "schalter"],
+        [
+          [0, 0, 1, 0],
+          [1, 1, 2, 0],
+          [2, 1, 0, 1],
+        ],
+      ),
+      3: build(
+        ["batterie", "lampe", "lampe"],
+        [
+          [0, 0, 1, 0],
+          [1, 1, 2, 0],
+          [2, 1, 0, 1],
+        ],
+      ),
+      4: build(
+        ["batterie", "lampe", "lampe"],
+        [
+          [0, 0, 1, 0],
+          [0, 0, 2, 0],
+          [1, 1, 0, 1],
+          [2, 1, 0, 1],
+        ],
+      ),
+      5: build(
+        ["batterie", "lampe", "schalter", "schalter"],
+        [
+          [0, 0, 1, 0],
+          [1, 1, 2, 0],
+          [2, 1, 3, 0],
+          [3, 1, 0, 1],
+        ],
+      ),
+      6: build(
+        ["batterie", "lampe", "schalter", "schalter"],
+        [
+          [0, 0, 1, 0],
+          [1, 1, 2, 0],
+          [1, 1, 3, 0],
+          [2, 1, 0, 1],
+          [3, 1, 0, 1],
+        ],
+      ),
+      7: build(
+        ["batterie", "lampe", "umschalter", "umschalter"],
+        [
+          [0, 0, 1, 0],
+          [1, 1, 2, 0],
+          [2, 1, 3, 1],
+          [2, 2, 3, 2],
+          [3, 0, 0, 1],
+        ],
+      ),
+    };
+    const fixed8 = m(8).preset!();
+    fixed8.wires = fixed8.wires.filter((w) => w.a.part !== w.b.part);
+    solutions[8] = fixed8;
+    for (const mi of MISSIONS) {
+      const steps = STEPS[mi.id]!;
+      expect(steps.length, `Mission ${mi.id}`).toBeGreaterThanOrEqual(3);
+      expect(steps.length).toBeLessThanOrEqual(6);
+      for (const s of steps) expect(s.text.length).toBeGreaterThan(10);
+      const c = solutions[mi.id]!;
+      expect(checkMission(mi, c).ok, `Lösung ${mi.id}`).toBe(true);
+      expect(stepsDone(mi.id, c, solve(c), true).every(Boolean), `Mission ${mi.id}`).toBe(true);
+      if (mi.id !== 8)
+        expect(stepsDone(mi.id, emptyCircuit(), solve(emptyCircuit()), false).some(Boolean)).toBe(
+          false,
+        );
+    }
+    // anders angeordnet (Teile in anderer Reihenfolge, Kabel andersherum): zählt trotzdem
+    const swapped = build(
+      ["lampe", "batterie"],
+      [
+        [1, 1, 0, 1],
+        [0, 0, 1, 0],
+      ],
+    );
+    expect(stepsDone(1, swapped, solve(swapped), true).every(Boolean)).toBe(true);
+  });
+});
