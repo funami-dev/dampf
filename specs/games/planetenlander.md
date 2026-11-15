@@ -93,7 +93,9 @@ des Ortes. Werte für die Landung färben sich grün, sobald sie im sicheren Ber
 laufend voraus, wohin die Fähre **ohne weiteren Schub** fallen würde: eine gepunktete Flugbahn und
 auf dem Boden ein halbdurchsichtiger Schatten-Streifen um die Aufsetzstelle. Der Streifen ist umso
 breiter, je länger es bis zum Aufsetzen dauert (2 m + 0,6 m je Sekunde, höchstens 40 m), grün, wenn
-er ganz auf der Plattform liegt, sonst rot. Die Landehilfe ändert nichts an Sternen oder Bestwerten.
+er ganz auf der Plattform liegt, sonst rot. Die Punkte der Flugbahn haben die **Ampelfarbe der
+Sinkgeschwindigkeit** an dieser Stelle – wie die Anzeige „Sinken“: grün bis 2 m/s, gelb bis 4 m/s,
+darüber rot (Feedback `fb_7ay9gsus`). Die Landehilfe ändert nichts an Sternen oder Bestwerten.
 
 ## Steuerung
 
@@ -143,6 +145,9 @@ ohne Luft, Dunst-Schichten auf Titan/Venus. Kein Ton im MVP.
 - **PL-AK-10** (E2E Desktop) Zu schnell aufsetzen → Bruchlandung mit „Nochmal“.
 - **PL-AK-11** (E2E Mobile 375×667) Knöpfe Schub/Drehen sichtbar und bedienbar (auch
   gleichzeitig), Anzeigen lesbar, kein horizontales Scrollen.
+- **PL-AK-15** Bahnfarbe (Vitest + E2E): Sinken ≤ 2 m/s grün, ≤ 4 m/s gelb, darüber rot – für die
+  Anzeige „Sinken“ und die Bahnpunkte gleich; im freien Fall aus großer Höhe beginnt die Bahn grün
+  und endet rot.
 - **PL-AK-14** Landehilfe (Vitest + E2E): Die Vorausberechnung trifft beim freien Fall ohne Luft
   die Fallzeit √(2h/g) und die Stelle x + vₓ·t (±2 %); der Streifen wird mit der Zeit breiter
   (höchstens 40 m) und ist nur ganz auf der Plattform grün; die echte Fähre ändert sich dabei

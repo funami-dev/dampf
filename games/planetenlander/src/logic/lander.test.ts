@@ -264,3 +264,24 @@ describe("PL-AK-14: Landehilfe", () => {
     expect(p.path.length).toBeGreaterThan(2);
   });
 });
+
+describe("PL-AK-15: Bahnfarbe nach Sinkgeschwindigkeit", () => {
+  it("Ampel und Verlauf im freien Fall", async () => {
+    const { predict, sinkLevel } = await import("./physics.ts");
+    expect([sinkLevel(-1), sinkLevel(2), sinkLevel(3), sinkLevel(4), sinkLevel(4.1)]).toEqual([
+      "ok",
+      "ok",
+      "warn",
+      "warn",
+      "bad",
+    ]);
+    const moon = bodyById("mond")!;
+    const t = makeTerrain("mond", true);
+    const l = startLander(t);
+    l.x = t.pad.center;
+    l.y = t.pad.y + 120;
+    const p = predict(l, moon, t, WIDTH);
+    expect(sinkLevel(p.path[0]!.down)).toBe("ok");
+    expect(sinkLevel(p.path.at(-1)!.down)).toBe("bad");
+  });
+});

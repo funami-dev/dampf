@@ -192,7 +192,7 @@ export const CORRIDOR = { base: 2, perSecond: 0.6, max: 40, maxTime: 60 };
 
 export interface Prediction {
   /** Flugbahn ohne weiteren Schub (alle 0,25 s) */
-  path: { x: number; y: number }[];
+  path: { x: number; y: number; down: number }[];
   /** Aufsetzstelle und Zeit bis dahin */
   x: number;
   t: number;
@@ -207,15 +207,21 @@ export function predict(l: Lander, b: Body, t: Terrain, width: number): Predicti
   const c: Lander = { ...l };
   const none: Controls = { thrust: false, left: false, right: false };
   const dt = 1 / 30;
-  const path = [{ x: c.x, y: c.y }];
+  const path = [{ x: c.x, y: c.y, down: -c.vy }];
   let time = 0;
   while (!touching(c, t) && time < CORRIDOR.maxTime) {
     step(c, none, b, dt, width);
     time += dt;
-    if (Math.round(time / dt) % 8 === 0) path.push({ x: c.x, y: c.y });
+    if (Math.round(time / dt) % 8 === 0) path.push({ x: c.x, y: c.y, down: -c.vy });
   }
-  path.push({ x: c.x, y: c.y });
+  path.push({ x: c.x, y: c.y, down: -c.vy });
   const half = Math.min(CORRIDOR.max, CORRIDOR.base + CORRIDOR.perSecond * time);
   const onPad = c.x - half >= t.pad.x0 && c.x + half <= t.pad.x1;
   return { path, x: c.x, t: time, half, onPad };
 }
+
+/** Ampel für die Sinkgeschwindigkeit (Anzeige „Sinken“ und Landehilfe-Bahn, PL-AK-15) */
+export function sinkLevel(down: number): "ok" | "warn" | "bad" {
+  return down <= SAFE.down ? "ok" : down <= SAFE.down * 2 ? "warn" : "bad";
+}
+export const LEVEL_COLOR = { ok: 0x7bd35a, warn: 0xf6c344, bad: 0xff6b5b } as const;
