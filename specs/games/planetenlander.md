@@ -58,6 +58,18 @@ Ein Rechenschritt mit fester Schrittweite (z. B. 1/120 s), unabhängig von der B
 
 1. **Auswahl:** Liste aller Orte als Karten (Name, Symbol, g, „x % der Erde“, Sterne).
    Alle Orte sind frei; Gasriesen ausgegraut mit „ℹ️ Warum nicht?“ → Erklärung.
+   **Eigener Planet** (Feedback `fb_6wcw7h1r`): Unter den Orten gibt es „🪐 Eigener Planet“. Im
+   Planeten-Editor wählt man:
+   - einen **Namen** (bis 14 Zeichen),
+   - **Farben** für Himmel und Boden (je 8 zur Auswahl),
+   - die **Schwerkraft** per Schieberegler von 0,5 bis 25 m/s² (Schritt 0,1) mit Beispielmarken
+     auf der Skala: Mond 1,6 · Mars 3,7 · Erde 9,8 · Jupiter 24,8,
+   - die **Luft**: keine, dünn (0,02 kg/m³), wie auf der Erde (1,2 kg/m³) oder dicht (5 kg/m³).
+     Eine **Live-Vorschau** zeigt, wie ein waagerecht geworfener Ball (10 m/s aus 20 m Höhe) bei
+     dieser Schwerkraft und Luft fällt – als Kurve neben der gestrichelten Kurve auf der Erde –,
+     dazu „In 1 Sekunde fällt ein Ball hier x m tief“ und der Vergleich mit der Erde. „Speichern &
+     Los!“ führt zur Lern-Karte. Bis zu **3 eigene Planeten** werden gespeichert (ändern ✏️,
+     löschen 🗑 mit Nachfrage), jeder mit eigenem, festem Boden und eigenem Bestwert.
 2. **Lern-Karte** vor dem Start:
    - g-Wert und Vergleich mit der Erde („Hier ist die Schwerkraft 6-mal schwächer als auf der Erde.“).
    - „Ein Ball fällt hier in 1 Sekunde x m tief.“ (½ · g · 1 s², ohne Luft) – auf der Erde 4,9 m.
@@ -145,6 +157,14 @@ ohne Luft, Dunst-Schichten auf Titan/Venus. Kein Ton im MVP.
 - **PL-AK-10** (E2E Desktop) Zu schnell aufsetzen → Bruchlandung mit „Nochmal“.
 - **PL-AK-11** (E2E Mobile 375×667) Knöpfe Schub/Drehen sichtbar und bedienbar (auch
   gleichzeitig), Anzeigen lesbar, kein horizontales Scrollen.
+- **PL-AK-16** (Vitest) Eigener Planet: Werte werden auf die erlaubten Bereiche begrenzt (g 0,5–25,
+  Name ≤ 14 Zeichen, Farben aus der Auswahl), der Planet wird ein spielbarer Ort mit dieser
+  Schwerkraft und Luft; höchstens 3 werden gespeichert, kaputte Daten werden verworfen; die
+  Wurfkurve der Vorschau trifft ohne Luft Fallzeit √(2h/g) und Weite v·t (±2 %), mit Luft fällt
+  der Ball weniger weit; Bestwerte eigener Planeten werden gespeichert.
+- **PL-AK-17** (E2E) Planet anlegen: Schieberegler ändert Vorschau-Text, Speichern & Los! startet
+  den Flug mit der gewählten Schwerkraft; nach Neuladen steht der Planet in der Auswahl und lässt
+  sich löschen.
 - **PL-AK-15** Bahnfarbe (Vitest + E2E): Sinken ≤ 2 m/s grün, ≤ 4 m/s gelb, darüber rot – für die
   Anzeige „Sinken“ und die Bahnpunkte gleich; im freien Fall aus großer Höhe beginnt die Bahn grün
   und endet rot.
