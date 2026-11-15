@@ -88,6 +88,13 @@ Ein Rechenschritt mit fester Schrittweite (z. B. 1/120 s), unabhängig von der B
 Höhe über Boden (m), Sinken/Steigen (m/s, Pfeil), seitlich (m/s), Neigung (°), Treibstoff (%), g
 des Ortes. Werte für die Landung färben sich grün, sobald sie im sicheren Bereich sind, sonst gelb/rot.
 
+**Landehilfe** (Feedback `fb_1sfg69wy`): Ein Knopf „🎯 Landehilfe“ (Taste L) schaltet einen
+„Schatten-Korridor“ ein und aus; anfangs aus, die Wahl wird gemerkt. Eingeschaltet rechnet das Spiel
+laufend voraus, wohin die Fähre **ohne weiteren Schub** fallen würde: eine gepunktete Flugbahn und
+auf dem Boden ein halbdurchsichtiger Schatten-Streifen um die Aufsetzstelle. Der Streifen ist umso
+breiter, je länger es bis zum Aufsetzen dauert (2 m + 0,6 m je Sekunde, höchstens 40 m), grün, wenn
+er ganz auf der Plattform liegt, sonst rot. Die Landehilfe ändert nichts an Sternen oder Bestwerten.
+
 ## Steuerung
 
 | Eingabe                        | Aktion                |
@@ -97,6 +104,7 @@ des Ortes. Werte für die Landung färben sich grün, sobald sie im sicheren Ber
 | Touch: Knopf „🔥 Schub“ rechts | Hauptdüse             |
 | Touch: Knöpfe „⟲“ „⟳“ links    | drehen                |
 | P / Esc / Pause-Knopf          | Pause                 |
+| L / Knopf „🎯 Landehilfe“      | Landehilfe an/aus     |
 
 Fokusverlust pausiert. Kein Doppeltipp-Zoom (wie alle Spiele). Mehrfach-Touch: Schub und Drehen
 gleichzeitig möglich.
@@ -135,6 +143,10 @@ ohne Luft, Dunst-Schichten auf Titan/Venus. Kein Ton im MVP.
 - **PL-AK-10** (E2E Desktop) Zu schnell aufsetzen → Bruchlandung mit „Nochmal“.
 - **PL-AK-11** (E2E Mobile 375×667) Knöpfe Schub/Drehen sichtbar und bedienbar (auch
   gleichzeitig), Anzeigen lesbar, kein horizontales Scrollen.
+- **PL-AK-14** Landehilfe (Vitest + E2E): Die Vorausberechnung trifft beim freien Fall ohne Luft
+  die Fallzeit √(2h/g) und die Stelle x + vₓ·t (±2 %); der Streifen wird mit der Zeit breiter
+  (höchstens 40 m) und ist nur ganz auf der Plattform grün; die echte Fähre ändert sich dabei
+  nicht. Im Spiel schaltet der Knopf den Korridor ein und aus, die Wahl übersteht Neuladen.
 - **PL-AK-13** Ergebnis mit Grenzen: Für Sinken, Seitlich und Neigung gibt es Wert, Grenze und
   Überschreitung (0, wenn es passt); im Ergebnis-Bildschirm steht bei einer Bruchlandung wegen
   Tempo „… zu schnell“, wegen Neigung „… zu schief“ (Vitest + E2E).

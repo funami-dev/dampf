@@ -186,3 +186,36 @@ export function margins(v: { down: number; side: number; tilt: number }): Margin
   ];
   return rows.map((r) => ({ ...r, over: Math.max(0, r.value - r.limit) }));
 }
+
+/** Landehilfe (PL-AK-14): Breite des Schatten-Streifens */
+export const CORRIDOR = { base: 2, perSecond: 0.6, max: 40, maxTime: 60 };
+
+export interface Prediction {
+  /** Flugbahn ohne weiteren Schub (alle 0,25 s) */
+  path: { x: number; y: number }[];
+  /** Aufsetzstelle und Zeit bis dahin */
+  x: number;
+  t: number;
+  /** halbe Breite des Streifens (m) */
+  half: number;
+  /** liegt der ganze Streifen auf der Plattform? */
+  onPad: boolean;
+}
+
+/** Wohin fällt die Fähre ohne weiteren Schub? Die echte Fähre bleibt unverändert. */
+export function predict(l: Lander, b: Body, t: Terrain, width: number): Prediction {
+  const c: Lander = { ...l };
+  const none: Controls = { thrust: false, left: false, right: false };
+  const dt = 1 / 30;
+  const path = [{ x: c.x, y: c.y }];
+  let time = 0;
+  while (!touching(c, t) && time < CORRIDOR.maxTime) {
+    step(c, none, b, dt, width);
+    time += dt;
+    if (Math.round(time / dt) % 8 === 0) path.push({ x: c.x, y: c.y });
+  }
+  path.push({ x: c.x, y: c.y });
+  const half = Math.min(CORRIDOR.max, CORRIDOR.base + CORRIDOR.perSecond * time);
+  const onPad = c.x - half >= t.pad.x0 && c.x + half <= t.pad.x1;
+  return { path, x: c.x, t: time, half, onPad };
+}

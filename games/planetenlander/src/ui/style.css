@@ -47,7 +47,8 @@
 }
 .pl-hud[hidden],
 .pl-controls[hidden],
-.pl-pause[hidden] {
+.pl-pause[hidden],
+.pl-help[hidden] {
   display: none;
 }
 .pl-hud div {
@@ -243,4 +244,18 @@
 .pl-thrust svg {
   width: 42px;
   height: 42px;
+}
+
+/* Landehilfe (PL-AK-14): unter dem Pause-Knopf */
+.pl-help {
+  position: absolute;
+  top: 52px;
+  right: 6px;
+  font-size: 13px;
+  padding: 8px 10px;
+  opacity: 0.85;
+}
+.pl-help[aria-pressed="true"] {
+  background: #7bd35a;
+  opacity: 1;
 }
