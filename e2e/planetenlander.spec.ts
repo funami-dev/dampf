@@ -15,6 +15,8 @@ interface PlState {
   padCenter: number;
   result: { landed: boolean; reason: string; stars: number } | null;
   best: Record<string, number>;
+  helper: boolean;
+  corridor: { x: number; half: number; onPad: boolean } | null;
 }
 interface Hooks {
   state(): PlState;
@@ -98,6 +100,35 @@ test("PL-AK-09: Mond – Lern-Karte, Schub, sanft landen, Sterne bleiben nach Ne
   await expect.poll(() => page.evaluate(() => !!window.__dampf), { timeout: 60_000 }).toBe(true);
   expect((await state(page)).best.mond).toBeGreaterThanOrEqual(2);
   await expect(page.getByRole("button", { name: "Mond", exact: true })).toContainText("★★");
+  await expectNoErrors(errors);
+});
+
+test("PL-AK-14: Landehilfe ein- und ausschalten, bleibt nach Neuladen", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await (isMobile(page)
+    ? page.getByRole("button", { name: "Mond", exact: true }).tap()
+    : page.getByRole("button", { name: "Mond", exact: true }).click());
+  await tap(page, "Los!");
+  await expect.poll(async () => (await state(page)).screen).toBe("fly");
+  expect((await state(page)).helper).toBe(false);
+  expect((await state(page)).corridor).toBeNull();
+  await tap(page, "🎯 Landehilfe");
+  await expect.poll(async () => (await state(page)).corridor).not.toBeNull();
+  // genau über der Plattform, langsam: Streifen grün
+  await place(page, 30, 0);
+  await expect.poll(async () => (await state(page)).corridor?.onPad).toBe(true);
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => !!window.__dampf)).toBe(true);
+  await (isMobile(page)
+    ? page.getByRole("button", { name: "Mond", exact: true }).tap()
+    : page.getByRole("button", { name: "Mond", exact: true }).click());
+  await tap(page, "Los!");
+  await expect.poll(async () => (await state(page)).helper).toBe(true);
+  await expect(page.getByRole("button", { name: "🎯 Landehilfe" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   await expectNoErrors(errors);
 });
 

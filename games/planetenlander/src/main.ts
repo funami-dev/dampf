@@ -26,6 +26,8 @@ import {
   type Lander,
   type Verdict,
   margins,
+  predict,
+  type Prediction,
 } from "./logic/physics.ts";
 import { loadProgress, record, saveProgress, type Store } from "./logic/progress.ts";
 import { WIDTH, groundAt, makeTerrain, type Terrain } from "./logic/terrain.ts";
@@ -83,6 +85,7 @@ layer.innerHTML = `
     <div><span>g</span><b data-h="g">1,62</b></div>
   </div>
   <button class="pl-btn pl-pause" type="button" data-b="pause" hidden>Pause</button>
+  <button class="pl-btn pl-help" type="button" data-b="help" aria-pressed="false" hidden>🎯 Landehilfe</button>
   <div class="pl-controls" hidden>
     <div class="pl-turn">
       <button class="pl-btn pl-big" type="button" data-c="left" data-hold aria-label="Links drehen">${ICON_LEFT}</button>
@@ -95,6 +98,28 @@ const $ = <E extends HTMLElement>(s: string) => layer.querySelector<E>(s)!;
 const hudEl = $(".pl-hud");
 const controlsEl = $(".pl-controls");
 const pauseBtn = $<HTMLButtonElement>('[data-b="pause"]');
+// Landehilfe (PL-AK-14): Schatten-Korridor, Wahl wird gemerkt
+const HELP_KEY = "dampf.planetenlander.hilfe";
+const helpBtn = $<HTMLButtonElement>('[data-b="help"]');
+let helper = (() => {
+  try {
+    return localStorage.getItem(HELP_KEY) === "1";
+  } catch {
+    return false;
+  }
+})();
+let corridor: Prediction | null = null;
+function setHelper(on: boolean) {
+  helper = on;
+  helpBtn.setAttribute("aria-pressed", String(on));
+  try {
+    localStorage.setItem(HELP_KEY, on ? "1" : "0");
+  } catch {
+    /* gesperrt */
+  }
+}
+setHelper(helper);
+helpBtn.addEventListener("click", () => setHelper(!helper));
 const hud = (k: string) => $(`[data-h="${k}"]`);
 
 // --- Zustand -------------------------------------------------------------------
@@ -148,6 +173,7 @@ function flyUi(on: boolean) {
   hudEl.hidden = !on;
   controlsEl.hidden = !on;
   pauseBtn.hidden = !on;
+  helpBtn.hidden = !on;
 }
 
 // --- Auswahl -------------------------------------------------------------------
@@ -411,6 +437,10 @@ window.addEventListener("keydown", (e) => {
     (e.target as HTMLElement)?.tagName === "TEXTAREA"
   )
     return;
+  if (screen === "fly" && e.code === "KeyL" && !e.repeat) {
+    setHelper(!helper);
+    return;
+  }
   if (screen === "fly" && (e.code === "KeyP" || e.code === "Escape")) {
     setPaused(!paused);
     e.preventDefault();
@@ -536,6 +566,25 @@ class FlightScene extends Phaser.Scene {
       );
     }
 
+    // Landehilfe: Flugbahn ohne Schub und Schatten-Streifen am Boden (PL-AK-14)
+    corridor = helper && screen === "fly" && !result ? predict(lander, body, terrain, WIDTH) : null;
+    if (corridor) {
+      const col = corridor.onPad ? 0x7bd35a : 0xff5a4f;
+      g.fillStyle(0xffffff, 0.55);
+      corridor.path.forEach((q, i) => {
+        if (i % 2 === 0) g.fillCircle(sx(q.x), sy(q.y), Math.max(1.5, S * 0.25));
+      });
+      g.fillStyle(col, 0.35);
+      const a = Math.max(0, corridor.x - corridor.half);
+      const b = Math.min(WIDTH, corridor.x + corridor.half);
+      const band = Math.max(4, S * 1.5);
+      for (let x = a; x < b; x += 1) {
+        const yy = sy(groundAt(terrain, x));
+        g.fillRect(sx(x), yy - band, Math.max(1, S) + 0.5, band * 2);
+      }
+      g.fillStyle(col, 0.9);
+      g.fillRect(sx(corridor.x) - 1, sy(groundAt(terrain, corridor.x)) - band * 2, 2, band * 2);
+    }
     // Fähre
     if (!(result && !result.v.landed)) this.drawLander(g, sx, sy, S, time);
     // Trümmer / Staub
@@ -669,6 +718,8 @@ if (debugEnabled) {
         ? { landed: result.v.landed, reason: result.v.reason, stars: result.stars }
         : null,
       best: { ...progress.best },
+      helper,
+      corridor: corridor ? { x: corridor.x, half: corridor.half, onPad: corridor.onPad } : null,
     }),
     place: (alt, vy, vx = 0, angle = 0) => {
       lander.x = terrain.pad.center;

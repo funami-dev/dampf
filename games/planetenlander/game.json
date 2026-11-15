@@ -10,8 +10,16 @@
   "status": "published",
   "order": 90,
   "addedAt": "2026-11-09",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "changelog": [
+    {
+      "version": "1.3.0",
+      "date": "2026-11-15",
+      "time": "20:27",
+      "items": [
+        "Neu: 🎯 Landehilfe – ein Schatten auf dem Boden zeigt, wo du ohne Schub landen würdest"
+      ]
+    },
     {
       "version": "1.2.1",
       "date": "2026-11-11",

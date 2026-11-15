@@ -228,3 +228,39 @@ describe("PL-AK-13: Ergebnis mit Grenzen", () => {
     expect(by.tilt!.word).toBe("zu schief");
   });
 });
+
+describe("PL-AK-14: Landehilfe", () => {
+  it("trifft Fallzeit und Stelle, Streifen wächst, nur auf der Plattform grün", async () => {
+    const { predict, CORRIDOR } = await import("./physics.ts");
+    const moon = bodyById("mond")!;
+    const t = makeTerrain("mond", true);
+    const l = startLander(t);
+    l.x = t.pad.center;
+    const h = 40;
+    l.y = t.pad.y + h;
+    l.vx = 0;
+    l.vy = 0;
+    const before = { ...l };
+    const p = predict(l, moon, t, WIDTH);
+    expect(l).toEqual(before); // echte Fähre unverändert
+    const want = Math.sqrt((2 * h) / moon.g);
+    expect(Math.abs(p.t - want) / want).toBeLessThan(0.02);
+    expect(p.x).toBeCloseTo(t.pad.center, 1);
+    expect(p.half).toBeCloseTo(CORRIDOR.base + CORRIDOR.perSecond * p.t, 1);
+    // seitlich: x + vx·t; mit wachsendem Abstand breiter, nicht mehr auf der Plattform
+    l.vx = 1;
+    const q = predict(l, moon, t, WIDTH);
+    expect(Math.abs(q.x - (l.x + q.t)) / q.t).toBeLessThan(0.05);
+    l.y = t.pad.y + 250;
+    l.vx = 0;
+    const far = predict(l, moon, t, WIDTH);
+    expect(far.half).toBeGreaterThan(p.half);
+    expect(far.half).toBeLessThanOrEqual(CORRIDOR.max);
+    expect(far.onPad).toBe(true); // genau darüber: passt noch
+    l.vx = 3;
+    expect(predict(l, moon, t, WIDTH).onPad).toBe(false); // daneben
+    l.y = t.pad.y + 5;
+    expect(predict(l, moon, t, WIDTH).onPad).toBe(true);
+    expect(p.path.length).toBeGreaterThan(2);
+  });
+});
