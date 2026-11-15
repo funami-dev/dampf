@@ -204,3 +204,55 @@
     width: 100%;
   }
 }
+
+/* Tipps Schritt für Schritt (KS-AK-12): am Computer über dem Schaltplan, sonst über der Kiste */
+.ks-tips {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 74px;
+  max-height: 34%;
+  overflow-y: auto;
+  background: #fffbea;
+  color: #2c2c2c;
+  border-radius: 12px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.ks-tips[hidden] {
+  display: none;
+}
+.ks-tips-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.ks-small {
+  padding: 4px 8px;
+}
+.ks-tips ol {
+  margin: 6px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ks-tips li.done {
+  color: #2e7d32;
+}
+.ks-tips li.now {
+  font-weight: 700;
+}
+@media (min-width: 860px) {
+  .ks-tips {
+    left: calc(60% + 8px);
+    right: 8px;
+    bottom: auto;
+    top: 64px;
+    max-height: 40%;
+  }
+}

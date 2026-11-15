@@ -30,6 +30,7 @@ import {
 import { MISSIONS, checkMission, starsFor, type Mission } from "./logic/missions.ts";
 import { load, save, unlocked, freeKinds, type Store } from "./logic/save.ts";
 import { solve, type Result } from "./logic/solve.ts";
+import { STEPS, stepsDone, type Step } from "./logic/steps.ts";
 
 // --- Zustand -------------------------------------------------------------------------
 const store: Store = {
@@ -67,6 +68,9 @@ let pending: PinRef | null = null;
 /** Teil aus der Kiste, das als Nächstes gesetzt wird */
 let armed: Kind | null = null;
 let helpUntil = 0;
+/** Tipps (KS-AK-11/12): wie viele Schritte je Mission eingeblendet, Liste offen? */
+const tipShown: Record<number, number> = {};
+let tipsOpen = false;
 let paused = false;
 let clock = 0;
 /** schmaler Bildschirm: Werkbank oder Schaltplan */
@@ -128,6 +132,10 @@ layer.innerHTML = `
     <button class="ks-btn" type="button" data-b="weg">🗑 Weg</button>
   </div>
   <div class="ks-toast" role="alert" hidden></div>
+  <div class="ks-tips" role="region" aria-label="Tipps" hidden>
+    <div class="ks-tips-head"><b>💡 Schritt für Schritt</b><button class="ks-btn ks-small" type="button" data-b="tipsclose" aria-label="Tipps schließen">✕</button></div>
+    <ol data-h="tips"></ol>
+  </div>
   <div class="ks-kit" role="group" aria-label="Teilekiste"></div>`;
 stage.append(layer);
 const $ = <E extends HTMLElement = HTMLElement>(s: string) => layer.querySelector<E>(s)!;
@@ -155,7 +163,18 @@ $('[data-b="bauen"]').addEventListener("click", () => setMode("bauen"));
 $('[data-b="probieren"]').addEventListener("click", () => setMode("probieren"));
 $('[data-b="hilfe"]').addEventListener("click", () => {
   sound.start();
-  showHelp();
+  if (!mission) return showHelp();
+  const n = STEPS[mission.id]?.length ?? 0;
+  const shown = tipShown[mission.id] ?? 0;
+  // nächster Schritt; sind alle zu sehen, nur die Liste wieder öffnen
+  if (!tipsOpen && shown > 0) tipsOpen = true;
+  else tipShown[mission.id] = Math.min(n, shown + 1);
+  tipsOpen = true;
+  refreshUi();
+});
+$('[data-b="tipsclose"]').addEventListener("click", () => {
+  tipsOpen = false;
+  refreshUi();
 });
 $('[data-b="view"]').addEventListener("click", () => {
   view = view === "werkbank" ? "schaltplan" : "werkbank";
@@ -176,7 +195,40 @@ function kitKinds(): Kind[] {
   return KINDS.filter((k) => (mission!.kit[k] ?? 0) > 0);
 }
 
+/** aktueller Tipp-Schritt (der erste eingeblendete, der noch nicht erledigt ist) */
+function currentStep(): Step | null {
+  if (!mission || !tipsOpen) return null;
+  const steps = STEPS[mission.id] ?? [];
+  const done = stepsDone(mission.id, circuit, result, solved);
+  const shown = tipShown[mission.id] ?? 0;
+  for (let i = 0; i < shown; i++) if (!done[i]) return steps[i]!;
+  return null;
+}
+function refreshTips() {
+  const box = $(".ks-tips");
+  const btn = $('[data-b="hilfe"]');
+  if (!mission) {
+    btn.textContent = "💡 Hilfe";
+    box.hidden = true;
+    return;
+  }
+  const steps = STEPS[mission.id] ?? [];
+  const shown = tipShown[mission.id] ?? 0;
+  btn.textContent = `💡 Tipp (${Math.min(shown + 1, steps.length)}/${steps.length})`;
+  box.hidden = !tipsOpen || shown === 0;
+  const done = stepsDone(mission.id, circuit, result, solved);
+  const cur = currentStep();
+  $("[data-h=tips]").innerHTML = steps
+    .slice(0, shown)
+    .map(
+      (st, i) =>
+        `<li class="${done[i] ? "done" : st === cur ? "now" : ""}">${done[i] ? "✓ " : ""}${st.text}</li>`,
+    )
+    .join("");
+}
+
 function refreshUi() {
+  refreshTips();
   const goal = mission
     ? `<b>${mission.id}. ${mission.title}</b> ${solved ? "✅" : ""}<span>${mission.goal}</span>`
     : `<b>Freibau</b><span>Bau, was du willst – es wird gespeichert.</span>`;
@@ -336,6 +388,7 @@ function panel(html: string, label: string) {
 }
 function startMission(m: Mission) {
   mission = m;
+  tipsOpen = false;
   circuit = data.builds[m.id] ? clone(data.builds[m.id]!) : m.preset ? m.preset() : emptyCircuit();
   solved = false;
   selected = {};
@@ -482,11 +535,15 @@ window.addEventListener("focus", () => (paused = false));
 document.addEventListener("visibilitychange", () => (paused = document.hidden));
 
 // --- Werkbank und Schaltplan (Phaser) -----------------------------------------------------
-const TOP = 96; // Platz für die obere Leiste
+const TOP = 52; // mindestens so viel Platz für die obere Leiste
 const BOTTOM = 70; // Platz für die Teilekiste
-/** Werkbank-Größe in Einheiten (Hochkant schmaler und höher) */
-let portrait = false;
-const benchSize = () => (portrait ? { w: 480, h: 640 } : { w: 800, h: 520 });
+/**
+ * Werkbank-Größe in Einheiten: feste Höhe, die Breite passt sich dem freien Platz an, damit
+ * kein leerer Rand bleibt (KS-AK-12).
+ */
+let bench = { w: 800, h: 520 };
+const benchSize = () => bench;
+const BENCH_W = { min: 360, max: 1600 };
 
 interface Frame {
   ox: number;
@@ -496,6 +553,7 @@ interface Frame {
 let benchFrame: Frame | null = null;
 let planFrame: Frame | null = null;
 let canvasRect = { left: 0, top: 0 };
+let canvasSize = { w: 0, h: 0 };
 
 function clientToBench(cx: number, cy: number) {
   if (!benchFrame) return null;
@@ -803,27 +861,47 @@ class Bench extends Phaser.Scene {
     const H = this.scale.height;
     const r = this.game.canvas.getBoundingClientRect();
     canvasRect = { left: r.left, top: r.top };
-    const wasPortrait = portrait;
-    portrait = H > W * 1.05 && W < 700;
-    if (wasPortrait !== portrait) this.relayout();
+    canvasSize = { w: W, h: H };
     const wide = W >= 860;
     const g = this.g;
     g.clear();
     this.used = 0;
     g.fillStyle(0x1d2b3a, 1).fillRect(0, 0, W, H);
-    // Platz unter der oberen Leiste (am Handy bricht sie um)
+    // Platz unter der oberen Leiste (am Handy bricht sie um) und über der Teilekiste
     const bar = layer.querySelector<HTMLElement>(".ks-top")!.getBoundingClientRect();
     const top = Math.max(TOP, bar.bottom - r.top + 8);
-    const bottom = H - (mode === "bauen" ? BOTTOM : 12);
+    let bottom = H - BOTTOM;
+    // Tipp-Liste: am Computer über dem Schaltplan, sonst über der Kiste
+    const tips = layer.querySelector<HTMLElement>(".ks-tips")!;
+    const tipsBox = tips.hidden ? null : tips.getBoundingClientRect();
+    if (tipsBox && !wide) bottom = Math.min(bottom, tipsBox.top - r.top - 8);
+    const planTop = tipsBox && wide ? tipsBox.bottom - r.top + 8 : top;
     const showBench = wide || view === "werkbank";
     const showPlan = wide || view === "schaltplan";
+    // Werkbank-Form an den Platz anpassen (ohne Tipp-Liste gerechnet, damit sich beim Öffnen
+    // nichts verschiebt): Blöcke etwa 80 px, auf kleinen Bildschirmen nicht unter 44 px
+    const bw = (wide ? W * 0.6 : W) - 16;
+    const fullH = Math.max(120, H - BOTTOM - top);
+    const k0 = Math.max(0.55, Math.min(1.4, fullH / 520));
+    const units = (px: number, lo: number, hi: number) =>
+      Math.round(Math.max(lo, Math.min(hi, px / k0)) / 20) * 20;
+    const unitsW = units(bw, BENCH_W.min, BENCH_W.max);
+    const unitsH = units(fullH, 300, 900);
+    if (unitsW !== bench.w || unitsH !== bench.h) {
+      bench = { w: unitsW, h: unitsH };
+      this.relayout();
+    }
     const b = benchSize();
-    const fit = (x0: number, w: number): Frame => {
-      const k = Math.min(w / b.w, (bottom - top) / b.h);
-      return { k, ox: x0 + (w - b.w * k) / 2, oy: top + (bottom - top - b.h * k) / 2 };
+    const fit = (x0: number, w: number, y0: number, y1: number): Frame => {
+      const k = Math.min(w / b.w, (y1 - y0) / b.h);
+      return { k, ox: x0 + (w - b.w * k) / 2, oy: y0 + (y1 - y0 - b.h * k) / 2 };
     };
-    benchFrame = showBench ? fit(8, (wide ? W * 0.6 : W) - 16) : null;
-    planFrame = showPlan ? (wide ? fit(W * 0.6, W * 0.4 - 8) : fit(8, W - 16)) : null;
+    benchFrame = showBench ? fit(8, bw, top, bottom) : null;
+    planFrame = showPlan
+      ? wide
+        ? fit(W * 0.6, W * 0.4 - 8, planTop, bottom)
+        : fit(8, W - 16, top, bottom)
+      : null;
     if (benchFrame) this.drawBench(benchFrame, dt);
     if (planFrame) this.drawPlan(planFrame);
     else schematicSymbols = 0;
@@ -842,10 +920,11 @@ class Bench extends Phaser.Scene {
     for (let i = this.used; i < this.labels.length; i++) this.labels[i]!.setVisible(false);
   }
   relayout() {
-    // Werkbank wechselt die Form: Teile in den neuen Bereich holen
+    // Werkbank wechselt die Form: Teile, die nicht mehr passen, an den Rand holen
     const b = benchSize();
     for (const p of circuit.parts)
-      movePart(circuit, p.id, Math.min(p.x, b.w - BLOCK / 2), Math.min(p.y, b.h - BLOCK / 2));
+      if (p.x > b.w - BLOCK / 2 || p.y > b.h - BLOCK / 2)
+        movePart(circuit, p.id, Math.min(p.x, b.w - BLOCK / 2), Math.min(p.y, b.h - BLOCK / 2));
   }
 
   drawBench(f: Frame, dt: number) {
@@ -914,6 +993,17 @@ class Bench extends Phaser.Scene {
         (BLOCK + 8) * k,
         (BLOCK + 8) * k,
         14 * k,
+      );
+    // Tipp: betroffene Teile leuchten sanft (1 Hz)
+    const step = currentStep();
+    const pulse = 0.35 + 0.3 * Math.sin(clock * Math.PI * 2);
+    if (step?.focus.kinds?.includes(p.kind))
+      g.fillStyle(0xffeb3b, pulse).fillRoundedRect(
+        X(p.x - s - 8),
+        Y(p.y - s - 8),
+        (BLOCK + 16) * k,
+        (BLOCK + 16) * k,
+        16 * k,
       );
     const hot = p.kind === "batterie" && result.short;
     g.fillStyle(hot ? 0xb03a2e : PART_COLORS[p.kind], 1).fillRoundedRect(
@@ -1010,7 +1100,10 @@ class Bench extends Phaser.Scene {
       const q = pinPos(p, i);
       const ref = { part: p.id, pin: i };
       const isPending = pending && samePin(pending, ref);
-      const lonely = clock < helpUntil && !wiresAt(circuit, ref);
+      const focusPin = !!step?.focus.pins?.some(
+        (f) => f.kind === p.kind && (f.pin < 0 || f.pin === i),
+      );
+      const lonely = (clock < helpUntil && !wiresAt(circuit, ref)) || focusPin;
       if (isPending || lonely) {
         // langsames Pulsieren (1 Hz, KS-AK-10)
         const a = 0.35 + 0.35 * Math.sin(clock * Math.PI * 2);
@@ -1165,6 +1258,14 @@ if (debugEnabled) {
       paused,
       volume: data.volume,
       pending: !!pending,
+      // belegte Fläche in Pixeln (KS-AK-12)
+      area: {
+        w: canvasSize.w,
+        h: canvasSize.h,
+        bench: benchFrame ? { w: bench.w * benchFrame.k, h: bench.h * benchFrame.k } : null,
+        plan: planFrame ? { w: bench.w * planFrame.k, h: bench.h * planFrame.k } : null,
+      },
+      tips: mission ? (tipShown[mission.id] ?? 0) : 0,
     }),
     /** Bildschirm-Koordinaten eines Anschlusspunkts bzw. einer Werkbank-Stelle */
     pin: (part: number, pin: number) => {

@@ -56,11 +56,27 @@ B/C/E).
 - **Kurzschluss** (Batterie-Pole ohne Verbraucher verbunden): Die Batterie wird rot und „warm“
   (Wellenlinien), alle Lämpchen sind aus, eine Sprechblase erklärt: „Kurzschluss! Der Strom nimmt
   den kürzesten Weg und geht nicht durch das Lämpchen.“ Kein Feuer, nichts geht kaputt.
-- **Offener Stromkreis:** Nichts leuchtet; ein Tipp-Knopf „💡 Hilfe“ zeigt, wo der Kreis offen ist
+- **Offener Stromkreis:** Nichts leuchtet; im Freibau zeigt „💡 Hilfe“, wo der Kreis offen ist
   (Anschluss blinkt langsam, höchstens 2 Hz).
+
+### Tipps Schritt für Schritt (Version 1.1, Feedback `fb_awvz9vwf`)
+
+- In jeder Mission heißt der Knopf **„💡 Tipp (n/m)“**. Jeder Druck blendet den **nächsten Schritt**
+  ein (3–6 Schritte je Mission), mit kurzer Erklärung, warum – z. B. „Kabel von + zum Lämpchen:
+  Der Strom kommt aus dem Pluspol.“
+- Die eingeblendeten Schritte stehen in einer kleinen Liste am Rand (schließbar, verdeckt die
+  Werkbank nicht); **erledigte Schritte bekommen automatisch ein ✓**, auch wenn man sie ohne Tipp
+  geschafft hat.
+- Beim aktuellen Schritt leuchten die betroffenen Teile oder Anschlusspunkte sanft (1 Hz).
+- Tipps kosten keine Sterne.
 
 ### Schaltplan
 
+- **Platz nutzen** (Version 1.1, Feedback `fb_9pxzf1oa`): Werkbank und Schaltplan füllen den
+  freien Platz aus; ihre Form passt sich dem Bildschirm an (die Werkbank wird breiter oder höher
+  statt leeren Rand zu lassen). Am Computer teilen sie sich die Breite (Werkbank etwa 3/5,
+  Schaltplan 2/5) bei voller Höhe; Ziel, Modus-Knöpfe und Menü stehen in einer schmalen Zeile.
+  Wird der Platz kleiner, rücken Teile, die nicht mehr hineinpassen, an den Rand.
 - Neben (am Handy: umschaltbar über) der Werkbank zeigt der **Schaltplan** dieselbe Schaltung mit
   Normsymbolen (Batterie, Lampe, Schalter, Umschalter) an denselben Stellen wie die Blöcke; Kabel
   werden als rechtwinklige Leitungen gezeichnet, Abzweigungen mit Verbindungspunkt.
@@ -153,5 +169,11 @@ Menü; startet leise (30 %).
   zweiten Punkt antippen legt ein Kabel; Drehen und Entfernen gehen; Werkbank und Schaltplan umschaltbar; kein Querscrollen.
 - **KS-AK-08** (E2E) Kurzschluss bauen → Warnung erscheint, keine Fehler in der Konsole.
 - **KS-AK-09** Freibau übersteht Neuladen; Spiel erscheint im Portal mit Version 1.0.0.
+- **KS-AK-11** (Vitest) Tipps: Jede Mission hat 3–6 Schritte mit Text; für eine richtige Lösung
+  sind am Ende alle Schritte erledigt, in einer leeren Werkbank keiner (außer reinen
+  Erklär-Schritten); Schritte zählen auch, wenn die Teile anders angeordnet sind.
+- **KS-AK-12** (E2E) Tipp-Knopf zeigt nacheinander die Schritte, ein erledigter Schritt bekommt ✓;
+  auf einem breiten Bildschirm (1300 × 700) füllen Werkbank und Schaltplan zusammen mindestens
+  85 % der Breite und 75 % der Höhe des Spielbereichs.
 - **KS-AK-10** Ruhig und sicher: nichts blinkt schneller als 2 Hz, Klänge starten leise,
   Fokusverlust pausiert die Lichtpunkte (die Schaltung bleibt).

@@ -17,6 +17,13 @@ interface KsState {
   paused: boolean;
   volume: number;
   pending: boolean;
+  area: {
+    w: number;
+    h: number;
+    bench: { w: number; h: number } | null;
+    plan: { w: number; h: number } | null;
+  };
+  tips: number;
 }
 type Pt = { x: number; y: number };
 interface Hooks {
@@ -192,5 +199,39 @@ test("KS-AK-09/10: Freibau bleibt nach Neuladen, ruhig und leise", async ({ page
   await expect.poll(async () => (await state(page)).parts).toHaveLength(2);
   expect((await state(page)).wires).toBe(2);
   expect((await state(page)).lamps).toEqual(["hell"]);
+  await expectNoErrors(errors);
+});
+
+test("KS-AK-12: Tipps Schritt für Schritt; großer Bildschirm wird ausgenutzt", async ({ page }) => {
+  test.skip(isMobile(page), "nur Desktop");
+  await page.setViewportSize({ width: 1300, height: 700 });
+  const errors = trackErrors(page);
+  await open(page);
+  await page.getByRole("button", { name: "Los!" }).click();
+  // Fläche: Werkbank + Schaltplan füllen Breite und Höhe
+  await expect
+    .poll(async () => {
+      const a = (await state(page)).area;
+      return (a.bench!.w + a.plan!.w) / a.w >= 0.85 && a.bench!.h / a.h >= 0.75;
+    })
+    .toBe(true);
+  // Tipps: nacheinander einblenden, erledigte bekommen ✓
+  const tip = page.getByRole("button", { name: /^💡 Tipp/ });
+  await expect(tip).toHaveText("💡 Tipp (1/4)");
+  await tip.click();
+  const list = page.getByRole("region", { name: "Tipps" });
+  await expect(list.locator("li")).toHaveCount(1);
+  await tip.click();
+  await expect(list.locator("li")).toHaveCount(2);
+  await expect(list.locator("li").first()).not.toHaveClass(/done/);
+  await place(page, /^Batterie/, 160, 200);
+  await place(page, /^Lämpchen/, 420, 200);
+  await expect(list.locator("li").first()).toHaveClass(/done/);
+  await expect(list.locator("li").first()).toContainText("✓");
+  const [bat, lamp] = (await state(page)).parts;
+  await dragWire(page, [bat!.id, 0], [lamp!.id, 0]);
+  await expect(list.locator("li").nth(1)).toHaveClass(/done/);
+  await page.getByRole("button", { name: "Tipps schließen" }).click();
+  await expect(list).toBeHidden();
   await expectNoErrors(errors);
 });
