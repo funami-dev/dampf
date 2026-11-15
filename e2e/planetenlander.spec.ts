@@ -136,6 +136,39 @@ test("PL-AK-14: Landehilfe ein- und ausschalten, bleibt nach Neuladen", async ({
   await expectNoErrors(errors);
 });
 
+test("PL-AK-17: eigenen Planeten anlegen, fliegen, nach Neuladen löschen", async ({ page }) => {
+  test.setTimeout(60_000);
+  const errors = trackErrors(page);
+  await open(page);
+  await tap(page, "Eigener Planet");
+  await page.getByLabel("Name des Planeten").fill("Blubberwelt");
+  const fall = page.locator("[data-v=fall]");
+  await page.getByLabel("Schwerkraft").fill("9.8");
+  await expect(fall).toContainText("4,9 m tief");
+  await page.getByLabel("Schwerkraft").fill("3.7");
+  await expect(fall).toContainText("1,9 m tief");
+  await tap(page, "Himmel: Abendrot");
+  await tap(page, "wie auf der Erde");
+  await expect(page.getByRole("button", { name: "wie auf der Erde" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await tap(page, "Speichern & Los!");
+  await expect(page.getByRole("heading", { name: /Blubberwelt/ })).toBeVisible();
+  await tap(page, "Los!");
+  await expect.poll(async () => (await state(page)).screen).toBe("fly");
+  expect((await state(page)).body).toBe("eigen-1");
+  await expect(page.locator('[data-h="g"]')).toHaveText("3,70 m/s²");
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => !!window.__dampf)).toBe(true);
+  await expect(page.getByRole("button", { name: "Blubberwelt", exact: true })).toBeVisible();
+  await tap(page, "Blubberwelt löschen");
+  await tap(page, "Ja, löschen");
+  await expect(page.getByRole("button", { name: "Blubberwelt", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Eigener Planet" })).toBeVisible();
+  await expectNoErrors(errors);
+});
+
 test("PL-AK-10: zu schnell → Bruchlandung mit Nochmal", async ({ page }) => {
   test.skip(isMobile(page), "nur Desktop");
   const errors = trackErrors(page);

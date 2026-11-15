@@ -285,3 +285,58 @@ describe("PL-AK-15: Bahnfarbe nach Sinkgeschwindigkeit", () => {
     expect(sinkLevel(p.path.at(-1)!.down)).toBe("bad");
   });
 });
+
+describe("PL-AK-16: eigener Planet", () => {
+  it("begrenzt Werte, wird spielbarer Ort, speichert höchstens 3, Wurfkurve stimmt", async () => {
+    const c = await import("./custom.ts");
+    const n = c.normalize({
+      id: "eigen-1",
+      name: "  Glitzerwelt der Riesen  ",
+      sky: 99,
+      ground: -1,
+      g: 99,
+      air: "x" as never,
+    });
+    expect(n).toEqual({
+      id: "eigen-1",
+      name: "Glitzerwelt de",
+      sky: 0,
+      ground: 0,
+      g: 25,
+      air: "keine",
+    });
+    expect(c.normalize({ id: "eigen-2", g: 0.01 }).g).toBe(c.GRAVITY.min);
+    const b = c.toBody({ id: "eigen-1", name: "Blubb", sky: 2, ground: 3, g: 4.2, air: "erde" });
+    expect([b.g, b.rho, b.playable, b.colors.ground]).toEqual([
+      4.2,
+      1.2,
+      true,
+      c.GROUNDS[3]!.ground,
+    ]);
+    // speichern: höchstens 3, kaputte Daten verworfen
+    const data = new Map<string, string>();
+    const s: Store = { get: (k) => data.get(k) ?? null, set: (k, v) => void data.set(k, v) };
+    const list = [1, 2, 3, 4].map((i) => c.normalize({ id: `eigen-${i}`, name: `P${i}`, g: i }));
+    c.saveCustom(s, list);
+    expect(c.loadCustom(s)).toHaveLength(3);
+    expect(c.nextId(c.loadCustom(s))).toBeNull();
+    expect(c.nextId([list[1]!])).toBe("eigen-1");
+    for (const bad of ["{", "null", '[{"id":"mond"}]', '{"a":1}']) {
+      data.set(c.CUSTOM_KEY, bad);
+      expect(c.loadCustom(s)).toEqual([]);
+    }
+    // Wurfkurve ohne Luft: t = √(2h/g), Weite = v·t
+    for (const g of [1.62, 9.81, 24.8]) {
+      const w = c.throwPath(g, 0, 10, 20);
+      const t = Math.sqrt((2 * 20) / g);
+      expect(Math.abs(w.time - t) / t).toBeLessThan(0.02);
+      expect(Math.abs(w.distance - 10 * t) / (10 * t)).toBeLessThan(0.02);
+    }
+    expect(c.throwPath(9.81, 1.2).distance).toBeLessThan(c.throwPath(9.81, 0).distance);
+    // Bestwerte eigener Planeten
+    const p = record(fresh(), "eigen-2", 2);
+    expect(p.best["eigen-2"]).toBe(2);
+    saveProgress(s, p);
+    expect(loadProgress(s).best["eigen-2"]).toBe(2);
+  });
+});

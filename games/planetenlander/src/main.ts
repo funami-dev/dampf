@@ -32,6 +32,22 @@ import {
   type Prediction,
 } from "./logic/physics.ts";
 import { loadProgress, record, saveProgress, type Store } from "./logic/progress.ts";
+import {
+  AIR,
+  GRAVITY,
+  GROUNDS,
+  MARKS,
+  MAX_CUSTOM,
+  SKIES,
+  loadCustom,
+  nextId,
+  normalize,
+  saveCustom,
+  throwPath,
+  toBody,
+  type AirId,
+  type Custom,
+} from "./logic/custom.ts";
 import { WIDTH, groundAt, makeTerrain, type Terrain } from "./logic/terrain.ts";
 import { debugEnabled } from "./debug.ts";
 
@@ -208,15 +224,194 @@ function openSelect() {
   const el = panel(`<h2>Planetenlander</h2>
     <p>Wo willst du landen? Jeder Ort hat seine echte Schwerkraft.</p>
     <div class="pl-grid">${PLAYABLE.map(card).join("")}</div>
+    <h3>Eigene Planeten</h3>
+    <div class="pl-grid">${customs
+      .map(
+        (c) => `<div class="pl-card pl-own">
+        <button class="pl-cardbtn" type="button" data-own="${c.id}" aria-label="${escapeHtml(c.name)}">
+          <span class="pl-icon">🪐</span><b>${escapeHtml(c.name)}</b>
+          <small>g = ${de(c.g, 1)} m/s² · ${pct(c.g)}</small>
+          <span class="pl-stars">${starText(progress.best[c.id] ?? 0)}</span>
+        </button>
+        <span class="pl-row">
+          <button class="pl-btn pl-mini" type="button" data-edit="${c.id}" aria-label="${escapeHtml(c.name)} ändern">✏️</button>
+          <button class="pl-btn pl-mini" type="button" data-del="${c.id}" aria-label="${escapeHtml(c.name)} löschen">🗑</button>
+        </span>
+      </div>`,
+      )
+      .join("")}${
+      customs.length < MAX_CUSTOM
+        ? `<button class="pl-card" type="button" data-new aria-label="Eigener Planet"><span class="pl-icon">🪐</span><b>Eigener Planet</b><small>Schwerkraft, Luft und Farben selbst wählen</small></button>`
+        : ""
+    }</div>
     <h3>Gasriesen – hier kann man nicht landen</h3>
     <div class="pl-grid">${gas}</div>`);
   el.classList.add("pl-scroll");
+  el.querySelector("[data-new]")?.addEventListener("click", () => openEditor(null));
+  el.querySelectorAll<HTMLButtonElement>("[data-own]").forEach((b) =>
+    b.addEventListener("click", () =>
+      openLearn(toBody(customs.find((c) => c.id === b.dataset.own)!)),
+    ),
+  );
+  el.querySelectorAll<HTMLButtonElement>("[data-edit]").forEach((b) =>
+    b.addEventListener("click", () => openEditor(customs.find((c) => c.id === b.dataset.edit)!)),
+  );
+  el.querySelectorAll<HTMLButtonElement>("[data-del]").forEach((b) =>
+    b.addEventListener("click", () => confirmDelete(customs.find((c) => c.id === b.dataset.del)!)),
+  );
   el.querySelectorAll<HTMLButtonElement>("[data-id]").forEach((b) =>
     b.addEventListener("click", () => openLearn(bodyById(b.dataset.id!)!)),
   );
   el.querySelectorAll<HTMLButtonElement>("[data-gas]").forEach((b) =>
     b.addEventListener("click", () => openGasInfo(bodyById(b.dataset.gas!)!)),
   );
+}
+
+// --- Eigener Planet (PL-AK-16/17) ------------------------------------------------------
+let customs = loadCustom(store);
+
+function confirmDelete(c: Custom) {
+  screen = "info";
+  const el = panel(`<h2>🗑 ${escapeHtml(c.name)} löschen?</h2>
+    <p>Der Planet und sein Bestwert verschwinden.</p>
+    <div class="pl-row">
+      <button class="pl-btn" type="button" data-a="no">Nein</button>
+      <button class="pl-btn primary" type="button" data-a="yes">Ja, löschen</button>
+    </div>`);
+  el.querySelector('[data-a="no"]')!.addEventListener("click", openSelect);
+  el.querySelector('[data-a="yes"]')!.addEventListener("click", () => {
+    customs = customs.filter((x) => x.id !== c.id);
+    saveCustom(store, customs);
+    const best = { ...progress.best };
+    delete best[c.id];
+    progress = { best };
+    saveProgress(store, progress);
+    openSelect();
+  });
+}
+
+function openEditor(edit: Custom | null) {
+  screen = "info";
+  const id = edit?.id ?? nextId(customs);
+  if (!id) return openSelect();
+  let c: Custom = edit
+    ? { ...edit }
+    : normalize({ id, name: "", sky: 1, ground: 1, g: 5, air: "keine" });
+  const swatch = (
+    i: number,
+    top: string,
+    bottom: string,
+    name: string,
+    group: string,
+    on: boolean,
+  ) =>
+    `<button type="button" class="pl-swatch" data-${group}="${i}" aria-label="${group === "sky" ? "Himmel" : "Boden"}: ${name}" aria-pressed="${on}" style="background:linear-gradient(${top},${bottom})"></button>`;
+  const marks = MARKS.map(
+    (m) =>
+      `<span style="left:${((m.g - GRAVITY.min) / (GRAVITY.max - GRAVITY.min)) * 100}%">${m.name}<br>${de(m.g, 1)}</span>`,
+  ).join("");
+  const el = panel(`<h2>🪐 Eigener Planet</h2>
+    <label class="pl-field">Name <input type="text" maxlength="14" value="${escapeHtml(c.name === "Mein Planet" && !edit ? "" : c.name)}" placeholder="Mein Planet" aria-label="Name des Planeten" /></label>
+    <div class="pl-field"><span>Himmel</span><div class="pl-swatches">${SKIES.map((k, i) => swatch(i, k.top, k.bottom, k.name, "sky", i === c.sky)).join("")}</div></div>
+    <div class="pl-field"><span>Boden</span><div class="pl-swatches">${GROUNDS.map((k, i) => swatch(i, k.edge, k.ground, k.name, "ground", i === c.ground)).join("")}</div></div>
+    <label class="pl-field pl-slider">Schwerkraft: <b data-v="g"></b>
+      <input type="range" min="${GRAVITY.min}" max="${GRAVITY.max}" step="${GRAVITY.step}" value="${c.g}" aria-label="Schwerkraft" />
+      <span class="pl-marks">${marks}</span></label>
+    <div class="pl-field"><span>Luft</span><div class="pl-row">${AIR.map(
+      (a) =>
+        `<button type="button" class="pl-btn pl-mini" data-air="${a.id}" aria-pressed="${a.id === c.air}">${a.name}</button>`,
+    ).join("")}</div></div>
+    <canvas class="pl-preview" width="320" height="150" aria-label="Wurfkurve"></canvas>
+    <p class="pl-g" data-v="fall"></p>
+    <p data-v="compare"></p>
+    <div class="pl-row">
+      <button class="pl-btn" type="button" data-a="back">Abbrechen</button>
+      <button class="pl-btn primary" type="button" data-a="save">Speichern &amp; Los!</button>
+    </div>`);
+  el.classList.add("pl-scroll");
+  const nameIn = el.querySelector<HTMLInputElement>("input[type=text]")!;
+  const range = el.querySelector<HTMLInputElement>("input[type=range]")!;
+  const cv = el.querySelector<HTMLCanvasElement>(".pl-preview")!;
+  const draw = () => {
+    c = normalize({ ...c, name: nameIn.value, g: Number(range.value) });
+    el.querySelector("[data-v=g]")!.textContent = `${de(c.g, 1)} m/s²`;
+    el.querySelector("[data-v=fall]")!.textContent = fallText(c.g);
+    el.querySelector("[data-v=compare]")!.textContent = compareText(c.g);
+    el.querySelectorAll<HTMLButtonElement>("[data-sky]").forEach((b) =>
+      b.setAttribute("aria-pressed", String(Number(b.dataset.sky) === c.sky)),
+    );
+    el.querySelectorAll<HTMLButtonElement>("[data-ground]").forEach((b) =>
+      b.setAttribute("aria-pressed", String(Number(b.dataset.ground) === c.ground)),
+    );
+    el.querySelectorAll<HTMLButtonElement>("[data-air]").forEach((b) =>
+      b.setAttribute("aria-pressed", String(b.dataset.air === c.air)),
+    );
+    // Vorschau: Wurf mit 10 m/s aus 20 m Höhe, hier und (gestrichelt) auf der Erde
+    const g2 = cv.getContext("2d")!;
+    const b = toBody(c);
+    const W = cv.width;
+    const H = cv.height;
+    const sky = g2.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, b.colors.skyTop);
+    sky.addColorStop(1, b.colors.skyBottom);
+    g2.fillStyle = sky;
+    g2.fillRect(0, 0, W, H);
+    g2.fillStyle = b.colors.ground;
+    g2.fillRect(0, H - 14, W, 14);
+    g2.fillStyle = b.colors.edge;
+    g2.fillRect(0, H - 14, W, 2);
+    const here = throwPath(c.g, b.rho);
+    const earth = throwPath(G_EARTH, 1.2);
+    const maxX = Math.max(here.distance, earth.distance, 20) * 1.1;
+    const X = (x: number) => 16 + (x / maxX) * (W - 32);
+    const Y = (y: number) => H - 14 - (y / 22) * (H - 30);
+    g2.fillStyle = "#ffffff";
+    g2.fillRect(X(0) - 6, Y(20), 6, H - 14 - Y(20)); // Turm
+    const line = (pts: { x: number; y: number }[], color: string, dash: number[]) => {
+      g2.strokeStyle = color;
+      g2.lineWidth = 3;
+      g2.setLineDash(dash);
+      g2.beginPath();
+      pts.forEach((q, i) => (i ? g2.lineTo(X(q.x), Y(q.y)) : g2.moveTo(X(q.x), Y(q.y))));
+      g2.stroke();
+    };
+    line(earth.pts, "rgba(255,255,255,0.7)", [6, 5]);
+    line(here.pts, "#f6c344", []);
+    g2.setLineDash([]);
+    g2.font = "bold 12px system-ui";
+    g2.fillStyle = "#ffffff";
+    g2.fillText(`hier: ${de(here.distance, 0)} m weit`, W - 150, 18);
+    g2.fillStyle = "rgba(255,255,255,0.75)";
+    g2.fillText(`Erde: ${de(earth.distance, 0)} m (gestrichelt)`, W - 150, 34);
+  };
+  el.querySelectorAll<HTMLButtonElement>("[data-sky]").forEach((b) =>
+    b.addEventListener("click", () => {
+      c.sky = Number(b.dataset.sky);
+      draw();
+    }),
+  );
+  el.querySelectorAll<HTMLButtonElement>("[data-ground]").forEach((b) =>
+    b.addEventListener("click", () => {
+      c.ground = Number(b.dataset.ground);
+      draw();
+    }),
+  );
+  el.querySelectorAll<HTMLButtonElement>("[data-air]").forEach((b) =>
+    b.addEventListener("click", () => {
+      c.air = b.dataset.air as AirId;
+      draw();
+    }),
+  );
+  range.addEventListener("input", draw);
+  nameIn.addEventListener("input", draw);
+  draw();
+  el.querySelector('[data-a="back"]')!.addEventListener("click", openSelect);
+  el.querySelector('[data-a="save"]')!.addEventListener("click", () => {
+    draw();
+    customs = [...customs.filter((x) => x.id !== c.id), c].sort((a, b) => a.id.localeCompare(b.id));
+    saveCustom(store, customs);
+    openLearn(toBody(c));
+  });
 }
 
 function openGasInfo(b: Body) {
