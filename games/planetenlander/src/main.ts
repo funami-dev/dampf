@@ -27,6 +27,8 @@ import {
   type Verdict,
   margins,
   predict,
+  sinkLevel,
+  LEVEL_COLOR,
   type Prediction,
 } from "./logic/physics.ts";
 import { loadProgress, record, saveProgress, type Store } from "./logic/progress.ts";
@@ -411,8 +413,8 @@ function updateHud() {
   set(
     "down",
     `${down >= 0 ? "↓" : "↑"} ${de(Math.abs(down))} m/s`,
-    down <= SAFE.down,
-    down <= SAFE.down * 2,
+    sinkLevel(down) === "ok",
+    sinkLevel(down) === "warn",
   );
   set("side", `${lander.vx >= 0 ? "→" : "←"} ${de(side)} m/s`, side <= SAFE.side, side <= 2);
   set("tilt", `${Math.round(tilt)}°`, tilt <= 10, tilt <= 20);
@@ -570,9 +572,11 @@ class FlightScene extends Phaser.Scene {
     corridor = helper && screen === "fly" && !result ? predict(lander, body, terrain, WIDTH) : null;
     if (corridor) {
       const col = corridor.onPad ? 0x7bd35a : 0xff5a4f;
-      g.fillStyle(0xffffff, 0.55);
+      // Punkte in der Ampelfarbe der Sinkgeschwindigkeit an dieser Stelle (PL-AK-15)
       corridor.path.forEach((q, i) => {
-        if (i % 2 === 0) g.fillCircle(sx(q.x), sy(q.y), Math.max(1.5, S * 0.25));
+        if (i % 2 !== 0) return;
+        g.fillStyle(LEVEL_COLOR[sinkLevel(q.down)], 0.85);
+        g.fillCircle(sx(q.x), sy(q.y), Math.max(1.8, S * 0.3));
       });
       g.fillStyle(col, 0.35);
       const a = Math.max(0, corridor.x - corridor.half);
@@ -719,7 +723,14 @@ if (debugEnabled) {
         : null,
       best: { ...progress.best },
       helper,
-      corridor: corridor ? { x: corridor.x, half: corridor.half, onPad: corridor.onPad } : null,
+      corridor: corridor
+        ? {
+            x: corridor.x,
+            half: corridor.half,
+            onPad: corridor.onPad,
+            levels: corridor.path.map((q) => sinkLevel(q.down)),
+          }
+        : null,
     }),
     place: (alt, vy, vx = 0, angle = 0) => {
       lander.x = terrain.pad.center;

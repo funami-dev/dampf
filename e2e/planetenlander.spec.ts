@@ -16,7 +16,7 @@ interface PlState {
   result: { landed: boolean; reason: string; stars: number } | null;
   best: Record<string, number>;
   helper: boolean;
-  corridor: { x: number; half: number; onPad: boolean } | null;
+  corridor: { x: number; half: number; onPad: boolean; levels: string[] } | null;
 }
 interface Hooks {
   state(): PlState;
@@ -118,6 +118,10 @@ test("PL-AK-14: Landehilfe ein- und ausschalten, bleibt nach Neuladen", async ({
   // genau über der Plattform, langsam: Streifen grün
   await place(page, 30, 0);
   await expect.poll(async () => (await state(page)).corridor?.onPad).toBe(true);
+  // PL-AK-15: Bahn in Ampelfarben – oben noch langsam (grün), unten zu schnell (rot)
+  await place(page, 150, 0);
+  await expect.poll(async () => (await state(page)).corridor?.levels.at(-1)).toBe("bad");
+  expect((await state(page)).corridor!.levels).toContain("ok");
   await page.reload();
   await expect.poll(() => page.evaluate(() => !!window.__dampf)).toBe(true);
   await (isMobile(page)
