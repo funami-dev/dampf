@@ -234,6 +234,16 @@
   font-weight: 700;
   font-size: 13px;
 }
+.wl-away {
+  background: rgba(31, 59, 23, 0.9);
+  color: #fff;
+  border-radius: 10px;
+  padding: 5px 9px;
+  font-weight: 700;
+  font-size: 13px;
+  max-width: 180px;
+}
+.wl-away[hidden],
 .wl-room[hidden] {
   display: none;
 }

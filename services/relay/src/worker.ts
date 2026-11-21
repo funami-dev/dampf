@@ -64,7 +64,8 @@ export default {
 export class Hub_DO {
   hub = new Hub();
   async fetch(req: Request): Promise<Response> {
-    const r = route(new URL(req.url).pathname)!;
+    const url = new URL(req.url);
+    const r = route(url.pathname)!;
     if (r.kind === "list") return new Response(JSON.stringify(this.hub.list()), { headers: CORS });
     const pair = new WebSocketPair();
     const client = pair[0];
@@ -78,8 +79,10 @@ export class Hub_DO {
     const gone = () => this.hub.disconnect(conn);
     server.addEventListener("close", gone);
     server.addEventListener("error", gone);
-    if (r.kind === "host") this.hub.host(conn);
-    else this.hub.join(conn, r.code);
+    // Wiederverbinden (WL-AK-60): Gastgeber mit Raum-Code und Token, Gäste mit Geräte-Schlüssel
+    const q = url.searchParams;
+    if (r.kind === "host") this.hub.host(conn, { code: q.get("resume"), token: q.get("token") });
+    else this.hub.join(conn, r.code, q.get("key"));
     return new Response(null, { status: 101, webSocket: client } as ResponseInit);
   }
 }

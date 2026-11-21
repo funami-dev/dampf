@@ -10,8 +10,18 @@
   "status": "published",
   "order": 80,
   "addedAt": "2026-11-08",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "changelog": [
+    {
+      "version": "1.14.0",
+      "date": "2026-11-21",
+      "time": "17:15",
+      "items": [
+        "Zusammen spielen hält besser: Reißt die Verbindung kurz ab, kommst du von selbst zurück – mit derselben Figur",
+        "Ist der Gastgeber kurz weg, wartet die Welt auf ihn",
+        "Wer als Gastgeber gehen will, wird erst gefragt, ob die Welt für alle enden soll"
+      ]
+    },
     {
       "version": "1.13.0",
       "date": "2026-11-21",

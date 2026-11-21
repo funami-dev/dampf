@@ -354,6 +354,20 @@ Drei Leisten von 0 bis 100 % stehen immer oben im Bild:
   Inventar und eigene Leisten.
 - Verlässt der Gastgeber die Welt, sehen die Gäste den Hinweis „Der Gastgeber hat die Welt
   verlassen“ und kommen zurück zum Menü.
+- **Verbindung kurz weg** (Feedback `fb_kflrblb3`, z. B. App im Hintergrund, Funkloch):
+  - Der Server hält Platz und Raum **2 Minuten** frei. Wer in der Zeit zurückkommt, spielt mit
+    derselben Figur weiter – ohne doppelt in der Welt zu stehen.
+  - Das Spiel verbindet selbst neu (nach 1, 2, 4, 8 … Sekunden, sofort, wenn die App wieder im
+    Vordergrund ist oder das Netz zurückkommt) und zeigt solange „Verbindung weg – verbinde neu …“.
+  - Ist der Gastgeber kurz weg, sehen die Gäste „Der Gastgeber ist kurz weg … wir warten.“ und
+    spielen weiter. Die Welt verschwindet solange aus der Liste.
+  - Jedes Gerät hat einen zufälligen Geräte-Schlüssel. Tritt dasselbe Gerät (z. B. ein zweites
+    Fenster) erneut bei, ersetzt die neue Verbindung die alte; das alte Fenster zeigt „Du spielst
+    jetzt in einem anderen Fenster weiter.“
+  - Wer bewusst geht (Menü), gibt den Platz sofort frei.
+- **Gastgeber fragt vor dem Gehen:** Sind Mitspieler da, fragen „Neue Welt“ und „Hauptmenü“ erst:
+  „Wenn du gehst, endet die Welt für N Mitspieler. Wirklich verlassen?“ mit „Hierbleiben“ und
+  „Ja, verlassen“.
 - **Als Gast** ist die eigene Welt solange nicht offen. Im Menü gibt es „Welt verlassen“; danach
   spielt man in der eigenen Welt weiter, und die ist wieder offen.
 - **Ohne Server:** Ist kein Server eingerichtet, gibt es keine Liste und keine Online-Anzeige. Ist
@@ -367,7 +381,12 @@ Drei Leisten von 0 bis 100 % stehen immer oben im Bild:
 - **Aufgaben des Servers:**
   - Raum-Codes vergeben (intern, als Kennung der Welt).
   - Nachrichten zwischen Gastgeber und Gästen weiterleiten.
-  - Räume schließen, wenn der Gastgeber geht.
+  - Räume schließen, wenn der Gastgeber bewusst geht (`bye`), sonst nach 2 Minuten ohne ihn.
+  - **Wiederverbinden:** Der Gastgeber bekommt beim Öffnen einen geheimen Raum-Schlüssel und kommt
+    damit über `/host?resume=CODE&token=…` zurück. Gäste melden sich mit `?key=…` an; derselbe
+    Schlüssel bekommt dieselbe Spieler-Kennung, eine ältere Verbindung damit wird geschlossen
+    (Code 4003). Der Server meldet `host-away`/`host-back` an die Gäste und
+    `peer-away`/`peer-back` an den Gastgeber.
   - **Liste offener Welten:**
     - `GET /rooms` liefert Code, Gastgeber-Name, Spieler-Namen und Anzahl.
     - Die Namen meldet der Gastgeber selbst (`meta`-Nachricht), höchstens 12 Zeichen je Name,
@@ -634,6 +653,16 @@ Figur steht.
   voll oder niemand da → nichts ändert sich.
 - **WL-AK-58** (E2E) An der Hütte „📦 Truhe“ öffnen, Holz hineinlegen und wieder nehmen; zwei
   Browser: Gastgeber gibt dem Gast eine Beere, der Gast bekommt sie und sieht die Meldung.
+
+- **WL-AK-60** Wiederverbinden (Feedback `fb_kflrblb3`): Raum-Server hält Gast und Gastgeber
+  2 Minuten frei; Gast mit gleichem Schlüssel bekommt dieselbe Kennung, die alte Verbindung wird
+  ersetzt; Gastgeber kommt nur mit dem richtigen Raum-Schlüssel zurück; nach Ablauf wird
+  aufgeräumt; `bye` gibt sofort frei. (E2E) Reißt die Verbindung des Gastes ab, ist er danach mit
+  derselben Kennung wieder da und es sind weiter 2 Spieler; reißt die des Gastgebers ab, sieht der
+  Gast „Der Gastgeber ist kurz weg“ und danach geht es in derselben Welt weiter.
+- **WL-AK-61** (E2E) Gastgeber mit Mitspieler: „Hauptmenü“ fragt erst nach; „Hierbleiben“ führt
+  zurück ins Menü, „Ja, verlassen“ beendet die Welt und der Gast sieht sofort „Der Gastgeber hat
+  die Welt verlassen“.
 
 ## Nicht-Ziele (MVP)
 
