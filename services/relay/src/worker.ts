@@ -41,15 +41,12 @@ export default {
             headers: { "User-Agent": "Mozilla/5.0 (compatible; kids-game-flight-widget)" },
             cf: { cacheTtl: CACHE_SECONDS, cacheEverything: true },
           } as RequestInit),
-        (u, body) =>
+        // Strecken: adsbdb.com, je Flugnummer, ebenfalls kurz zwischengespeichert
+        (u) =>
           fetch(u, {
-            method: "POST",
-            body,
-            headers: {
-              "Content-Type": "application/json",
-              "User-Agent": "Mozilla/5.0 (compatible; kids-game-flight-widget)",
-            },
-          }),
+            headers: { "User-Agent": "Mozilla/5.0 (compatible; kids-game-flight-widget)" },
+            cf: { cacheTtl: 3600, cacheEverything: true },
+          } as RequestInit),
       );
       return new Response(r.body, { status: r.status, headers: r.headers });
     }

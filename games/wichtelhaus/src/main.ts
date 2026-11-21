@@ -129,7 +129,7 @@ let clock = 0; // Sekunden seit Start (für Animationen)
 const layer = document.createElement("div");
 layer.className = "wh-layer";
 layer.innerHTML = `
-  <div class="wh-credit" hidden>Flugdaten: adsb.lol (ODbL)</div>
+  <div class="wh-credit" hidden>Flugdaten: adsb.lol (ODbL) · Strecken: adsbdb.com</div>
   <div class="wh-planetip" role="status" hidden></div>
   <div class="wh-top" hidden>
     <div class="wh-needs" role="status" aria-label="So geht es dem Wichtel">

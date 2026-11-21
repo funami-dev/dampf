@@ -105,9 +105,9 @@ export function toReply(raw: unknown, routes?: Map<string, Route>): FlightsReply
     const f: Flight = { type, cat: categoryOf(type), phase, track: Math.round(track), alt };
     const cs = callsignOf(a.flight);
     if (cs) {
-      const airline = airlineOf(cs);
-      if (airline) f.airline = airline;
       const r = routes?.get(cs);
+      const airline = airlineOf(cs) ?? r?.airline;
+      if (airline) f.airline = airline;
       if (r) {
         f.from = r.from;
         f.to = r.to;
@@ -127,7 +127,7 @@ export function toReply(raw: unknown, routes?: Map<string, Route>): FlightsReply
 /** Antwort für den Worker; holt die Daten (und die Strecken) und speichert sie kurz zwischen */
 export async function handleFlights(
   fetcher: (url: string) => Promise<{ ok: boolean; json(): Promise<unknown> }>,
-  post?: (url: string, body: string) => Promise<{ ok: boolean; json(): Promise<unknown> }>,
+  routeGet?: (url: string) => Promise<{ ok: boolean; json(): Promise<unknown> }>,
 ): Promise<{ status: number; body: string; headers: Record<string, string> }> {
   const headers = {
     "Access-Control-Allow-Origin": "*",
@@ -140,14 +140,19 @@ export async function handleFlights(
     if (!res.ok) throw new Error("upstream");
     const raw = await res.json();
     let routes: Map<string, Route> | undefined;
-    if (post) {
+    if (routeGet) {
       try {
-        routes = await lookupRoutes(raw, post);
-      } catch {
+        routes = await lookupRoutes(raw, routeGet);
+      } catch (e) {
+        lastRouteStatus = `fehler ${String(e).slice(0, 60)}`;
         routes = undefined; // ohne Strecken weiter
       }
     }
-    return { status: 200, body: JSON.stringify(toReply(raw, routes)), headers };
+    return {
+      status: 200,
+      body: JSON.stringify(toReply(raw, routes)),
+      headers,
+    };
   } catch {
     // keine Daten → leerer Himmel (Spiel zeigt dann nichts)
     return {
@@ -159,7 +164,6 @@ export async function handleFlights(
 }
 
 // --- Fluggesellschaft und Strecke (WH-AK-21) --------------------------------------------------
-export const ROUTES_URL = "https://api.adsb.lol/api/0/routeset";
 
 export const AIRLINES: Record<string, string> = {
   DLH: "Lufthansa",
@@ -346,55 +350,81 @@ const placeOf = (a: {
 export interface Route {
   from: Place;
   to: Place;
+  /** Name der Gesellschaft laut adsbdb (Ersatz, wenn das Kürzel nicht in der Liste steht) */
+  airline?: string;
 }
 
-/** Strecken aus der Antwort der Routen-Abfrage (nur plausible, mit Start und Ziel) */
-export function parseRoutes(raw: unknown): Map<string, Route> {
-  const out = new Map<string, Route>();
-  if (!Array.isArray(raw)) return out;
-  for (const r of raw as { callsign?: unknown; plausible?: unknown; _airports?: unknown }[]) {
-    if (!r || typeof r.callsign !== "string" || !r.plausible) continue;
-    const ap = Array.isArray(r._airports) ? r._airports : [];
-    if (ap.length < 2) continue;
-    const from = placeOf(ap[0] as object);
-    const to = placeOf(ap[ap.length - 1] as object);
-    if (from && to) out.set(r.callsign.trim().toUpperCase(), { from, to });
-  }
-  return out;
+/** Strecke aus der Antwort von adsbdb.com (Start und Ziel mit Stadt und Land) */
+export function parseRoute(raw: unknown): { route: Route | null; airline: string | null } {
+  const fr = (raw as { response?: { flightroute?: Record<string, unknown> } })?.response
+    ?.flightroute as
+    | {
+        origin?: Record<string, unknown>;
+        destination?: Record<string, unknown>;
+        airline?: { name?: unknown };
+      }
+    | undefined;
+  if (!fr || typeof fr !== "object") return { route: null, airline: null };
+  const at = (a?: Record<string, unknown>) =>
+    a ? placeOf({ location: a.municipality, name: a.name, countryiso2: a.country_iso_name }) : null;
+  const from = at(fr.origin);
+  const to = at(fr.destination);
+  const airline = typeof fr.airline?.name === "string" ? fr.airline.name : null;
+  return { route: from && to ? { from, to } : null, airline };
 }
+export const routeUrl = (callsign: string) =>
+  `https://api.adsbdb.com/v0/callsign/${encodeURIComponent(callsign)}`;
 
+/** letzte Antwort der Routen-Abfrage (zur Kontrolle, ohne Inhalte) */
+export let lastRouteStatus = "noch nicht gefragt";
 /** Strecken im Arbeitsspeicher des Workers merken (ändern sich selten) */
 const routeCache = new Map<string, { route: Route | null; until: number }>();
 export const ROUTE_TTL_MS = 60 * 60 * 1000;
 
 async function lookupRoutes(
   raw: unknown,
-  post: (url: string, body: string) => Promise<{ ok: boolean; json(): Promise<unknown> }>,
+  get: (url: string) => Promise<{ ok: boolean; json(): Promise<unknown> }>,
   now = Date.now(),
 ): Promise<Map<string, Route>> {
   const list = (raw as { ac?: unknown })?.ac;
   const result = new Map<string, Route>();
   if (!Array.isArray(list)) return result;
-  const ask: { callsign: string; lat: number; lng: number }[] = [];
+  const ask: string[] = [];
   for (const a of list as RawAircraft[]) {
     const cs = callsignOf(a?.flight);
-    if (!cs || !num(a.lat) || !num(a.lon)) continue;
+    if (!cs || !num(a.lat) || !num(a.lon) || !/^[A-Z]{3}\d/.test(cs)) continue;
     if (distanceKm(DUS.lat, DUS.lon, a.lat, a.lon) > DUS.radiusKm) continue;
     const hit = routeCache.get(cs);
     if (hit && hit.until > now) {
       if (hit.route) result.set(cs, hit.route);
       continue;
     }
-    ask.push({ callsign: cs, lat: a.lat, lng: a.lon });
+    ask.push(cs);
   }
-  if (ask.length) {
-    const res = await post(ROUTES_URL, JSON.stringify({ planes: ask.slice(0, 20) }));
-    const found = res.ok ? parseRoutes(await res.json()) : new Map<string, Route>();
-    for (const q of ask.slice(0, 20)) {
-      const route = found.get(q.callsign) ?? null;
-      routeCache.set(q.callsign, { route, until: now + ROUTE_TTL_MS });
-      if (route) result.set(q.callsign, route);
+  // höchstens 8 neue Abfragen je Aktualisierung; der Rest kommt beim nächsten Mal
+  const answers = await Promise.all(
+    ask.slice(0, 8).map(async (cs) => {
+      try {
+        const res = await get(routeUrl(cs));
+        if (!res.ok) return { cs, ok: (res as { status?: number }).status === 404, route: null };
+        const p = parseRoute(await res.json());
+        const route = p.route && p.airline ? { ...p.route, airline: p.airline } : p.route;
+        return { cs, ok: true, route };
+      } catch {
+        return { cs, ok: false, route: null };
+      }
+    }),
+  );
+  let found = 0;
+  for (const a of answers) {
+    // nur echte Antworten merken (auch „unbekannt“), Fehler beim nächsten Mal neu fragen
+    if (a.ok) routeCache.set(a.cs, { route: a.route, until: now + ROUTE_TTL_MS });
+    if (a.route) {
+      result.set(a.cs, a.route);
+      found++;
     }
   }
+  if (answers.length)
+    lastRouteStatus = `gefragt ${answers.length}, ok ${answers.filter((a) => a.ok).length}, strecken ${found}`;
   return result;
 }

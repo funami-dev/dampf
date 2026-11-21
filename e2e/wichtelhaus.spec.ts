@@ -197,7 +197,7 @@ test("WH-AK-20/22: Flugzeuge mit Testdaten, Antippen zeigt Typ, Gesellschaft und
   await open(page);
   await moveIn(page);
   expect((await state(page)).planes).toBe(0);
-  await expect(page.getByText("Flugdaten: adsb.lol (ODbL)")).toBeHidden();
+  await expect(page.getByText(/Flugdaten: adsb.lol \(ODbL\)/)).toBeHidden();
   await page.evaluate(() =>
     (window.__dampf as Hooks).setFlights({
       live: true,
@@ -218,7 +218,7 @@ test("WH-AK-20/22: Flugzeuge mit Testdaten, Antippen zeigt Typ, Gesellschaft und
     }),
   );
   await expect.poll(async () => (await state(page)).planes).toBe(1);
-  await expect(page.getByText("Flugdaten: adsb.lol (ODbL)")).toBeVisible();
+  await expect(page.getByText("Flugdaten: adsb.lol (ODbL) · Strecken: adsbdb.com")).toBeVisible();
   const text =
     "Lufthansa · Boeing 747-8 – Landung von Osten · von Frankfurt (Deutschland) nach Düsseldorf (Deutschland)";
   expect((await state(page)).planeTexts).toEqual([text]);
@@ -242,7 +242,7 @@ test("WH-AK-20/22: Flugzeuge mit Testdaten, Antippen zeigt Typ, Gesellschaft und
   // keine Daten → leerer Himmel
   await page.evaluate(() => (window.__dampf as Hooks).setFlights(null));
   await expect.poll(async () => (await state(page)).planes).toBe(0);
-  await expect(page.getByText("Flugdaten: adsb.lol (ODbL)")).toBeHidden();
+  await expect(page.getByText(/Flugdaten: adsb.lol \(ODbL\)/)).toBeHidden();
   await expectNoErrors(errors);
 });
 

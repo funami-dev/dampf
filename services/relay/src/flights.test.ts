@@ -99,42 +99,66 @@ describe("WH-AK-18: Flugdaten aufbereiten", () => {
 });
 
 describe("WH-AK-21: Fluggesellschaft und Strecke", () => {
-  const route = (callsign: string, plausible = 1) => ({
-    callsign,
-    plausible,
-    airport_codes: "LEPA-EDDL",
-    _airports: [
-      {
-        name: "Palma de Mallorca Airport",
-        location: "Palma De Mallorca",
-        countryiso2: "ES",
-        icao: "LEPA",
+  /** Antwort von adsbdb.com für eine Flugnummer */
+  const adsbdb = {
+    response: {
+      flightroute: {
+        callsign: "EWG9XY",
+        airline: { name: "Eurowings", icao: "EWG" },
+        origin: {
+          country_iso_name: "ES",
+          municipality: "Palma De Mallorca",
+          name: "Palma De Mallorca Airport",
+          icao_code: "LEPA",
+        },
+        destination: {
+          country_iso_name: "DE",
+          municipality: "Dusseldorf",
+          name: "Düsseldorf Airport",
+          icao_code: "EDDL",
+        },
       },
-      { name: "Düsseldorf Airport", location: "Dusseldorf", countryiso2: "DE", icao: "EDDL" },
-    ],
-  });
+    },
+  };
   it("Kürzel → Gesellschaft; Strecke mit Stadt und Land; keine Flugnummern", async () => {
-    const { airlineOf, parseRoutes } = await import("./flights.ts");
+    const { airlineOf, parseRoute } = await import("./flights.ts");
     expect(airlineOf("EWG9XY")).toBe("Eurowings");
     expect(airlineOf("DLH123")).toBe("Lufthansa");
     expect(airlineOf("ZZZ123")).toBeNull();
     expect(airlineOf("DABCD")).toBeNull(); // Kennzeichen statt Flugnummer
-    const m = parseRoutes([route("EWG9XY"), route("DLH1", 0), { callsign: "X1", _airports: [] }]);
-    expect([...m.keys()]).toEqual(["EWG9XY"]);
-    expect(m.get("EWG9XY")).toEqual({
+    expect(parseRoute(adsbdb).route).toEqual({
       from: { city: "Palma", country: "Spanien" },
       to: { city: "Düsseldorf", country: "Deutschland" },
     });
+    expect(parseRoute({ response: "unknown callsign" }).route).toBeNull();
+    const asked: string[] = [];
     const res = await handleFlights(
       async () => ({ ok: true, json: async () => ({ ac: [ac({ flight: "EWG9XY  " })] }) }),
-      async () => ({ ok: true, json: async () => [route("EWG9XY")] }),
+      async (url) => {
+        asked.push(url);
+        return { ok: true, json: async () => adsbdb };
+      },
     );
+    expect(asked[0]).toContain("adsbdb.com");
     const f = JSON.parse(res.body).flights[0];
     expect(f).toMatchObject({
       airline: "Eurowings",
       from: { city: "Palma", country: "Spanien" },
       to: { city: "Düsseldorf", country: "Deutschland" },
     });
+    // Gesellschaft nicht in der Liste → Name von adsbdb
+    const other = await handleFlights(
+      async () => ({ ok: true, json: async () => ({ ac: [ac({ flight: "LBT123" })] }) }),
+      async () => ({
+        ok: true,
+        json: async () => ({
+          response: {
+            flightroute: { ...adsbdb.response.flightroute, airline: { name: "Nouvelair" } },
+          },
+        }),
+      }),
+    );
+    expect(JSON.parse(other.body).flights[0].airline).toBe("Nouvelair");
     expect(res.body).not.toContain("EWG9XY");
     expect(res.body).not.toContain("EDDL");
   });
