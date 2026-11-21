@@ -8,7 +8,17 @@ interface KsState {
   mission: number | null;
   solved: boolean;
   stars: Record<number, number>;
-  parts: { id: number; kind: string; x: number; y: number; rot: number; on: boolean }[];
+  parts: {
+    id: number;
+    kind: string;
+    x: number;
+    y: number;
+    rot: number;
+    on: boolean;
+    val: number | null;
+  }[];
+  leds: string[];
+  meters: string[];
   wires: number;
   lamps: string[];
   short: boolean;
@@ -233,5 +243,65 @@ test("KS-AK-12: Tipps Schritt für Schritt; großer Bildschirm wird ausgenutzt",
   await expect(list.locator("li").nth(1)).toHaveClass(/done/);
   await page.getByRole("button", { name: "Tipps schließen" }).click();
   await expect(list).toBeHidden();
+  await expectNoErrors(errors);
+});
+
+test("KS-AK-16: LED mit Widerstand – Puff ohne, Leuchten mit, Wert wechseln", async ({ page }) => {
+  const errors = trackErrors(page);
+  // Missionen 1–8 geschafft: Mission 9 ist die nächste
+  await page.addInitScript(() => {
+    if (localStorage.getItem("dampf.kabelsalat.v1")) return;
+    const stars: Record<number, number> = {};
+    for (let i = 1; i <= 8; i++) stars[i] = 2;
+    localStorage.setItem(
+      "dampf.kabelsalat.v1",
+      JSON.stringify({
+        v: 1,
+        stars,
+        builds: {},
+        free: { parts: [], wires: [], next: 1 },
+        seen: [],
+      }),
+    );
+  });
+  await open(page);
+  const tap = (n: string | RegExp) =>
+    isMobile(page)
+      ? page.getByRole("button", { name: n }).first().tap()
+      : page.getByRole("button", { name: n }).first().click();
+  await expect(page.getByRole("dialog", { name: "Menü" })).toBeVisible();
+  await tap(/9\. LED mit Bremse/);
+  await tap("Los!");
+  expect((await state(page)).mission).toBe(9);
+  const bat = await place(page, /^Batterie/, 120, 300);
+  const led = await place(page, /^LED/, 320, 140);
+  // ohne Widerstand: Puff
+  await tapWire(page, [bat.id, 0], [led.id, 0]);
+  await tapWire(page, [led.id, 1], [bat.id, 1]);
+  await expect.poll(async () => (await state(page)).leds).toEqual(["puff"]);
+  await expect(page.getByRole("alert")).toContainText("Puff");
+  // LED wegnehmen (ihre Kabel gehen mit), Widerstand als Bremse dazu
+  await tapAt(page, await at(page, led.x, led.y));
+  await tap("🗑 Weg");
+  await expect.poll(async () => (await state(page)).wires).toBe(0);
+  const res = await place(page, /^Widerstand/, 240, 300);
+  expect((await state(page)).parts.find((p) => p.kind === "widerstand")!.val).toBe(220);
+  // Widerstand antippen: Wert reihum wechseln (220 → 470 → 1000 → 100 → 220)
+  await tapAt(page, await at(page, res.x, res.y));
+  for (const v of [470, 1000, 100, 220]) {
+    await tap(/🎨 Wert/);
+    await expect
+      .poll(async () => (await state(page)).parts.find((p) => p.kind === "widerstand")!.val)
+      .toBe(v);
+  }
+  const led2 = await place(page, /^LED/, 320, 140);
+  expect(led2.kind).toBe("led");
+  await tapWire(page, [bat.id, 0], [res.id, 0]);
+  await tapWire(page, [res.id, 1], [led2.id, 0]);
+  await tapWire(page, [led2.id, 1], [bat.id, 1]);
+  await expect.poll(async () => (await state(page)).leds).toEqual(["hell"]);
+  await expect.poll(async () => (await state(page)).solved).toBe(true);
+  await expect(page.getByRole("dialog", { name: "Geschafft" })).toBeVisible();
+  if (!isMobile(page)) expect((await state(page)).schematic).toBe(3);
   await expectNoErrors(errors);
 });

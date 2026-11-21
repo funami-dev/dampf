@@ -74,6 +74,12 @@ const PLUS: PinOf = { kind: "batterie", pin: 0 };
 const MINUS: PinOf = { kind: "batterie", pin: 1 };
 const LAMP: PinOf = { kind: "lampe", pin: -1 };
 const SW: PinOf = { kind: "schalter", pin: -1 };
+const RES: PinOf = { kind: "widerstand", pin: -1 };
+const LED_A: PinOf = { kind: "led", pin: 0 };
+const LED_K: PinOf = { kind: "led", pin: 1 };
+const LED: PinOf = { kind: "led", pin: -1 };
+const M_PLUS: PinOf = { kind: "messgeraet", pin: 0 };
+const M_MINUS: PinOf = { kind: "messgeraet", pin: 1 };
 
 const parts = (kit: Partial<Record<Kind, number>>, text: string): Step => ({
   text,
@@ -270,6 +276,84 @@ export const STEPS: Record<number, Step[]> = {
       done: (_c, r) => !r.short,
     },
     tryIt("Jetzt fließt der Strom durchs Lämpchen. Probier den Schalter aus."),
+  ],
+  9: [
+    parts(
+      { batterie: 1, led: 1, widerstand: 1 },
+      "Leg Batterie, LED und Widerstand auf die Werkbank.",
+    ),
+    {
+      text: "Kabel vom Pluspol (+) zum Widerstand. Er bremst den Strom, bevor er zur LED kommt.",
+      focus: { pins: [PLUS], kinds: ["widerstand"] },
+      done: (c) => linked(c, PLUS, RES) || linked(c, PLUS, LED_A),
+    },
+    {
+      text: "Kabel vom Widerstand zum A der LED. A ist das lange Bein und gehört zum Plus.",
+      focus: { pins: [LED_A] },
+      done: (c) => linked(c, RES, LED),
+    },
+    {
+      text: "Kabel vom K der LED zurück zum Minuspol (−).",
+      focus: { pins: [LED_K, MINUS] },
+      done: (c) => linked(c, LED_K, MINUS) || linked(c, RES, MINUS),
+    },
+    {
+      text: "Die LED leuchtet! Ohne Widerstand wäre zu viel Strom geflossen – Puff.",
+      focus: { kinds: ["led"] },
+      done: (_c, _r, solved) => solved,
+    },
+  ],
+  10: [
+    parts(
+      { batterie: 1, lampe: 1, messgeraet: 1 },
+      "Leg Batterie, Lämpchen und Messgerät auf die Werkbank.",
+    ),
+    {
+      text: "Bau erst den Kreis: + zum Lämpchen und vom Lämpchen zurück zu −. Das Lämpchen leuchtet.",
+      focus: { pins: [PLUS, MINUS] },
+      done: (c, r) => levels(c, r).some((l) => l !== "aus"),
+    },
+    {
+      text: "Kabel vom roten Punkt (+) des Messgeräts zu dem Punkt des Lämpchens, der zum Plus geht.",
+      focus: { pins: [M_PLUS] },
+      done: (c) => linked(c, M_PLUS, LAMP),
+    },
+    {
+      text: "Kabel vom blauen Punkt (−) des Messgeräts zum anderen Punkt des Lämpchens.",
+      focus: { pins: [M_MINUS] },
+      done: (c) => linked(c, M_MINUS, LAMP),
+    },
+    {
+      text: "Lies ab: So viel Volt liegen am Lämpchen an – fast die ganzen 4,5 V der Batterie.",
+      focus: { kinds: ["messgeraet"] },
+      done: (_c, _r, solved) => solved,
+    },
+  ],
+  11: [
+    parts(
+      { batterie: 1, lampe: 1, messgeraet: 1 },
+      "Leg Batterie, Lämpchen und Messgerät auf die Werkbank.",
+    ),
+    {
+      text: "Kabel vom Pluspol (+) zum roten Punkt (+) des Messgeräts. Der Strom soll durchs Messgerät.",
+      focus: { pins: [PLUS, M_PLUS] },
+      done: (c) => linked(c, PLUS, M_PLUS),
+    },
+    {
+      text: "Kabel vom blauen Punkt (−) des Messgeräts zum Lämpchen.",
+      focus: { pins: [M_MINUS] },
+      done: (c) => linked(c, M_MINUS, LAMP),
+    },
+    {
+      text: "Kabel vom Lämpchen zurück zum Minuspol (−). Jetzt steckt das Messgerät in Reihe im Kreis.",
+      focus: { pins: [MINUS] },
+      done: (c) => linked(c, LAMP, MINUS),
+    },
+    {
+      text: "Wechsle zu ▶ Ausprobieren und tippe auf das Messgerät, bis es mA zeigt.",
+      focus: { kinds: ["messgeraet"] },
+      done: (c, r) => c.parts.some((p) => p.kind === "messgeraet" && r.meters[p.id]?.mode === "mA"),
+    },
   ],
 };
 

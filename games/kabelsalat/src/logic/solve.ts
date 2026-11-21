@@ -4,7 +4,7 @@
  * Widerstände, damit man auch ihren Strom (für die Lichtpunkte) kennt. Jeder Knoten hängt mit
  * einem winzigen Leitwert an Masse, so bleibt die Rechnung auch bei offenen Teilen lösbar.
  */
-import { PARTS, type Circuit } from "./circuit.ts";
+import { PARTS, ohms, type Circuit } from "./circuit.ts";
 
 export const ELEC = {
   volt: 4.5,
@@ -20,7 +20,27 @@ export const ELEC = {
   dim: 0.05,
   bright: 0.2,
   gmin: 1e-9,
+  /** LED: Schwellspannung (V) und Eigenwiderstand (Ω), wenn sie leitet */
+  ledVf: 2.0,
+  ledR: 5,
+  /** LED-Helligkeit: ab hier glimmt sie, ab hier hell, darüber Puff (A) */
+  ledDim: 0.001,
+  ledBright: 0.008,
+  ledMax: 0.03,
+  /** Messgerät: als Voltmeter (Ω) und als Strommesser (Ω) */
+  meterV: 1e7,
+  meterA: 0.1,
 };
+
+export type LedLevel = Level | "puff";
+export const ledLevelOf = (amps: number, short: boolean): LedLevel =>
+  short || amps < ELEC.ledDim
+    ? "aus"
+    : amps > ELEC.ledMax
+      ? "puff"
+      : amps < ELEC.ledBright
+        ? "schwach"
+        : "hell";
 
 export type Level = "aus" | "schwach" | "hell";
 
@@ -33,6 +53,10 @@ export interface Result {
   wires: Record<number, number>;
   /** Spannung je Anschlusspunkt (V), Schlüssel "teil:punkt" */
   volts: Record<string, number>;
+  /** LEDs: Strom (A, von A nach K) und Zustand */
+  leds: Record<number, { amps: number; level: LedLevel }>;
+  /** Messgeräte: Modus und Anzeige (V bzw. mA) */
+  meters: Record<number, { mode: "V" | "mA"; value: number }>;
   short: boolean;
 }
 
@@ -64,7 +88,33 @@ function gauss(A: number[][], b: number[]): number[] | null {
   return x.every(Number.isFinite) ? x : null;
 }
 
+/**
+ * Rechnen mit LEDs: Eine LED ist entweder „leitend“ (Schwellspannung + kleiner Widerstand) oder
+ * „sperrend“. Man nimmt erst alle als sperrend an, rechnet, und schaltet um, bis es zusammenpasst.
+ */
 export function solve(c: Circuit): Result {
+  const leds = c.parts.filter((p) => p.kind === "led");
+  const on = new Set<number>();
+  let res = solveWith(c, on);
+  for (let i = 0; i < 2 * leds.length + 2; i++) {
+    let changedAny = false;
+    for (const p of leds) {
+      const vak = (res.volts[`${p.id}:0`] ?? 0) - (res.volts[`${p.id}:1`] ?? 0);
+      if (!on.has(p.id) && vak > ELEC.ledVf + 1e-6) {
+        on.add(p.id);
+        changedAny = true;
+      } else if (on.has(p.id) && vak < ELEC.ledVf - 1e-6) {
+        on.delete(p.id);
+        changedAny = true;
+      }
+    }
+    if (!changedAny) break;
+    res = solveWith(c, on);
+  }
+  return res;
+}
+
+function solveWith(c: Circuit, ledsOn: Set<number>): Result {
   // Knoten: jeder Anschlusspunkt; dazu je Batterie ein innerer Knoten
   const node = new Map<string, number>();
   const key = (part: number, pin: number) => `${part}:${pin}`;
@@ -100,6 +150,22 @@ export function solve(c: Circuit): Result {
         // + (Punkt 0) = innerer Knoten + V; innerer Knoten über Innenwiderstand an − (Punkt 1)
         G(inner.get(p.id)!, pinNode(p.id, 1), 1 / ELEC.inner);
         break;
+      case "widerstand":
+        G(a(), pinNode(p.id, 1), 1 / ohms(p));
+        break;
+      case "messgeraet":
+        G(a(), pinNode(p.id, 1), 1 / (p.on ? ELEC.meterA : ELEC.meterV));
+        break;
+      case "led":
+        if (ledsOn.has(p.id)) {
+          // leitend: I = (U_AK − U_F) / R  →  Leitwert plus Stromquelle
+          const g = 1 / ELEC.ledR;
+          const k = pinNode(p.id, 1);
+          G(a(), k, g);
+          b[a()]! += g * ELEC.ledVf;
+          b[k]! -= g * ELEC.ledVf;
+        }
+        break;
     }
   }
   for (const w of c.wires) G(pinNode(w.a.part, w.a.pin), pinNode(w.b.part, w.b.pin), 1 / ELEC.wire);
@@ -116,7 +182,15 @@ export function solve(c: Circuit): Result {
   });
   const x = n ? gauss(A, b) : [];
   const v = (part: number, pin: number) => (x ? x[pinNode(part, pin)]! : 0);
-  const res: Result = { lamps: {}, batteries: {}, wires: {}, volts: {}, short: false };
+  const res: Result = {
+    lamps: {},
+    batteries: {},
+    wires: {},
+    volts: {},
+    leds: {},
+    meters: {},
+    short: false,
+  };
   for (const p of c.parts)
     PARTS[p.kind].pins.forEach((_, i) => (res.volts[key(p.id, i)] = v(p.id, i)));
   sources.forEach((p, k) => {
@@ -131,6 +205,15 @@ export function solve(c: Circuit): Result {
     if (p.kind === "lampe") {
       const amps = Math.abs(v(p.id, 0) - v(p.id, 1)) / ELEC.lamp;
       res.lamps[p.id] = { amps, level: levelOf(amps, res.short) };
+    } else if (p.kind === "led") {
+      const vak = v(p.id, 0) - v(p.id, 1);
+      const amps = ledsOn.has(p.id) ? Math.max(0, (vak - ELEC.ledVf) / ELEC.ledR) : 0;
+      res.leds[p.id] = { amps, level: ledLevelOf(amps, res.short) };
+    } else if (p.kind === "messgeraet") {
+      const du = v(p.id, 0) - v(p.id, 1);
+      res.meters[p.id] = p.on
+        ? { mode: "mA", value: res.short ? 0 : (du / ELEC.meterA) * 1000 }
+        : { mode: "V", value: res.short ? 0 : du };
     }
   return res;
 }

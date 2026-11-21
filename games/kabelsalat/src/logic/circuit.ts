@@ -3,7 +3,12 @@
  * Reines TypeScript ohne Phaser/DOM, damit alles mit Vitest prüfbar ist.
  */
 
-export type Kind = "batterie" | "lampe" | "schalter" | "umschalter";
+export type Kind =
+  "batterie" | "lampe" | "schalter" | "umschalter" | "led" | "widerstand" | "messgeraet";
+
+/** Widerstandswerte (Ω) zum Durchschalten; Start 220 Ω (KS-AK-13) */
+export const RESISTORS = [100, 220, 470, 1000];
+export const DEFAULT_RESISTOR = 1;
 
 /** Blockgröße und Raster in Werkbank-Einheiten */
 export const BLOCK = 80;
@@ -47,6 +52,27 @@ export const PARTS: Record<Kind, PartInfo> = {
       { x: H, y: H / 2, label: "B" },
     ],
   },
+  led: {
+    name: "LED",
+    pins: [
+      { x: -H, y: 0, label: "A" },
+      { x: H, y: 0, label: "K" },
+    ],
+  },
+  widerstand: {
+    name: "Widerstand",
+    pins: [
+      { x: -H, y: 0, label: "" },
+      { x: H, y: 0, label: "" },
+    ],
+  },
+  messgeraet: {
+    name: "Messgerät",
+    pins: [
+      { x: -H, y: H / 2, label: "+" },
+      { x: H, y: H / 2, label: "−" },
+    ],
+  },
 };
 export const KINDS = Object.keys(PARTS) as Kind[];
 
@@ -58,8 +84,11 @@ export interface Part {
   y: number;
   /** Drehung in Vierteln (0..3, im Uhrzeigersinn) */
   rot: number;
-  /** Schalter: zu (true) / offen; Umschalter: Mitte mit B (true) oder A (false) */
+  /** Schalter: zu (true) / offen; Umschalter: Mitte mit B (true) oder A (false);
+   * Messgerät: mA (true) oder V (false) */
   on: boolean;
+  /** Widerstand: Index in RESISTORS */
+  val?: number;
 }
 
 export interface PinRef {
@@ -94,6 +123,7 @@ export function pinPos(p: Part, pin: number): { x: number; y: number } {
 export function addPart(c: Circuit, kind: Kind, x: number, y: number): Part | null {
   if (c.parts.length >= LIMITS.parts) return null;
   const p: Part = { id: c.next++, kind, x: snap(x), y: snap(y), rot: 0, on: false };
+  if (kind === "widerstand") p.val = DEFAULT_RESISTOR;
   c.parts.push(p);
   return p;
 }
@@ -141,9 +171,21 @@ export function movePart(c: Circuit, id: number, x: number, y: number) {
 /** Schalter/Umschalter umlegen */
 export function toggle(c: Circuit, id: number): boolean {
   const p = c.parts.find((q) => q.id === id);
-  if (!p || (p.kind !== "schalter" && p.kind !== "umschalter")) return false;
+  if (!p || !TOGGLES.includes(p.kind)) return false;
   p.on = !p.on;
   return true;
+}
+/** Teile, die man im Modus Ausprobieren antippen kann */
+export const TOGGLES: Kind[] = ["schalter", "umschalter", "messgeraet"];
+
+/** Ohm-Wert eines Widerstands */
+export const ohms = (p: Part) => RESISTORS[p.val ?? DEFAULT_RESISTOR] ?? 220;
+/** Widerstandswert reihum wechseln; gibt den neuen Wert (Ω) zurück */
+export function cycleValue(c: Circuit, id: number): number | null {
+  const p = c.parts.find((q) => q.id === id);
+  if (!p || p.kind !== "widerstand") return null;
+  p.val = ((p.val ?? DEFAULT_RESISTOR) + 1) % RESISTORS.length;
+  return ohms(p);
 }
 
 /** Zahl der Kabel an einem Punkt */
@@ -163,7 +205,19 @@ export function parseCircuit(d: unknown): Circuit | null {
   );
   if (parts.length !== o.parts.length || parts.length > LIMITS.parts) return null;
   const c: Circuit = {
-    parts: parts.map((p) => ({ ...p, rot: ((p.rot % 4) + 4) % 4, on: p.on === true })),
+    parts: parts.map((p) => {
+      const q: Part = { ...p, rot: ((p.rot % 4) + 4) % 4, on: p.on === true };
+      delete q.val;
+      if (p.kind === "widerstand")
+        q.val =
+          typeof p.val === "number" &&
+          Number.isInteger(p.val) &&
+          p.val >= 0 &&
+          p.val < RESISTORS.length
+            ? p.val
+            : DEFAULT_RESISTOR;
+      return q;
+    }),
     wires: [],
     next: Math.max(1, ...parts.map((p) => p.id + 1)),
   };

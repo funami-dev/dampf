@@ -2,7 +2,7 @@
  * Missionen (KS-AK-04): Ziel prüfen, indem alle Schalterstellungen durchprobiert werden.
  */
 import { addPart, addWire, clone, type Circuit, type Kind } from "./circuit.ts";
-import { solve, type Level } from "./solve.ts";
+import { solve, type Level, type Result } from "./solve.ts";
 
 export interface Mission {
   id: number;
@@ -18,6 +18,8 @@ export interface Mission {
   preset?: () => Circuit;
   /** Prüfung je Schalterstellung: Helligkeiten der Lämpchen → passt? */
   check: (lamps: Level[], switches: boolean[]) => boolean;
+  /** zusätzliche Prüfung mit dem ganzen Ergebnis (LEDs, Messgerät; Missionen 9–11) */
+  checkResult?: (c: Circuit, r: Result) => boolean;
 }
 
 const lit = (l: Level) => l !== "aus";
@@ -115,6 +117,51 @@ export const MISSIONS: Mission[] = [
     preset: shortPreset,
     check: (l, s) => (s[0] ? allLit(l) : allOff(l)),
   },
+  {
+    id: 9,
+    title: "LED mit Bremse",
+    text: "Eine LED braucht einen Widerstand als Bremse, sonst macht sie Puff. Und sie leuchtet nur richtig herum: A zum Plus, K zum Minus.",
+    goal: "Bring die LED zum Leuchten – ohne Puff.",
+    kit: { batterie: 1, led: 1, widerstand: 1 },
+    minWires: 3,
+    check: () => true,
+    checkResult: (c, r) => {
+      const ls = c.parts.filter((p) => p.kind === "led").map((p) => r.leds[p.id]?.level ?? "aus");
+      return ls.length > 0 && ls.every((l) => l === "hell" || l === "schwach");
+    },
+  },
+  {
+    id: 10,
+    title: "Spannung messen",
+    text: "Das Messgerät auf V (Volt) misst die Spannung zwischen seinen zwei Spitzen. Es kommt neben das Lämpchen – der Strom fließt weiter durchs Lämpchen.",
+    goal: "Das Lämpchen leuchtet und das Messgerät zeigt seine Spannung in Volt.",
+    kit: { batterie: 1, lampe: 1, messgeraet: 1 },
+    minWires: 4,
+    check: (l) => allLit(l),
+    checkResult: (c, r) =>
+      c.parts.some(
+        (p) =>
+          p.kind === "messgeraet" &&
+          r.meters[p.id]?.mode === "V" &&
+          Math.abs(r.meters[p.id]!.value) >= 3.5,
+      ),
+  },
+  {
+    id: 11,
+    title: "Strom messen",
+    text: "Auf mA misst das Messgerät den Strom, der hindurchfließt. Dafür muss es mitten im Kreis stecken – in Reihe, wie eine Perle auf der Kette.",
+    goal: "Das Messgerät steht auf mA im Kreis und zeigt den Strom; das Lämpchen leuchtet.",
+    kit: { batterie: 1, lampe: 1, messgeraet: 1 },
+    minWires: 3,
+    check: (l) => allLit(l),
+    checkResult: (c, r) =>
+      c.parts.some(
+        (p) =>
+          p.kind === "messgeraet" &&
+          r.meters[p.id]?.mode === "mA" &&
+          Math.abs(r.meters[p.id]!.value) >= 200,
+      ),
+  },
 ];
 
 export interface Verdict {
@@ -153,6 +200,13 @@ export function checkMission(m: Mission, c0: Circuit): Verdict {
       )
     )
       ok = false;
+    if (m.checkResult && !m.checkResult(c, r)) ok = false;
+    if (Object.values(r.leds).some((l) => l.level === "puff"))
+      return {
+        ok: false,
+        short: false,
+        hint: "Puff! Zu viel Strom – die LED braucht einen Widerstand als Bremse.",
+      };
   }
   if (toggles && ok) {
     // jede einzelne Änderung eines Umschalters muss das Licht umschalten

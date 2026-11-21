@@ -3,7 +3,9 @@ import {
   PARTS,
   addPart,
   addWire,
+  cycleValue,
   emptyCircuit,
+  parseCircuit,
   movePart,
   pinPos,
   removePart,
@@ -364,6 +366,35 @@ describe("KS-AK-11: Tipps Schritt für Schritt", () => {
         ],
       ),
     };
+    // 9: + → Widerstand → LED (A … K) → −
+    solutions[9] = build(
+      ["batterie", "widerstand", "led"],
+      [
+        [0, 0, 1, 0],
+        [1, 1, 2, 0],
+        [2, 1, 0, 1],
+      ],
+    );
+    // 10: Lämpchen am Kreis, Messgerät (V) daneben
+    solutions[10] = build(
+      ["batterie", "lampe", "messgeraet"],
+      [
+        [0, 0, 1, 0],
+        [1, 1, 0, 1],
+        [2, 0, 1, 0],
+        [2, 1, 1, 1],
+      ],
+    );
+    // 11: + → Messgerät (mA) → Lämpchen → −
+    solutions[11] = build(
+      ["batterie", "messgeraet", "lampe"],
+      [
+        [0, 0, 1, 0],
+        [1, 1, 2, 0],
+        [2, 1, 0, 1],
+      ],
+    );
+    solutions[11].parts[1]!.on = true;
     const fixed8 = m(8).preset!();
     fixed8.wires = fixed8.wires.filter((w) => w.a.part !== w.b.part);
     solutions[8] = fixed8;
@@ -389,5 +420,155 @@ describe("KS-AK-11: Tipps Schritt für Schritt", () => {
       ],
     );
     expect(stepsDone(1, swapped, solve(swapped), true).every(Boolean)).toBe(true);
+  });
+});
+
+describe("KS-AK-13: LED und Widerstand", () => {
+  const ledCircuit = (withRes: boolean, reversed = false) =>
+    withRes
+      ? build(
+          ["batterie", "widerstand", "led"],
+          [
+            [0, 0, 1, 0],
+            [1, 1, 2, reversed ? 1 : 0],
+            [2, reversed ? 0 : 1, 0, 1],
+          ],
+        )
+      : build(
+          ["batterie", "led"],
+          [
+            [0, 0, 1, 0],
+            [1, 1, 0, 1],
+          ],
+        );
+  it("220 Ω: etwa 11 mA, hell; 1 kΩ schwach; falsch herum aus; ohne Widerstand Puff", () => {
+    const c = ledCircuit(true);
+    const led = c.parts[2]!;
+    const r = solve(c);
+    const expected = (ELEC.volt - ELEC.ledVf) / (220 + ELEC.ledR + ELEC.inner);
+    expect(r.leds[led.id]!.amps).toBeGreaterThan(expected * 0.9);
+    expect(r.leds[led.id]!.amps).toBeLessThan(expected * 1.1);
+    expect(r.leds[led.id]!.level).toBe("hell");
+    cycleValue(c, c.parts[1]!.id); // 470
+    expect(cycleValue(c, c.parts[1]!.id)).toBe(1000);
+    expect(solve(c).leds[led.id]!.level).toBe("schwach");
+    expect(cycleValue(c, c.parts[1]!.id)).toBe(100);
+    expect(cycleValue(c, c.parts[1]!.id)).toBe(220);
+    expect(cycleValue(c, led.id)).toBeNull();
+    const rev = ledCircuit(true, true);
+    expect(solve(rev).leds[rev.parts[2]!.id]!.amps).toBe(0);
+    expect(solve(rev).leds[rev.parts[2]!.id]!.level).toBe("aus");
+    const bare = ledCircuit(false);
+    const rb = solve(bare);
+    expect(rb.leds[bare.parts[1]!.id]!.level).toBe("puff");
+    expect(rb.short).toBe(false);
+    for (const v of Object.values(rb.volts)) expect(Number.isFinite(v)).toBe(true);
+  });
+  it("Wert bleibt beim Speichern; unbekannte Werte → 220 Ω", () => {
+    const c = ledCircuit(true);
+    cycleValue(c, c.parts[1]!.id);
+    const back = parseCircuit(JSON.parse(JSON.stringify(c)))!;
+    expect(back.parts[1]!.val).toBe(2);
+    const bad = JSON.parse(JSON.stringify(c));
+    bad.parts[1].val = 9;
+    bad.parts[2].val = 1;
+    const fixed = parseCircuit(bad)!;
+    expect(fixed.parts[1]!.val).toBe(1);
+    expect(fixed.parts[2]!.val).toBeUndefined();
+  });
+});
+
+describe("KS-AK-14: Messgerät", () => {
+  it("V über dem Lämpchen, mA in Reihe, mA an der Batterie = Kurzschluss", () => {
+    const alone = build(
+      ["batterie", "lampe"],
+      [
+        [0, 0, 1, 0],
+        [1, 1, 0, 1],
+      ],
+    );
+    const i0 = solve(alone).lamps[alone.parts[1]!.id]!.amps;
+    const v = build(
+      ["batterie", "lampe", "messgeraet"],
+      [
+        [0, 0, 1, 0],
+        [1, 1, 0, 1],
+        [2, 0, 1, 0],
+        [2, 1, 1, 1],
+      ],
+    );
+    const rv = solve(v);
+    const meter = v.parts[2]!;
+    expect(rv.meters[meter.id]!.mode).toBe("V");
+    expect(rv.meters[meter.id]!.value).toBeCloseTo(i0 * ELEC.lamp, 1);
+    expect(Math.abs(rv.lamps[v.parts[1]!.id]!.amps - i0) / i0).toBeLessThan(0.01);
+    expect(toggle(v, meter.id)).toBe(true);
+    expect(solve(v).short).toBe(true); // mA parallel zum Lämpchen ≈ an der Batterie
+    const a = build(
+      ["batterie", "messgeraet", "lampe"],
+      [
+        [0, 0, 1, 0],
+        [1, 1, 2, 0],
+        [2, 1, 0, 1],
+      ],
+    );
+    toggle(a, a.parts[1]!.id);
+    const ra = solve(a);
+    expect(ra.meters[a.parts[1]!.id]!.mode).toBe("mA");
+    expect(Math.abs(ra.meters[a.parts[1]!.id]!.value - i0 * 1000) / (i0 * 1000)).toBeLessThan(0.05);
+    const direct = build(
+      ["batterie", "messgeraet"],
+      [
+        [0, 0, 1, 0],
+        [1, 1, 0, 1],
+      ],
+    );
+    toggle(direct, direct.parts[1]!.id);
+    expect(solve(direct).short).toBe(true);
+  });
+});
+
+describe("KS-AK-15: Missionen 9–11", () => {
+  const m = (id: number) => MISSIONS.find((x) => x.id === id)!;
+  it("falsche Lösungen bestehen nicht", () => {
+    const reversed = build(
+      ["batterie", "widerstand", "led"],
+      [
+        [0, 0, 1, 0],
+        [1, 1, 2, 1],
+        [2, 0, 0, 1],
+      ],
+    );
+    expect(checkMission(m(9), reversed).ok).toBe(false);
+    const noRes = build(
+      ["batterie", "widerstand", "led"],
+      [
+        [0, 0, 2, 0],
+        [2, 1, 0, 1],
+      ],
+    );
+    const v = checkMission(m(9), noRes);
+    expect(v.ok).toBe(false);
+    expect(v.hint).toMatch(/Puff/);
+    const meterMa = build(
+      ["batterie", "lampe", "messgeraet"],
+      [
+        [0, 0, 1, 0],
+        [1, 1, 0, 1],
+        [2, 0, 1, 0],
+        [2, 1, 1, 1],
+      ],
+    );
+    meterMa.parts[2]!.on = true;
+    expect(checkMission(m(10), meterMa).ok).toBe(false);
+    const seriesV = build(
+      ["batterie", "messgeraet", "lampe"],
+      [
+        [0, 0, 1, 0],
+        [1, 1, 2, 0],
+        [2, 1, 0, 1],
+      ],
+    );
+    expect(checkMission(m(11), seriesV).ok).toBe(false);
   });
 });
