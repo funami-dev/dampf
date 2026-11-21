@@ -22,12 +22,14 @@ import {
   activityInfo,
   ask,
   atticOpen,
+  autoLight,
   befriend,
   catchUp,
   dayOf,
   foodCount,
   giftedToday,
   giveGift,
+  hasLight,
   isNight,
   load,
   newWichtel,
@@ -35,6 +37,7 @@ import {
   shop,
   step,
   timeOfDay,
+  toggleLight,
   type Food,
   type Gift,
   type Pet,
@@ -44,7 +47,16 @@ import {
   type World,
 } from "./logic/wichtel.ts";
 import { debugEnabled } from "./debug.ts";
-import { fit, layoutFor, type Layout } from "./logic/layout.ts";
+import {
+  colX,
+  fit,
+  houseWidth,
+  layoutFor,
+  stairLeft,
+  stairMid,
+  stairOffset,
+  type Layout,
+} from "./logic/layout.ts";
 import { FURNITURE, itemBox } from "./logic/furniture.ts";
 import { furnitureArt, petArt, roomArt, sleeperArt, wichtelArt, windowRect } from "./art/art.ts";
 import { PLANE_ART, planeCanvas } from "./art/planes.ts";
@@ -503,6 +515,15 @@ function tick(dt: number) {
   const text = step(w, dt);
   if (walker.moving && w.activity === before) before.left += dt;
   if (text && clock > bubbleUntil) say(text, 4);
+  // angekommen: nachts Licht an, zum Schlafen aus (WH-AK-24)
+  if (arrivedFor === w.activity && lightFor !== w.activity) {
+    lightFor = w.activity;
+    const said = autoLight(w);
+    if (said) {
+      sound.click();
+      say(said, 3);
+    }
+  }
   // Flugzeuge: ruhig weiterziehen lassen; der Wichtel sagt ab und zu etwas dazu
   const before2 = traffic.planes.length;
   const remark = updateSky(traffic, dt);
@@ -591,14 +612,21 @@ function updateHud() {
 // Hausplan je nach Bildformat (WH-AK-13); wird in draw() neu bestimmt
 let L: Layout = layoutFor(480, 600);
 let GROUND = 520;
-const houseW = () => L.roomW * L.cols;
+const houseW = () => houseWidth(L);
 const floorY = (f: number) => GROUND - (f + 1) * L.floorH; // Oberkante der Etage
-const roomX = (r: Room) => L.houseX + L.roomW * L.rooms[r].col;
+const roomX = (r: Room) => colX(L, L.rooms[r].col);
 const roomCenter = (r: Room) => ({
   x: r === "dachboden" ? L.width / 2 : roomX(r) + L.roomW / 2,
   y: floorY(L.rooms[r].floor) + L.floorH - 8,
 });
-const stairX = () => L.houseX + houseW() - 14;
+const stairX = () => stairMid(L);
+/** Raumflächen im Bild zum Antippen (Licht an/aus, WH-AK-25) */
+let roomHits: { r: Room; x: number; y: number; w: number; h: number }[] = [];
+/** für welche Tätigkeit er schon angekommen ist bzw. schon Licht gemacht hat */
+let arrivedFor: unknown = null;
+let lightFor: unknown = null;
+/** wie oft er gerade im Treppenhaus war (für Tests) */
+let stairSteps = 0;
 const WALLS: Record<Room, number> = {
   kueche: 0xe9d8b4,
   wohnzimmer: 0xd9c6a5,
@@ -621,7 +649,7 @@ const mix = (a: number, b: number, t: number) => {
 let spritesShown = 0;
 /** sitzt er gerade in der Wanne? (WH-AK-17, für Tests) */
 let bathingShown = false;
-const walker = { x: 0, y: 0, init: false, facing: 1, moving: false };
+const walker = { x: 0, y: 0, init: false, facing: 1, moving: false, climbing: false };
 
 class HouseScene extends Phaser.Scene {
   g!: Phaser.GameObjects.Graphics;
@@ -646,7 +674,16 @@ class HouseScene extends Phaser.Scene {
       const x = e.clientX - r.left;
       const y = e.clientY - r.top;
       const hit = planeHits.find((p) => Math.abs(p.x - x) < p.w && Math.abs(p.y - y) < p.h);
-      if (!hit) return;
+      if (!hit) {
+        // Raum antippen: Licht an/aus
+        const room = roomHits.find((q) => x >= q.x && x < q.x + q.w && y >= q.y && y < q.y + q.h);
+        if (room && world && !paused) {
+          toggleLight(world, room.r);
+          sound.click();
+          save(store, world);
+        }
+        return;
+      }
       tip.textContent = `✈️ ${hit.text}`;
       tip.style.left = `${Math.max(8, Math.min(r.width - 290, hit.x - 140))}px`;
       tip.style.top = `${Math.max(60, hit.y + 18)}px`;
@@ -798,6 +835,9 @@ class HouseScene extends Phaser.Scene {
     f.clear();
     this.fx.clear();
     const tint = night ? 0x8a8aa8 : t > 0.62 ? 0xf2dcc8 : 0xffffff;
+    // je Raum: nachts dunkel ohne Licht, warm mit Licht (WH-AK-24)
+    const roomTint = (r: Room) =>
+      night && hasLight(r) ? (w?.lights[r] ? 0xffe6c4 : 0x5e5e80) : tint;
     this.seen.clear();
     // Flugzeuge hoch über dem Haus (hinter dem Haus, vor dem Himmel)
     planeHits = [];
@@ -825,16 +865,19 @@ class HouseScene extends Phaser.Scene {
         text: describePlane(pl.flight, pl.dir),
       });
     }
+    roomHits = [];
     for (const r of Object.keys(ROOMS) as Room[]) {
       if (r === "dachboden") continue;
       const rx = roomX(r);
       const ry = floorY(L.rooms[r].floor);
+      const rt = roomTint(r);
+      roomHits.push({ r, x: X(rx), y: Y(ry), w: L.roomW * k, h: L.floorH * k });
       this.img(`room:${r}`, `room-${r}-${L.roomW}`, () => roomArt(r, L.roomW, L.floorH))
         .setOrigin(0, 0)
         .setPosition(X(rx), Y(ry))
         .setScale(k)
         .setDepth(1)
-        .setTint(tint);
+        .setTint(rt);
       for (const it of FURNITURE[r]) {
         const b = itemBox(it, L.roomW);
         this.img(`f:${r}:${it.key}`, `f-${it.key}`, () => furnitureArt(it.key, it.w, it.h))
@@ -842,28 +885,97 @@ class HouseScene extends Phaser.Scene {
           .setPosition(X(rx + b.x), Y(ry + b.y))
           .setScale(k)
           .setDepth(2)
-          .setTint(tint);
+          .setTint(rt);
       }
       this.details(r, rx, ry, X, Y, k, night);
+      this.lamp(r, rx, ry, X, Y, k, night, !!w?.lights[r]);
     }
-    // Außenwand rechts und Treppe (rechts innen), eine je Etage
+    // Außenwand rechts; Treppenhaus in der Mitte mit Zickzack-Treppe und Leiter (WH-AK-13)
     const F = (x: number, y: number, ww: number, hh: number, c: number, a = 1) => {
       f.fillStyle(c, a);
       f.fillRect(X(x), Y(y), ww * k, hh * k);
     };
     F(hx1 - 3, top, 3, L.floorH * L.floors, 0x5a4434);
-    for (let fl = 0; fl < L.floors - 1; fl++)
-      for (let st = 0; st < 8; st++) {
-        const sx = stairX() - st * 5;
-        const sy = floorY(fl) + L.floorH - 8 - st * (L.floorH / 8);
-        F(sx, sy, 12, 3, night ? 0x4a3826 : 0x6b4f37);
-        F(sx, sy, 12, 1, night ? 0x5e4a36 : 0x8a6a4a);
+    {
+      const sl = stairLeft(L);
+      const sm = stairX();
+      const run = (L.stairW - 14) / 2;
+      // Rückwand (hinter den Stufen) und Wände zu den Räumen
+      R(sl, top, L.stairW, L.floorH * L.floors, mix(0x3a2a20, 0xc4a882, night ? 0.5 : 1));
+      for (let y = top + 4; y < GROUND; y += 10) R(sl, y, L.stairW, 1, 0x000000, 0.06);
+      F(sl, top, 2, L.floorH * L.floors, 0x6b4f37);
+      F(sl + L.stairW - 2, top, 2, L.floorH * L.floors, 0x6b4f37);
+      const step = night ? 0x4a3826 : 0x6b4f37;
+      const edge = night ? 0x5e4a36 : 0x8a6a4a;
+      for (let fl = 0; fl < L.floors; fl++) {
+        const yb = floorY(fl) + L.floorH;
+        const dir = fl % 2 === 0 ? 1 : -1;
+        if (fl < L.floors - 1) {
+          // Zickzack: gerade Etagen nach rechts oben, ungerade nach links oben
+          const n = 11;
+          for (let i = 0; i < n; i++) {
+            const p = (i + 0.5) / n;
+            const sx = sm + dir * (p * 2 - 1) * run;
+            const sy = yb - ((i + 1) * L.floorH) / n;
+            F(sx - 6, sy, 12, 3, step);
+            F(sx - 6, sy, 12, 1, edge);
+          }
+          // Decke mit Öffnung, wo die Treppe ankommt
+          const gx = dir > 0 ? sm : sl + 2;
+          F(dir > 0 ? sl + 2 : sm, floorY(fl) - 1, L.stairW / 2 - 2, 3, 0x5a4434);
+          F(gx, floorY(fl) - 1, L.stairW / 2 - 2, 1, 0x000000, 0.25);
+        } else {
+          // Leiter zum Dachboden
+          F(sm - 6, floorY(fl), 2, L.floorH, 0x7a5a3a);
+          F(sm + 4, floorY(fl), 2, L.floorH, 0x7a5a3a);
+          for (let y = floorY(fl) + 6; y < yb; y += 9) F(sm - 6, y, 12, 2, 0x8a6a4a);
+        }
+        // Boden der Etage
+        F(sl + 2, yb - 2, L.stairW - 4, 2, 0x5a4434);
       }
+    }
     // Wichtel und Haustier
     if (w) this.wichtel(w, X, Y, k, tint);
     else this.bubble.setVisible(false);
     for (const [id, im] of this.imgs) if (!this.seen.has(id)) im.setVisible(false);
     spritesShown = this.seen.size;
+  }
+
+  /** Deckenlampe und Lichtschalter an der Wand zum Treppenhaus (WH-AK-24) */
+  lamp(
+    r: Room,
+    rx: number,
+    ry: number,
+    X: (x: number) => number,
+    Y: (y: number) => number,
+    k: number,
+    night: boolean,
+    on: boolean,
+  ) {
+    const f = this.fg;
+    const F = (x: number, y: number, ww: number, hh: number, c: number, a = 1) => {
+      f.fillStyle(c, a);
+      f.fillRect(X(x), Y(y), ww * k, hh * k);
+    };
+    const left = L.rooms[r].col === 0;
+    const lx = rx + Math.round(L.roomW * (left ? 0.28 : 0.72));
+    if (on) {
+      // weicher Lichtschein (nachts kräftiger)
+      f.fillStyle(0xffd98a, night ? 0.14 : 0.06);
+      f.fillCircle(X(lx), Y(ry + 18), 46 * k);
+      f.fillStyle(0xffe7a8, night ? 0.16 : 0.06);
+      f.fillCircle(X(lx), Y(ry + 16), 22 * k);
+    }
+    F(lx, ry + 2, 1, 7, 0x3a2f2a);
+    F(lx - 6, ry + 9, 13, 3, 0x9a5a3a);
+    F(lx - 5, ry + 8, 11, 1, 0xb86e48);
+    F(lx - 2, ry + 12, 5, 2, on ? 0xfff2b0 : 0x8a7a68);
+    // Schalter an der Wand zum Treppenhaus
+    const sx = left ? rx + L.roomW - 9 : rx + 5;
+    const sy = ry + Math.round(L.floorH * 0.48);
+    F(sx, sy, 5, 7, 0xf2ead8);
+    F(sx, sy + 6, 5, 1, 0x8a7a68);
+    F(sx + 1.5, on ? sy + 1 : sy + 4, 2, 2, on ? 0xe0a030 : 0x6a5a48);
   }
 
   /** Bild holen oder anlegen; die Textur entsteht nur einmal */
@@ -1036,12 +1148,21 @@ class HouseScene extends Phaser.Scene {
     const speed = 40 / slow;
     const dt = 1 / 60;
     walker.moving = false;
+    walker.climbing = false;
     if (Math.abs(walker.y - ty) > 1) {
       const sx = stairX();
       if (Math.abs(walker.x - sx) > 1) {
         walker.facing = Math.sign(sx - walker.x);
         walker.x += Math.sign(sx - walker.x) * Math.min(speed * dt, Math.abs(sx - walker.x));
-      } else walker.y += Math.sign(ty - walker.y) * Math.min(speed * dt, Math.abs(ty - walker.y));
+      } else {
+        // im Treppenhaus die Stufen hinauf oder hinunter
+        const up = ty < walker.y;
+        walker.y += Math.sign(ty - walker.y) * Math.min(speed * dt, Math.abs(ty - walker.y));
+        walker.climbing = true;
+        stairSteps++;
+        const so = stairOffset(L, GROUND, walker.y);
+        walker.facing = up ? so.dir : -so.dir;
+      }
       walker.moving = true;
     } else if (Math.abs(walker.x - tx) > 1) {
       walker.facing = Math.sign(tx - walker.x);
@@ -1051,7 +1172,8 @@ class HouseScene extends Phaser.Scene {
     const sleeping = w.activity.kind === "schlafen" && !walker.moving;
     const breath = sway(clock / slow, IDLE_CYCLES.atmen!); // 10 s
     const bob = walker.moving ? Math.abs(Math.sin(clock * 4)) * 1.5 : breath * 1.2;
-    const x = walker.x;
+    if (!walker.moving) arrivedFor = w.activity;
+    const x = walker.climbing ? walker.x + stairOffset(L, GROUND, walker.y).dx : walker.x;
     const y = walker.y - bob;
     const flip = walker.facing < 0;
     if (sleeping) {
@@ -1169,6 +1291,10 @@ if (debugEnabled) {
       planeTexts: planeHits.map((p) => p.text),
       credit: !!traffic.reply,
       t: world?.t ?? 0,
+      lights: world ? Object.keys(world.lights).sort() : [],
+      night: world ? isNight(world.t) : false,
+      stairSteps,
+      walkerY: walker.y,
     }),
     /** Flugdaten vorgeben (null = keine Daten) und Flugzeuge sofort starten lassen */
     setFlights: (r: FlightsReply | null) => {
@@ -1182,6 +1308,12 @@ if (debugEnabled) {
       if (!p) return null;
       const r = document.querySelector("canvas")!.getBoundingClientRect();
       return { x: r.left + p.x, y: r.top + p.y };
+    },
+    roomPoint: (r: string) => {
+      const q = roomHits.find((h) => h.r === r);
+      if (!q) return null;
+      const c = document.querySelector("canvas")!.getBoundingClientRect();
+      return { x: c.left + q.x + q.w * 0.5, y: c.top + q.y + q.h * 0.6 };
     },
     advance: (s: number) => {
       if (world) for (let i = 0; i < s; i++) step(world, 1);

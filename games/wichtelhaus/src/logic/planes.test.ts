@@ -124,7 +124,9 @@ describe("WH-AK-23: Flugzeuge beobachten", () => {
     expect(watchRemark(s.planes, false)).toBe(
       "Da! Ein Passagierjet – der fliegt nach Monastir (Tunesien). Gute Reise!",
     );
-    expect(watchRemark(s.planes, true)).toBe("Ich sehe nur die Lichter der Flugzeuge – schön!");
+    expect(watchRemark(s.planes, true)).toBe(
+      "Nachts sehe ich nur die Umrisse und die Lichter – schön!",
+    );
     expect(watchRemark([], false)).toBe(
       "Gerade ist der Himmel leer … vielleicht kommt gleich eins.",
     );

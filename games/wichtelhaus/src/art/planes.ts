@@ -32,8 +32,36 @@ const shade = (hex: string, f: number) => {
   return `rgb(${c((n >> 16) & 255)},${c((n >> 8) & 255)},${c(n & 255)})`;
 };
 
-/** Pixelbild einer Sorte (Nase rechts); nachts nur Positionslichter */
+/** Farbe und Deckkraft der Umrisse bei Nacht (wie vom Mond beschienen) */
+export const NIGHT_SHAPE = { color: "#6f7ca3", alpha: 0.55 };
+
+/**
+ * Pixelbild einer Sorte (Nase rechts); nachts ein matter, halb durchsichtiger Umriss mit ruhigen
+ * Positionslichtern
+ */
 export function planeCanvas(cat: Category, night: boolean): HTMLCanvasElement {
+  if (night) {
+    const day = planeCanvas(cat, false);
+    const c = document.createElement("canvas");
+    c.width = day.width;
+    c.height = day.height;
+    const g = c.getContext("2d")!;
+    g.imageSmoothingEnabled = false;
+    // Umriss: Tagesbild einfärben und halb durchsichtig zeichnen
+    const s = document.createElement("canvas");
+    s.width = day.width;
+    s.height = day.height;
+    const sg = s.getContext("2d")!;
+    sg.drawImage(day, 0, 0);
+    sg.globalCompositeOperation = "source-atop";
+    sg.fillStyle = NIGHT_SHAPE.color;
+    sg.fillRect(0, 0, s.width, s.height);
+    g.globalAlpha = NIGHT_SHAPE.alpha;
+    g.drawImage(s, 0, 0);
+    g.globalAlpha = 1;
+    lights(g, PLANE_ART[cat]);
+    return c;
+  }
   const a = PLANE_ART[cat];
   const c = document.createElement("canvas");
   c.width = a.w;
@@ -45,13 +73,6 @@ export function planeCanvas(cat: Category, night: boolean): HTMLCanvasElement {
     g.fillRect(x, y, w, h);
   };
   const by = a.h - a.body - 4; // Oberkante Rumpf
-  if (night) {
-    // ruhige Positionslichter: rot (links), grün (rechts), weiß hinten – kein Blinken
-    R(Math.round(a.len * 0.45), by + a.body + 1, 2, 2, "#ff4d4d");
-    R(Math.round(a.len * 0.55), by + a.body, 2, 2, "#4dff88");
-    R(1, by - 1, 2, 2, "#ffffff");
-    return c;
-  }
   const white = "#f4f6f8";
   const grey = "#b8c2cc";
   const dark = "#4a5560";
@@ -106,4 +127,16 @@ export function planeCanvas(cat: Category, night: boolean): HTMLCanvasElement {
     }
   }
   return c;
+}
+
+/** ruhige Positionslichter: rot (links), grün (rechts), weiß hinten – kein Blinken */
+function lights(g: CanvasRenderingContext2D, a: PlaneArt) {
+  const by = a.h - a.body - 4;
+  const R = (x: number, y: number, w: number, h: number, col: string) => {
+    g.fillStyle = col;
+    g.fillRect(x, y, w, h);
+  };
+  R(Math.round(a.len * 0.45), by + a.body + 1, 2, 2, "#ff4d4d");
+  R(Math.round(a.len * 0.55), by + a.body, 2, 2, "#4dff88");
+  R(1, by - 1, 2, 2, "#ffffff");
 }

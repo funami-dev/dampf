@@ -20,6 +20,8 @@ import {
   ROOMS,
   activityInfo,
   ask,
+  autoLight,
+  toggleLight,
   atticOpen,
   catchUp,
   chooseActivity,
@@ -244,5 +246,54 @@ describe("WH-AK-11/12: Ruhe-Regeln", () => {
     expect(lanternLevel(7)).toBeLessThan(lanternLevel(6));
     expect(breathPhase(1)).toBe("Einatmen");
     expect(breathPhase(6)).toBe("Ausatmen");
+  });
+});
+
+describe("WH-AK-24: Licht in jedem Raum", () => {
+  it("umschalten, nicht auf dem Dachboden, gespeichert, kaputte Daten → aus", () => {
+    const w = newWichtel({}, fixed(0));
+    expect(w.lights).toEqual({});
+    expect(toggleLight(w, "kueche")).toBe(true);
+    expect(toggleLight(w, "bad")).toBe(true);
+    expect(toggleLight(w, "bad")).toBe(false);
+    expect(toggleLight(w, "dachboden")).toBe(false);
+    expect(w.lights).toEqual({ kueche: true });
+    const s = memory();
+    save(s, w);
+    expect(load(s)!.lights).toEqual({ kueche: true });
+    const raw = JSON.parse(s.data.get(KEY)!);
+    s.data.set(
+      KEY,
+      JSON.stringify({
+        ...raw,
+        lights: { kueche: "ja", bad: true, keller: true, dachboden: true },
+      }),
+    );
+    expect(load(s)!.lights).toEqual({ bad: true });
+    s.data.set(KEY, JSON.stringify({ ...raw, lights: 5 }));
+    expect(load(s)!.lights).toEqual({});
+  });
+  it("der Wichtel macht nachts Licht an und zum Schlafen aus", () => {
+    const w = newWichtel({}, fixed(0));
+    const night = DAY * 0.8;
+    // tagsüber: nichts
+    w.t = DAY * 0.4;
+    w.activity = { kind: "lesen", room: "wohnzimmer", left: 10 };
+    expect(autoLight(w)).toBeNull();
+    expect(w.lights.wohnzimmer).toBeUndefined();
+    // nachts im dunklen Raum: an, mit Satz; brennt schon → nichts
+    w.t = night;
+    expect(autoLight(w)).toBe("Ich mach mal Licht an.");
+    expect(w.lights.wohnzimmer).toBe(true);
+    expect(autoLight(w)).toBeNull();
+    // Dachboden bleibt dunkel
+    w.activity = { kind: "sterne", room: "dachboden", left: 10 };
+    expect(autoLight(w)).toBeNull();
+    // schlafen: Schlafzimmerlicht aus, andere bleiben an
+    w.lights.schlafzimmer = true;
+    w.activity = { kind: "schlafen", room: "schlafzimmer", left: 10 };
+    expect(autoLight(w)).toBe("Licht aus – gute Nacht!");
+    expect(w.lights).toEqual({ wohnzimmer: true });
+    expect(autoLight(w)).toBeNull();
   });
 });

@@ -63,7 +63,7 @@ Das Spiel macht **keine Gesundheitsversprechen**.
 - **Kein Bestrafen, kein Sterben:** Ist der Vorratsschrank leer und er hungrig, ist er nur
   traurig, sitzt am Tisch und sagt in einer Sprechblase „Ich habe Hunger …“.
 
-## Das Haus (Querschnitt, 2 Etagen + Dachboden)
+## Das Haus (Querschnitt, 3 Etagen + Dachboden)
 
 | Raum         | Was der Wichtel dort tut                             |
 | ------------ | ---------------------------------------------------- |
@@ -75,15 +75,30 @@ Das Spiel macht **keine Gesundheitsversprechen**.
 | Schlafzimmer | schlafen                                             |
 | Dachboden    | anfangs verschlossen, wird später frei (siehe unten) |
 
-- **Hochformat** (Feedback `fb_4d0tejx6`): Ist der Spielbereich höher als breit, stehen nur 2 Räume
-  pro Etage – dieselben 6 Räume auf **3 Etagen** plus Dachboden (unten Küche und Wohnzimmer, Mitte
-  Werkstatt und Bad, oben Musikzimmer und Schlafzimmer). Im Querformat bleiben es 3 Räume auf
-  2 Etagen. Das Haus füllt die Breite aus und steht unten auf der Wiese; das **Dach ist flach**
-  genug, dass oben nicht viel leerer Himmel bleibt (Feedback `fb_96pg9w7f`).
+- **Hausplan mit Treppenhaus** (Version 1.7, Wunsch im Chat; vorher Feedback `fb_4d0tejx6`):
+  In der **Mitte des Hauses** läuft ein schmales **Treppenhaus** über alle Etagen. Links und rechts
+  davon liegt je ein Raum: **2 Räume pro Etage auf 3 Etagen** plus Dachboden (unten Küche und
+  Wohnzimmer, Mitte Werkstatt und Bad, oben Musikzimmer und Schlafzimmer) – im Hoch- und im
+  Querformat gleich. Im Querformat stehen links und rechts neben dem Haus Bäume auf der Wiese.
+  - Im Treppenhaus führen die Treppen im Zickzack von Etage zu Etage, oben eine Leiter zum
+    Dachboden. **In den Räumen gibt es keine Treppen mehr.**
+  - Der Wichtel wechselt die Etage immer durchs Treppenhaus und läuft dabei sichtbar die Stufen
+    hinauf oder hinunter.
+  - Das Haus füllt den Platz aus und steht unten auf der Wiese; das **Dach ist flach** genug, dass
+    oben nicht viel leerer Himmel bleibt (Feedback `fb_96pg9w7f`).
+- **Licht in jedem Raum** (Version 1.7, Wunsch im Chat): Jeder der 6 Räume hat eine Deckenlampe und
+  an der Wand zum Treppenhaus einen kleinen Lichtschalter.
+  - **Antippen eines Raums** schaltet sein Licht an oder aus (leiser Klick).
+  - Nachts sind Räume ohne Licht dunkel, mit Licht warm erleuchtet; die Lampe hat einen weichen
+    Lichtschein. Tagsüber glimmt nur die Lampe.
+  - **Der Wichtel schaltet selbst:** Kommt er nachts wach in einen dunklen Raum, macht er Licht an
+    („Ich mach mal Licht an.“). Geht er schlafen, macht er das Licht im Schlafzimmer aus („Licht
+    aus – gute Nacht!“). Andere Lichter lässt er, wie sie sind.
+  - Das Spiel merkt sich, welche Lichter an sind. Der Dachboden hat kein Licht (Sterne gucken).
 - **Musikzimmer:** ein großes Klavier mit Tasten und Hocker; spielt der Wichtel, sitzt er davor
   und kleine Noten steigen auf.
 - Eine Tätigkeit beginnt erst, wenn er im Raum angekommen ist (der Weg zählt nicht mit).
-- Er läuft sichtbar durch die Räume und nutzt die Treppe; das Haustier folgt ihm oder schläft.
+- Er läuft sichtbar durch die Räume und nutzt das Treppenhaus; das Haustier folgt ihm oder schläft.
 - **Tag und Nacht** im Spiel: ein Spieltag dauert 6 Minuten; nachts ist das Haus dunkel, Fenster
   leuchten, der Wichtel schläft meist.
 - **Fenster nach draußen:** Himmel, Bäume, Wetter (Sonne, Wolken, ab und zu Regen).
@@ -119,13 +134,16 @@ Flugverkehr** vorbei – live, aber ruhig.
   „Ostbetrieb“ (Mehrheit). Im Spiel ist links Westen, rechts Osten: Bei **Westbetrieb kommen die
   Flugzeuge von rechts** und fliegen nach links, bei Ostbetrieb umgekehrt. Landende sinken langsam
   über dem Haus, startende steigen.
+- **Nachts** (Version 1.7, Wunsch im Chat) sieht man die Flugzeuge als matte, blaugraue Umrisse,
+  halb durchsichtig wie vom Mond beschienen, dazu ihre ruhigen Positionslichter (kein Blinken).
+  Antippen geht weiter.
 - **Pixelgrafik (16-Bit-Stil)** je **Sorte**, jedem Typcode zugeordnet:
   Kurzstrecken-Jet (z. B. A320, B737), langer Kurzstrecken-Jet (A321, B739), Großraumjet (A330,
   A350, B787, B777), Jumbo mit vier Triebwerken (B747, A380, A340), Regionaljet (Embraer, CRJ),
   Propellermaschine (ATR, Dash 8), Kleinflugzeug, Hubschrauber; Unbekanntes als Kurzstrecken-Jet.
 - **Ruhig:** höchstens 3 Flugzeuge gleichzeitig, klein und hoch über dem Haus, langsam (ein Überflug
-  dauert 20–40 s), leises, gedämpftes Rauschen (folgt der Lautstärke, stumm = stumm). Nachts sind
-  nur ruhig leuchtende Positionslichter zu sehen (rot links, grün rechts, kein Blinken).
+  dauert 20–40 s), leises, gedämpftes Rauschen (folgt der Lautstärke, stumm = stumm). Nachts
+  leuchten zusätzlich ruhige Positionslichter (rot links, grün rechts, kein Blinken).
 - **Antippen** eines Flugzeugs: kleine Sprechblase, z. B. „Airbus A320 – Landung von Osten“.
 - **Fluggesellschaft, Start und Ziel** (Version 1.5, Wunsch im Chat): Wenn bekannt, zeigt die
   Sprechblase auch die Fluggesellschaft und Start- und Zielort mit Land, z. B.
@@ -142,7 +160,7 @@ Flugverkehr** vorbei – live, aber ruhig.
   sagt etwas zum echten Flugzeug am Himmel, z. B. „Da! Ein Airbus A320 von Pegasus – der kommt
   aus Kayseri (Türkei)!“ oder bei einem Start „… – der fliegt nach Monastir (Tunesien). Gute
   Reise!“. Ist der Himmel leer: „Gerade ist der Himmel leer … vielleicht kommt gleich eins.“ –
-  kommt dann eins, sagt er noch etwas. Nachts: „Ich sehe nur die Lichter der Flugzeuge – schön!“.
+  kommt dann eins, sagt er noch etwas. Nachts: „Nachts sehe ich nur die Umrisse und die Lichter – schön!“.
   Sehr müde (Energie unter 20 %) sagt er freundlich Nein. Macht etwas Spaß (+15 %).
 - **Ohne Live-Daten** (keine Verbindung, Störung, Nachtflugverbot) bleibt der Himmel leer; es
   werden keine ausgedachten Flugzeuge gezeigt.
@@ -183,7 +201,8 @@ Flugverkehr** vorbei – live, aber ruhig.
   rechts**; er öffnet die fünf Aktionen als kleine Liste darüber, ein ungelesener Brief zeigt sich
   als Punkt am Menü-Knopf. Esc, ein Tipp daneben oder eine gewählte Aktion schließt die Liste
   (Feedback `fb_96pg9w7f`).
-  Antippen eines Raums zoomt sanft hinein (nur Ansicht); Ruhe-Tätigkeiten durch Antippen und Halten.
+  Antippen eines Raums schaltet dort das Licht an oder aus; Ruhe-Tätigkeiten durch Antippen und
+  Halten.
 - Tastatur: 1–4 für die Knöpfe, Esc schließt Menüs. Pause bei Fokusverlust. Kein Doppeltipp-Zoom.
 
 ## Später (nicht im ersten Schritt)
@@ -217,9 +236,10 @@ Flugverkehr** vorbei – live, aber ruhig.
   Wichtel läuft; Einkaufen füllt den Schrank; Neuladen behält alles.
 - **WH-AK-08** (E2E) Anklopfen → „Spiel etwas vor!“ → Sprechblase mit Antwort; Brief lesen.
 - **WH-AK-09** (E2E Mobile 375×667) Haus und Knöpfe sichtbar und bedienbar, kein Querscrollen.
-- **WH-AK-13** (Vitest) Hausplan: Querformat 3 Räume × 2 Etagen, Hochformat 2 Räume × 3 Etagen;
-  jeder der 6 Räume hat genau einen Platz, keine zwei Räume teilen sich einen; der Dachboden liegt
-  über der obersten Etage; das Dach ist höchstens 75 % einer Etage hoch.
+- **WH-AK-13** (Vitest) Hausplan: in Hoch- und Querformat 2 Räume × 3 Etagen mit Treppenhaus
+  genau in der Mitte des Hauses; jeder der 6 Räume hat genau einen Platz, keine zwei Räume teilen
+  sich einen, kein Raum überdeckt das Treppenhaus; der Dachboden liegt über der obersten Etage;
+  das Dach ist höchstens 75 % einer Etage hoch.
 - **WH-AK-14** (E2E Mobile) Menü-Knopf: Die Knopfreihe ist versteckt, ☰ öffnet die Aktionen,
   „Einkaufen“ darüber funktioniert, die Liste schließt danach; am Desktop gibt es keinen Menü-Knopf.
 - **WH-AK-15** (Vitest) Möbelplan: Jedes Möbelstück liegt in beiden Hausplänen (120 und 150
@@ -246,6 +266,13 @@ Flugverkehr** vorbei – live, aber ruhig.
   Kommentare höchstens alle 2 Minuten; keine Daten → kein Flugzeug.
 - **WH-AK-20** (E2E) Mit Testdaten erscheinen Flugzeuge, Antippen zeigt Typ und Landung/Start,
   „Flugdaten: adsb.lol“ ist zu sehen; ohne Daten ist der Himmel leer; keine Fehler.
+- **WH-AK-24** (Vitest) Licht: Umschalten an/aus je Raum, nicht für den Dachboden; neuer Wichtel
+  ohne Licht; gespeichert und geladen, kaputte Daten → kein Licht. Der Wichtel macht nachts beim
+  Ankommen in einem dunklen Raum Licht an (mit Satz), nicht tagsüber und nicht, wenn es schon
+  brennt; geht er schlafen, macht er das Schlafzimmerlicht aus.
+- **WH-AK-25** (E2E) Nachts einen Raum antippen schaltet sein Licht an, noch einmal antippen aus;
+  nach Neuladen ist es so geblieben; der Wichtel läuft durchs Treppenhaus in eine andere Etage;
+  nachts sind Flugzeuge zu sehen und antippbar; keine Fehler.
 - **WH-AK-10** Fokusverlust pausiert; Spiel erscheint im Portal mit Version 1.0.0.
 - **WH-AK-11** Ruhe-Regeln (Vitest + E2E): keine Zeitlimits, kein Verlieren, keine Punkte; alle
   Leerlauf-Animationen haben Zyklen ≥ 4 s (Atmen/Laterne 10 s); nichts blinkt schneller als 3 Hz;

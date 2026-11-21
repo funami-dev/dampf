@@ -169,6 +169,8 @@ export interface World {
   /** Lautstärke 0..1 und stumm (WH-AK-11) */
   volume: number;
   muted: boolean;
+  /** Licht je Raum an (WH-AK-24) */
+  lights: Partial<Record<Room, boolean>>;
 }
 
 const clamp = (v: number) => Math.max(0, Math.min(100, v));
@@ -207,7 +209,36 @@ export function newWichtel(
     savedAt: Date.now(),
     volume: 0.3,
     muted: false,
+    lights: {},
   };
+}
+
+/** Räume mit Licht (der Dachboden bleibt dunkel zum Sterne-Gucken) */
+export const hasLight = (r: Room) => r !== "dachboden";
+
+/** Licht im Raum umschalten; gibt den neuen Zustand zurück (WH-AK-24) */
+export function toggleLight(w: World, r: Room): boolean {
+  if (!hasLight(r)) return false;
+  const on = !w.lights[r];
+  if (on) w.lights[r] = true;
+  else delete w.lights[r];
+  return on;
+}
+
+/**
+ * Der Wichtel ist für seine Tätigkeit im Raum angekommen: nachts macht er im dunklen Raum Licht an,
+ * zum Schlafen macht er es im Schlafzimmer aus. Gibt einen Satz zurück, wenn er geschaltet hat.
+ */
+export function autoLight(w: World): string | null {
+  const a = w.activity;
+  if (a.kind === "schlafen") {
+    if (!w.lights.schlafzimmer) return null;
+    delete w.lights.schlafzimmer;
+    return "Licht aus – gute Nacht!";
+  }
+  if (!isNight(w.t) || !hasLight(a.room) || w.lights[a.room]) return null;
+  w.lights[a.room] = true;
+  return "Ich mach mal Licht an.";
 }
 
 const LIKES: Record<Trait, ActivityKind> = {
@@ -490,6 +521,14 @@ export function load(s: Store): World | null {
       activity: d.activity && d.activity.kind in ACT ? d.activity : w.activity,
       volume: num(d.volume) ? Math.max(0, Math.min(1, d.volume)) : 0.3,
       muted: d.muted === true,
+      lights:
+        d.lights && typeof d.lights === "object"
+          ? Object.fromEntries(
+              Object.entries(d.lights).filter(
+                ([r, on]) => r in ROOMS && hasLight(r as Room) && on === true,
+              ),
+            )
+          : {},
       savedAt: num(d.savedAt) ? d.savedAt : Date.now(),
     };
   } catch {
