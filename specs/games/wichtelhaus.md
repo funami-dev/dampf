@@ -127,6 +127,13 @@ Flugverkehr** vorbei – live, aber ruhig.
   dauert 20–40 s), leises, gedämpftes Rauschen (folgt der Lautstärke, stumm = stumm). Nachts sind
   nur ruhig leuchtende Positionslichter zu sehen (rot links, grün rechts, kein Blinken).
 - **Antippen** eines Flugzeugs: kleine Sprechblase, z. B. „Airbus A320 – Landung von Osten“.
+- **Fluggesellschaft, Start und Ziel** (Version 1.5, Wunsch im Chat): Wenn bekannt, zeigt die
+  Sprechblase auch die Fluggesellschaft und Start- und Zielort mit Land, z. B.
+  „Eurowings · Airbus A320 – Landung von Osten · von Palma (Spanien) nach Düsseldorf
+  (Deutschland)“. Der Worker leitet die Fluggesellschaft aus dem Kürzel der Flugnummer ab (Liste
+  bekannter Gesellschaften) und fragt die Strecke bei der Routen-Abfrage von adsb.lol (nur
+  Strecken, die dort als plausibel gelten). Weitergegeben werden nur Name der Gesellschaft und
+  Orte (Stadt, Land) – keine Flugnummer. Unbekanntes wird weggelassen.
 - **Der Wichtel kommentiert** ab und zu (höchstens alle 2 Minuten) ein Flugzeug, passend zur Sorte:
   „Oh, ein großer Jumbo!“, „Ein Propellerflugzeug – das brummt so gemütlich.“, „Ein Hubschrauber!“
   – nur wenn er wach ist und nichts anderes sagt.
@@ -220,6 +227,11 @@ Flugverkehr** vorbei – live, aber ruhig.
   3 000 m; Landung (sinkend), Start (steigend) oder Überflug; Betriebsrichtung aus den Kursen
   (Mehrheit nahe 233° → Westen, nahe 053° → Osten, sonst unbekannt); Typcodes → Sorte; keine
   Kennungen in der Antwort; kaputte oder leere Daten → leere Liste ohne Fehler.
+- **WH-AK-21** (Vitest, Worker) Fluggesellschaft und Strecke: Kürzel bekannter Gesellschaften →
+  Name (z. B. EWG → Eurowings, DLH → Lufthansa), unbekannt → keine Angabe; Strecken aus der
+  Routen-Abfrage → Start/Ziel mit Stadt und Land, nur wenn plausibel; Flugnummern erscheinen nicht
+  in der Antwort; fällt die Routen-Abfrage aus, kommen die Flugzeuge trotzdem (ohne Strecke).
+- **WH-AK-22** (E2E) Antippen zeigt Fluggesellschaft und „von … nach …“, wenn bekannt.
 - **WH-AK-19** (Vitest, Spiel) Flugzeuge am Himmel: höchstens 3; Westbetrieb → von rechts nach
   links, Ostbetrieb → von links nach rechts; jede Sorte hat ein Bild und einen Wichtel-Kommentar;
   Kommentare höchstens alle 2 Minuten; keine Daten → kein Flugzeug.
