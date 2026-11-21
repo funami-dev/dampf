@@ -634,7 +634,7 @@ class HouseScene extends Phaser.Scene {
       const hit = planeHits.find((p) => Math.abs(p.x - x) < p.w && Math.abs(p.y - y) < p.h);
       if (!hit) return;
       tip.textContent = `✈️ ${hit.text}`;
-      tip.style.left = `${Math.max(8, Math.min(r.width - 230, hit.x - 110))}px`;
+      tip.style.left = `${Math.max(8, Math.min(r.width - 290, hit.x - 140))}px`;
       tip.style.top = `${Math.max(60, hit.y + 18)}px`;
       tip.hidden = false;
       window.clearTimeout(tipTimer);

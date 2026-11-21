@@ -97,3 +97,56 @@ describe("WH-AK-18: Flugdaten aufbereiten", () => {
     expect(ok.headers["Cache-Control"]).toContain("max-age=20");
   });
 });
+
+describe("WH-AK-21: Fluggesellschaft und Strecke", () => {
+  const route = (callsign: string, plausible = 1) => ({
+    callsign,
+    plausible,
+    airport_codes: "LEPA-EDDL",
+    _airports: [
+      {
+        name: "Palma de Mallorca Airport",
+        location: "Palma De Mallorca",
+        countryiso2: "ES",
+        icao: "LEPA",
+      },
+      { name: "Düsseldorf Airport", location: "Dusseldorf", countryiso2: "DE", icao: "EDDL" },
+    ],
+  });
+  it("Kürzel → Gesellschaft; Strecke mit Stadt und Land; keine Flugnummern", async () => {
+    const { airlineOf, parseRoutes } = await import("./flights.ts");
+    expect(airlineOf("EWG9XY")).toBe("Eurowings");
+    expect(airlineOf("DLH123")).toBe("Lufthansa");
+    expect(airlineOf("ZZZ123")).toBeNull();
+    expect(airlineOf("DABCD")).toBeNull(); // Kennzeichen statt Flugnummer
+    const m = parseRoutes([route("EWG9XY"), route("DLH1", 0), { callsign: "X1", _airports: [] }]);
+    expect([...m.keys()]).toEqual(["EWG9XY"]);
+    expect(m.get("EWG9XY")).toEqual({
+      from: { city: "Palma", country: "Spanien" },
+      to: { city: "Düsseldorf", country: "Deutschland" },
+    });
+    const res = await handleFlights(
+      async () => ({ ok: true, json: async () => ({ ac: [ac({ flight: "EWG9XY  " })] }) }),
+      async () => ({ ok: true, json: async () => [route("EWG9XY")] }),
+    );
+    const f = JSON.parse(res.body).flights[0];
+    expect(f).toMatchObject({
+      airline: "Eurowings",
+      from: { city: "Palma", country: "Spanien" },
+      to: { city: "Düsseldorf", country: "Deutschland" },
+    });
+    expect(res.body).not.toContain("EWG9XY");
+    expect(res.body).not.toContain("EDDL");
+  });
+  it("Routen-Abfrage fällt aus → Flugzeuge trotzdem, ohne Strecke", async () => {
+    const res = await handleFlights(
+      async () => ({ ok: true, json: async () => ({ ac: [ac({ flight: "DLH77Q" })] }) }),
+      async () => {
+        throw new Error("offline");
+      },
+    );
+    const f = JSON.parse(res.body).flights[0];
+    expect(f.airline).toBe("Lufthansa");
+    expect(f.from).toBeUndefined();
+  });
+});

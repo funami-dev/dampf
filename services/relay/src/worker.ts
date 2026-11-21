@@ -35,11 +35,21 @@ export default {
     // Flugverkehr Düsseldorf fürs Wichtelhaus; Cloudflare speichert die Quelle kurz zwischen,
     // so wird adsb.lol höchstens alle 20 s gefragt – für alle Spieler gemeinsam
     if (url.pathname === FLIGHTS_PATH) {
-      const r = await handleFlights((u) =>
-        fetch(u, {
-          headers: { "User-Agent": "Mozilla/5.0 (compatible; kids-game-flight-widget)" },
-          cf: { cacheTtl: CACHE_SECONDS, cacheEverything: true },
-        } as RequestInit),
+      const r = await handleFlights(
+        (u) =>
+          fetch(u, {
+            headers: { "User-Agent": "Mozilla/5.0 (compatible; kids-game-flight-widget)" },
+            cf: { cacheTtl: CACHE_SECONDS, cacheEverything: true },
+          } as RequestInit),
+        (u, body) =>
+          fetch(u, {
+            method: "POST",
+            body,
+            headers: {
+              "Content-Type": "application/json",
+              "User-Agent": "Mozilla/5.0 (compatible; kids-game-flight-widget)",
+            },
+          }),
       );
       return new Response(r.body, { status: r.status, headers: r.headers });
     }
