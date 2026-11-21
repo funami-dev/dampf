@@ -1,6 +1,8 @@
 export interface DebugHooks {
   state(): Record<string, unknown>;
   /** Figur versetzen (Kachel-Koordinaten) */
+  /** Netz-Abriss nachstellen (WL-AK-60) */
+  dropNet: () => void;
   teleport(x: number, y: number, fx?: number, fy?: number): void;
   /** Stehfeld neben der Hütte bzw. einem Apfelbaum mit Äpfeln: [x, y, Stehfeld x, y] */
   /** ein umgeknickter Baum der Absturz-Schneise: [x, y] */

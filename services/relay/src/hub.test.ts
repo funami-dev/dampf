@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Hub, LIMITS, route, type Conn, type ServerMsg } from "./hub.ts";
+import { GRACE_MS, Hub, LIMITS, route, type Conn, type ServerMsg } from "./hub.ts";
 
 function fake() {
   const got: ServerMsg[] = [];
@@ -79,7 +79,7 @@ describe("WL-AK-11: Raum-Server", () => {
     expect(h.got.length).toBe(before);
   });
 
-  it("Gastgeber geht → Raum geschlossen, Gäste informiert; Gast geht → Gastgeber informiert", () => {
+  it("bewusst gehen: Gastgeber → Raum geschlossen, Gäste informiert; Gast → Gastgeber informiert", () => {
     const hub = new Hub();
     const h = fake();
     const code = hub.host(h);
@@ -87,15 +87,14 @@ describe("WL-AK-11: Raum-Server", () => {
     const g2 = fake();
     hub.join(g1, code);
     hub.join(g2, code);
-    hub.disconnect(g1);
+    hub.message(g1, JSON.stringify({ t: "bye" }));
     expect(h.got).toContainEqual({ t: "peer-leave", id: "g1" });
-    hub.disconnect(h);
+    hub.message(h, JSON.stringify({ t: "bye" }));
     expect(g2.got).toContainEqual({ t: "closed" });
     expect(g2.closed).toBe(true);
     expect(hub.rooms.size).toBe(0);
     expect(hub.join(fake(), code)).toBeNull();
   });
-
   it("Pfade", () => {
     expect(route("/host")).toEqual({ kind: "host" });
     expect(route("/join/abcd")).toEqual({ kind: "join", code: "abcd" });
@@ -156,5 +155,79 @@ describe("WL-AK-11: Liste offener Welten", () => {
 
   it("Pfad /rooms", () => {
     expect(route("/rooms")).toEqual({ kind: "list" });
+  });
+});
+
+describe("WL-AK-60: Wiederverbinden und Gnadenfrist", () => {
+  const clock = () => {
+    let t = 1000;
+    const timers: { at: number; fn: () => void }[] = [];
+    return {
+      now: () => t,
+      schedule: (fn: () => void, ms: number) => void timers.push({ at: t + ms, fn }),
+      advance(ms: number) {
+        t += ms;
+        for (const x of timers.filter((x) => x.at <= t)) x.fn();
+      },
+    };
+  };
+  it("gleicher Schlüssel: kein zweiter Platz, altes Fenster wird getrennt", () => {
+    const hub = new Hub();
+    const h = fake();
+    const code = hub.host(h);
+    const a = fake();
+    const b = fake();
+    expect(hub.join(a, code, "geraet12345")).toBe("g1");
+    expect(hub.join(b, code, "geraet12345")).toBe("g1");
+    expect(a.got).toContainEqual({ t: "replaced" });
+    expect(a.closed).toBe(true);
+    expect(hub.rooms.get(code)!.guests.size).toBe(1);
+    expect(h.got).toContainEqual({ t: "peer-back", id: "g1" });
+    // ohne Schlüssel: neuer Platz
+    expect(hub.join(fake(), code)).toBe("g2");
+  });
+  it("Gast reißt ab: 2 Minuten frei, Rückkehr mit gleicher Id; danach weg", () => {
+    const c = clock();
+    const hub = new Hub(Math.random, c.now, c.schedule);
+    const h = fake();
+    const code = hub.host(h);
+    const g = fake();
+    hub.join(g, code, "geraet12345");
+    hub.disconnect(g);
+    expect(h.got).toContainEqual({ t: "peer-away", id: "g1" });
+    expect(h.got).not.toContainEqual({ t: "peer-leave", id: "g1" });
+    c.advance(60_000);
+    const back = fake();
+    expect(hub.join(back, code, "geraet12345")).toBe("g1");
+    hub.disconnect(back);
+    c.advance(GRACE_MS + 100);
+    expect(h.got).toContainEqual({ t: "peer-leave", id: "g1" });
+    expect(hub.rooms.get(code)!.guests.size).toBe(0);
+  });
+  it("Gastgeber reißt ab: Gäste warten, Rückkehr mit Token; ohne Rückkehr endet die Welt", () => {
+    const c = clock();
+    const hub = new Hub(Math.random, c.now, c.schedule);
+    const h = fake();
+    const code = hub.host(h);
+    const token = (h.got[0] as { token: string }).token;
+    expect(token).toMatch(/^[A-Z]{16}$/);
+    const g = fake();
+    hub.join(g, code);
+    hub.disconnect(h);
+    expect(g.got).toContainEqual({ t: "host-away" });
+    expect(g.closed).toBe(false);
+    // falsches Token: neuer Raum statt Übernahme
+    const thief = fake();
+    expect(hub.host(thief, { code, token: "FALSCH" })).not.toBe(code);
+    const h2 = fake();
+    expect(hub.host(h2, { code, token })).toBe(code);
+    expect(h2.got[0]).toMatchObject({ t: "room", code, resumed: true });
+    expect(g.got).toContainEqual({ t: "host-back" });
+    hub.message(g, JSON.stringify({ hi: 1 }));
+    expect(h2.got).toContainEqual({ t: "from", id: "g1", d: { hi: 1 } });
+    hub.disconnect(h2);
+    c.advance(GRACE_MS + 100);
+    expect(g.got).toContainEqual({ t: "closed" });
+    expect(hub.rooms.has(code)).toBe(false);
   });
 });

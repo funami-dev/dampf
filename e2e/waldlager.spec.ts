@@ -34,6 +34,9 @@ interface WlState {
   building: boolean;
   mode: string;
   roomCode: string | null;
+  meId: string;
+  lost: boolean;
+  hostAway: boolean;
   players: { id: string; name: string; x: number; y: number }[];
   stumpList: number[];
   seed: number;
@@ -52,6 +55,7 @@ interface WlState {
 interface Hooks {
   state(): WlState;
   teleport(x: number, y: number, fx?: number, fy?: number): void;
+  dropNet(): void;
   setTime(t: number): void;
   setNeeds(n: Partial<WlState["me"]["needs"]>): void;
   nearestTree(): [number, number, number, number] | null;
@@ -409,8 +413,39 @@ test("WL-AK-15: zwei Browser – Welt ist offen, Liste im Hauptmenü, beitreten,
     .poll(async () => (await state(guest)).me.berries, { timeout: 15_000 })
     .toBe(beforeB + 1);
 
-  // Gastgeber geht → Hinweis beim Gast, Welt verschwindet aus der Liste
-  await page.close();
+  // WL-AK-60: Verbindung des Gastes reißt ab → gleiche Kennung, weiter 2 Spieler
+  const gid = (await state(guest)).meId;
+  await guest.evaluate(() => (window.__dampf as Hooks).dropNet());
+  await expect.poll(async () => (await state(guest)).lost, { timeout: 5_000 }).toBe(true);
+  await expect.poll(async () => (await state(guest)).lost, { timeout: 30_000 }).toBe(false);
+  expect((await state(guest)).meId).toBe(gid);
+  expect((await state(guest)).mode).toBe("guest");
+  await expect.poll(async () => (await state(page)).players.length, { timeout: 15_000 }).toBe(2);
+  // … und die des Gastgebers: Gast wartet, danach dieselbe Welt
+  const code = (await state(page)).roomCode;
+  await page.evaluate(() => (window.__dampf as Hooks).dropNet());
+  await expect(guest.getByText("Der Gastgeber ist kurz weg")).toBeVisible({ timeout: 10_000 });
+  await expect.poll(async () => (await state(page)).lost, { timeout: 30_000 }).toBe(false);
+  await expect(guest.getByText("Der Gastgeber ist kurz weg")).toBeHidden({ timeout: 10_000 });
+  expect((await state(page)).roomCode).toBe(code);
+  expect((await state(guest)).mode).toBe("guest");
+  await expect.poll(async () => (await state(page)).players.length, { timeout: 15_000 }).toBe(2);
+
+  // WL-AK-61: Gastgeber geht über das Menü → erst nachfragen
+  await page.bringToFront();
+  if (!(await page.getByRole("button", { name: "Hauptmenü" }).isVisible())) {
+    if (await page.getByRole("button", { name: "Weiterspielen" }).isVisible())
+      await page.getByRole("button", { name: "Weiterspielen" }).click();
+    await page.keyboard.press("Escape");
+  }
+  await page.getByRole("button", { name: "Hauptmenü" }).click();
+  await expect(page.getByText("Wenn du gehst, endet die Welt für 1 Mitspieler")).toBeVisible();
+  await page.getByRole("button", { name: "Hierbleiben" }).click();
+  await expect(page.getByRole("button", { name: "Weiterspielen" })).toBeVisible();
+  expect((await state(page)).mode).toBe("host");
+  await page.getByRole("button", { name: "Hauptmenü" }).click();
+  // Gastgeber geht → Hinweis beim Gast sofort, Welt verschwindet aus der Liste
+  await page.getByRole("button", { name: "Ja, verlassen" }).click();
   await expect(guest.getByRole("alert")).toContainText("Der Gastgeber hat die Welt verlassen", {
     timeout: 15_000,
   });

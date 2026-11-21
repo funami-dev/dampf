@@ -58,7 +58,8 @@ const server = createServer(async (req, res) => {
 });
 const wss = new WebSocketServer({ server });
 wss.on("connection", (ws, req) => {
-  const r = route(new URL(req.url ?? "/", "http://x").pathname);
+  const u = new URL(req.url ?? "/", "http://x");
+  const r = route(u.pathname);
   if (!r || r.kind === "list") return ws.close(4004, "bad-path");
   const conn = {
     send: (t: string) => ws.send(t),
@@ -66,7 +67,8 @@ wss.on("connection", (ws, req) => {
   };
   ws.on("message", (data) => hub.message(conn, data.toString()));
   ws.on("close", () => hub.disconnect(conn));
-  if (r.kind === "host") hub.host(conn);
-  else hub.join(conn, r.code);
+  const q = u.searchParams;
+  if (r.kind === "host") hub.host(conn, { code: q.get("resume"), token: q.get("token") });
+  else hub.join(conn, r.code, q.get("key"));
 });
 server.listen(port, () => console.log(`Raum-Server läuft auf ws://localhost:${port}`));

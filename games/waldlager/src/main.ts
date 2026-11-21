@@ -98,6 +98,7 @@ layer.innerHTML = `
         <i class="wl-needle wl-wreck" hidden><span>✈️</span></i>
       </div>
       <div class="wl-room" data-h="room" hidden></div>
+      <div class="wl-away" data-h="away" role="status" hidden></div>
       <button class="wl-btn" type="button" data-b="menu">Menü</button>
     </div>
   </div>
@@ -155,6 +156,28 @@ let netTimer = 0;
 let gotSnap = false;
 let worldReady = true;
 let nextOpenTry = 0;
+/** Wiederverbinden (WL-AK-60): Geräte-Schlüssel, Token des eigenen Raums, Versuche */
+const DEVICE_KEY = (() => {
+  const k = "dampf.waldlager.key";
+  try {
+    const old = localStorage.getItem(k);
+    if (old && /^[A-Za-z0-9]{8,32}$/.test(old)) return old;
+    const abc = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    const n = Array.from({ length: 16 }, () =>
+      abc.charAt(Math.floor(Math.random() * abc.length)),
+    ).join("");
+    localStorage.setItem(k, n);
+    return n;
+  } catch {
+    return "";
+  }
+})();
+const RECONNECT = { graceMs: 115_000, firstMs: 1000, maxMs: 8000 };
+let roomToken: string | null = null;
+/** läuft gerade ein Wiederverbinden? Zeitpunkt des Abrisses, nächster Versuch */
+let lost: { since: number; nextTry: number; wait: number; code: string } | null = null;
+/** Gäste: wartet der Gastgeber gerade? */
+let hostAway = false;
 let metaTimer = 0;
 let lobby: { code: string; host: string; players: string[]; count: number; max: number }[] | null =
   null;
@@ -782,23 +805,38 @@ function openMenu() {
     <p><small>Laufen: WASD/Pfeile oder Joystick · Rennen: Umschalt · Aktion: E · Essen: Q · Bauen: B (1 Zelt, 2 Feuer) · Tierbuch: T</small></p>`);
   el.querySelector('[data-a="resume"]')!.addEventListener("click", () => resume());
   el.querySelector('[data-a="book"]')!.addEventListener("click", () => openBook(() => openMenu()));
-  el.querySelector('[data-a="new"]')?.addEventListener("click", () => {
-    closeWorld();
-    withLoading(() => {
-      newWorld();
-      persist();
-      resume();
-    });
-  });
+  el.querySelector('[data-a="new"]')?.addEventListener("click", () =>
+    confirmLeave(() => {
+      closeWorld();
+      withLoading(() => {
+        newWorld();
+        persist();
+        resume();
+      });
+    }),
+  );
   el.querySelector('[data-a="leave"]')?.addEventListener("click", () => leaveGuest(null));
   el.querySelector('[data-a="main"]')!.addEventListener("click", () => {
     if (mode === "guest") leaveGuest(null);
-    else {
-      closeWorld();
-      persist();
-      openStart();
-    }
+    else
+      confirmLeave(() => {
+        closeWorld();
+        persist();
+        openStart();
+      });
   });
+}
+
+/** Gastgeber mit Mitspielern: erst fragen, bevor die Welt für alle endet (WL-AK-61) */
+function confirmLeave(go: () => void) {
+  const n = mode === "host" ? guests().length : 0;
+  if (!n) return go();
+  const el = panel(`<h2>Welt verlassen?</h2>
+    <p>Wenn du gehst, endet die Welt für ${n === 1 ? "1 Mitspieler" : `${n} Mitspieler`}. Wirklich verlassen?</p>
+    <button class="wl-btn" type="button" data-a="stay">Hierbleiben</button>
+    <button class="wl-btn primary" type="button" data-a="go">Ja, verlassen</button>`);
+  el.querySelector('[data-a="stay"]')!.addEventListener("click", () => openMenu());
+  el.querySelector('[data-a="go"]')!.addEventListener("click", go);
 }
 
 // --- Mehrspieler über WebSocket (Raum-Server) ----------------------------
@@ -807,14 +845,14 @@ const OFFLINE = "Online gerade nicht möglich – spiel einfach allein weiter.";
 function connect(
   path: string,
   onMsg: (m: Record<string, unknown>) => void,
-  onEnd: (opened: boolean) => void,
+  onEnd: (opened: boolean, code: number) => void,
 ) {
   let opened = false;
   let sock: WebSocket;
   try {
     sock = new WebSocket(RELAY_URL + path);
   } catch {
-    onEnd(false);
+    onEnd(false, 0);
     return null;
   }
   sock.addEventListener("open", () => (opened = true));
@@ -826,14 +864,14 @@ function connect(
     }
   });
   let ended = false;
-  const end = () => {
+  const end = (code: number) => {
     if (ended) return;
     ended = true;
     if (ws === sock) ws = null;
-    onEnd(opened);
+    onEnd(opened, code);
   };
-  sock.addEventListener("close", end);
-  sock.addEventListener("error", end);
+  sock.addEventListener("close", (e) => end(e.code));
+  sock.addEventListener("error", () => end(0));
   return sock;
 }
 
@@ -848,17 +886,27 @@ function dropGuests() {
   for (const id of guests()) delete state.players[id];
 }
 
-/** Gastgeber: eigene Welt für andere öffnen */
 /** Gastgeber: die eigene Welt ist immer offen (automatisch, sobald man spielt) */
 function openWorld() {
   if (!RELAY_URL || mode !== "solo") return;
   mode = "host";
   roomCode = null;
-  ws = connect(
-    "/host",
+  roomToken = null;
+  ws = hostSocket("/host");
+}
+
+/** Verbindung des Gastgebers; nach einem Abriss mit Code und Token zurück in denselben Raum */
+function hostSocket(path: string) {
+  return connect(
+    path,
     (m) => {
       if (m.t === "room" && typeof m.code === "string") {
+        const back = m.resumed === true;
+        if (!back && lost) dropGuests(); // alter Raum ist weg: Gäste auch
+        if (lost) toast(back ? "Wieder verbunden – alle sind noch da." : "Wieder online.", 3);
+        lost = null;
         roomCode = m.code;
+        if (typeof m.token === "string") roomToken = m.token;
         sendMeta();
       } else if (m.t === "from" && typeof m.id === "string") onGuestMsg(m.id, m.d);
       else if (m.t === "peer-leave" && typeof m.id === "string") {
@@ -866,10 +914,26 @@ function openWorld() {
         if (p) toast(`${p.name} ist gegangen.`);
         delete state.players[m.id];
         sendMeta();
+      } else if (m.t === "peer-away" && typeof m.id === "string") {
+        const p = state.players[m.id];
+        if (p) toast(`${p.name} ist kurz weg …`, 3);
       }
     },
-    (opened) => {
+    (opened, code) => {
       if (mode !== "host") return;
+      if (code === 4003) {
+        // dieselbe Welt ist jetzt in einem anderen Fenster offen
+        mode = "solo";
+        roomCode = null;
+        lost = null;
+        dropGuests();
+        toast("Deine Welt ist jetzt in einem anderen Fenster offen.", 4);
+        return;
+      }
+      if ((opened || lost) && roomCode && roomToken) {
+        startReconnect(roomCode);
+        return;
+      }
       mode = "solo";
       roomCode = null;
       dropGuests();
@@ -878,6 +942,57 @@ function openWorld() {
     },
   );
 }
+
+/** Verbindung weg: in Abständen neu versuchen, höchstens die Gnadenfrist lang (WL-AK-60) */
+function startReconnect(code: string) {
+  if (!lost) {
+    lost = { since: now(), nextTry: now() + RECONNECT.firstMs, wait: RECONNECT.firstMs, code };
+    toast("Verbindung weg – verbinde neu …", 3);
+  } else {
+    lost.wait = Math.min(RECONNECT.maxMs, lost.wait * 2);
+    lost.nextTry = now() + lost.wait;
+  }
+}
+function reconnectTick() {
+  if (!lost || ws) return;
+  if (now() - lost.since > RECONNECT.graceMs) {
+    const wasGuest = mode === "guest";
+    lost = null;
+    if (wasGuest) leaveGuest("Die Verbindung zur Welt ist abgerissen.");
+    else {
+      mode = "solo";
+      roomCode = null;
+      dropGuests();
+      toast("Die Verbindung kam nicht zurück – du spielst allein weiter.", 4);
+    }
+    return;
+  }
+  if (now() < lost.nextTry) return;
+  lost.nextTry = now() + 60_000; // bis der Versuch endet
+  if (mode === "host" && roomToken)
+    ws = hostSocket(`/host?resume=${lost.code}&token=${encodeURIComponent(roomToken)}`);
+  else if (mode === "guest") ws = guestSocket(lost.code);
+}
+// eigener Takt (läuft auch, wenn das Bild gerade nicht gezeichnet wird)
+setInterval(() => {
+  reconnectTick();
+  // Hinweis, solange die Verbindung weg ist oder der Gastgeber kurz fehlt
+  const away = lost
+    ? "Verbindung weg – verbinde neu …"
+    : mode === "guest" && hostAway
+      ? "Der Gastgeber ist kurz weg … wir warten."
+      : "";
+  const el = hud("away");
+  if (el.textContent !== away) el.textContent = away;
+  el.hidden = !away;
+}, 250);
+// wieder da (App im Vordergrund, Fenster aktiv, Netz zurück): sofort neu versuchen
+const retryNow = () => {
+  if (lost && !ws) lost.nextTry = 0;
+};
+window.addEventListener("online", retryNow);
+window.addEventListener("focus", retryNow);
+document.addEventListener("visibilitychange", () => !document.hidden && retryNow());
 
 /** Name und Spieler für die Liste offener Welten melden */
 function sendMeta() {
@@ -895,8 +1010,11 @@ function closeWorld() {
   if (mode !== "host") return;
   mode = "solo";
   roomCode = null;
+  lost = null;
   const s = ws;
   ws = null;
+  // bewusst gehen: Raum sofort schließen (keine Gnadenfrist)
+  if (s?.readyState === WebSocket.OPEN) s.send(JSON.stringify({ t: "bye" }));
   s?.close();
   dropGuests();
 }
@@ -960,47 +1078,73 @@ function joinWorld(code: string) {
   stopLobby();
   closeWorld();
   persist();
-  let myId = "";
   mode = "guest";
   gotSnap = false;
-  ws = connect(
-    `/join/${code}`,
+  hostAway = false;
+  lost = null;
+  joinedId = "";
+  ws = guestSocket(code);
+}
+let joinedId = "";
+
+/** Verbindung des Gastes; mit Geräte-Schlüssel, damit man nicht doppelt in der Welt ist */
+function guestSocket(code: string) {
+  const key = DEVICE_KEY ? `?key=${DEVICE_KEY}` : "";
+  return connect(
+    `/join/${code}${key}`,
     (m) => {
       if (m.t === "joined" && typeof m.id === "string") {
-        myId = m.id;
+        if (lost) toast("Wieder verbunden!", 2);
+        lost = null;
+        joinedId = m.id;
         guestSend({ v: 1, k: "hello", name: profile.name || "Wanderer", color: profile.color });
       } else if (m.t === "error") {
         leaveGuest(
-          m.reason === "full"
-            ? "Diese Welt ist schon voll (6 Spieler)."
-            : "Diesen Raum gibt es nicht – prüf den Code.",
+          lost
+            ? "Der Gastgeber hat die Welt verlassen."
+            : m.reason === "full"
+              ? "Diese Welt ist schon voll (6 Spieler)."
+              : "Diesen Raum gibt es nicht – prüf den Code.",
         );
       } else if (m.t === "closed") leaveGuest("Der Gastgeber hat die Welt verlassen.");
-      else if (m.t === "msg") {
+      else if (m.t === "replaced") leaveGuest("Du spielst jetzt in einem anderen Fenster weiter.");
+      else if (m.t === "host-away") hostAway = true;
+      else if (m.t === "host-back") {
+        hostAway = false;
+        toast("Der Gastgeber ist zurück!", 2);
+      } else if (m.t === "msg") {
         const h = parseHost(m.d);
         if (!h) return;
         if (h.k === "welcome") {
+          // nach dem Wiederverbinden: gleiche Welt, nichts neu erzeugen
+          if (worldReady && world.seed === h.seed && meId === joinedId && state.players[meId])
+            return;
           worldReady = false;
           withLoading(() => {
             world = generateWorld(h.seed);
             state = createState(world);
             state.players = {};
-            meId = myId;
+            meId = joinedId;
             addPlayer(world, state, meId, profile.name, profile.color);
             bushAt = null;
             minimap = null;
             worldReady = true;
             resume();
           });
-        } else if (h.k === "snap" && meId === myId && worldReady) {
+        } else if (h.k === "snap" && meId === joinedId && worldReady) {
           applySnap(state, h, meId, !gotSnap);
           if (!state.players[meId]) addPlayer(world, state, meId, profile.name, profile.color);
           gotSnap = true;
         } else if (h.k === "toast") toast(h.text, 1.5);
       }
     },
-    (opened) => {
-      if (mode === "guest") leaveGuest(opened ? "Der Gastgeber hat die Welt verlassen." : OFFLINE);
+    (opened, closeCode) => {
+      if (mode !== "guest") return;
+      if (closeCode === 4001) return leaveGuest("Der Gastgeber hat die Welt verlassen.");
+      if (closeCode === 4003)
+        return leaveGuest("Du spielst jetzt in einem anderen Fenster weiter.");
+      if (!opened && !lost) return leaveGuest(OFFLINE);
+      startReconnect(code);
     },
   );
 }
@@ -1008,8 +1152,12 @@ function joinWorld(code: string) {
 function leaveGuest(reason: string | null) {
   if (mode !== "guest") return;
   mode = "solo";
+  lost = null;
+  hostAway = false;
   const s = ws;
   ws = null;
+  // bewusst gehen: Platz sofort freigeben
+  if (s?.readyState === WebSocket.OPEN) s.send(JSON.stringify({ t: "bye" }));
   s?.close();
   const own = load(store);
   if (own) {
@@ -1465,6 +1613,7 @@ function tick(dt: number) {
       for (const ev of stepWorld(world, state, dt)) onEvent(ev);
   }
   if (mode !== "solo") netTick(dt);
+
   // Welt immer offen: im Hintergrund verbinden bzw. alle 30 s neu versuchen
   if (RELAY_URL && mode === "solo" && screen === "play" && now() >= nextOpenTry) {
     nextOpenTry = now() + 30_000;
@@ -1654,6 +1803,9 @@ if (debugEnabled) {
         fireBurn: FIRE.burn,
         mode,
         roomCode,
+        meId,
+        lost: !!lost,
+        hostAway,
         players: Object.values(state.players).map((q) => ({
           id: q.id,
           name: q.name,
@@ -1670,6 +1822,12 @@ if (debugEnabled) {
         lobbyError,
         visible: visibleAnimals(state, p).map((a) => a.kind),
       };
+    },
+    dropNet: () => {
+      // Netz-Abriss nachstellen: Verbindung ohne „bye“ schließen
+      const s = ws;
+      ws = null;
+      s?.close();
     },
     teleport: (x, y, fx, fy) => {
       const p = me();
