@@ -84,6 +84,10 @@ export class Sound {
     o.stop(t + dur + 0.05);
   }
 
+  /** Flugzeug in der Ferne: ganz leises, tiefes Rauschen, das an- und abschwillt */
+  plane() {
+    this.swish(5, 380, 0.06, 0.4);
+  }
   brush() {
     this.swish(0.7, 3200, 0.25, 0.6);
   }

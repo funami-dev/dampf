@@ -103,6 +103,36 @@ Das Spiel macht **keine Gesundheitsversprechen**.
 - Alles per Code gezeichnet, keine Bilddateien. Bilder werden einmal erzeugt und nur verschoben,
   damit es auch auf älteren Handys ruhig läuft.
 
+## Flugzeuge über dem Haus (Version 1.4, Feedback `fb_z3twq7pv`)
+
+Das Wichtelhaus steht am Rand des **Flughafens Düsseldorf**. Über dem Haus zieht der **echte
+Flugverkehr** vorbei – live, aber ruhig.
+
+- **Datenquelle:** die offene Flugdaten-Schnittstelle **adsb.lol** (keine Flughafen-Webseite, kein
+  Scrapen). Der Dampf-Worker holt die Flugzeuge im Umkreis von 15 km um den Flughafen höchstens
+  alle 20 Sekunden für alle Spieler gemeinsam (zwischengespeichert) und gibt nur das Nötige weiter:
+  Flugzeugtyp, Art (Sorte), Landung/Start/Überflug, Flugrichtung, Höhe. Keine Kennungen,
+  Flugnummern oder Positionen werden weitergegeben. Im Spiel steht klein „Flugdaten: adsb.lol
+  (ODbL)“.
+- **Betriebsrichtung:** Die Bahnen in Düsseldorf zeigen nach 053° (Osten) und 233° (Westen). Aus den
+  Richtungen der startenden und landenden Flugzeuge in Bahnnähe ergibt sich „Westbetrieb“ oder
+  „Ostbetrieb“ (Mehrheit). Im Spiel ist links Westen, rechts Osten: Bei **Westbetrieb kommen die
+  Flugzeuge von rechts** und fliegen nach links, bei Ostbetrieb umgekehrt. Landende sinken langsam
+  über dem Haus, startende steigen.
+- **Pixelgrafik (16-Bit-Stil)** je **Sorte**, jedem Typcode zugeordnet:
+  Kurzstrecken-Jet (z. B. A320, B737), langer Kurzstrecken-Jet (A321, B739), Großraumjet (A330,
+  A350, B787, B777), Jumbo mit vier Triebwerken (B747, A380, A340), Regionaljet (Embraer, CRJ),
+  Propellermaschine (ATR, Dash 8), Kleinflugzeug, Hubschrauber; Unbekanntes als Kurzstrecken-Jet.
+- **Ruhig:** höchstens 3 Flugzeuge gleichzeitig, klein und hoch über dem Haus, langsam (ein Überflug
+  dauert 20–40 s), leises, gedämpftes Rauschen (folgt der Lautstärke, stumm = stumm). Nachts sind
+  nur ruhig leuchtende Positionslichter zu sehen (rot links, grün rechts, kein Blinken).
+- **Antippen** eines Flugzeugs: kleine Sprechblase, z. B. „Airbus A320 – Landung von Osten“.
+- **Der Wichtel kommentiert** ab und zu (höchstens alle 2 Minuten) ein Flugzeug, passend zur Sorte:
+  „Oh, ein großer Jumbo!“, „Ein Propellerflugzeug – das brummt so gemütlich.“, „Ein Hubschrauber!“
+  – nur wenn er wach ist und nichts anderes sagt.
+- **Ohne Live-Daten** (keine Verbindung, Störung, Nachtflugverbot) bleibt der Himmel leer; es
+  werden keine ausgedachten Flugzeuge gezeigt.
+
 ## Zuschauen und helfen
 
 - **Vorratsschrank füllen:** Knopf „Einkaufen“ → Auswahl (Brot, Gemüse, Obst, Kuchen, Suppe);
@@ -186,6 +216,15 @@ Das Spiel macht **keine Gesundheitsversprechen**.
 - **WH-AK-17** Baden auf Bitte: „Geh doch baden!“ wird angenommen, wenn er nicht ganz sauber ist
   (unter 95 %), sonst „Ich bin doch ganz sauber!“; danach ist er im Bad und hinterher sauber
   (Vitest); im Spiel sitzt er in der Wanne (E2E).
+- **WH-AK-18** (Vitest, Worker) Flugdaten aufbereiten: nur Flugzeuge im Umkreis von 15 km und unter
+  3 000 m; Landung (sinkend), Start (steigend) oder Überflug; Betriebsrichtung aus den Kursen
+  (Mehrheit nahe 233° → Westen, nahe 053° → Osten, sonst unbekannt); Typcodes → Sorte; keine
+  Kennungen in der Antwort; kaputte oder leere Daten → leere Liste ohne Fehler.
+- **WH-AK-19** (Vitest, Spiel) Flugzeuge am Himmel: höchstens 3; Westbetrieb → von rechts nach
+  links, Ostbetrieb → von links nach rechts; jede Sorte hat ein Bild und einen Wichtel-Kommentar;
+  Kommentare höchstens alle 2 Minuten; keine Daten → kein Flugzeug.
+- **WH-AK-20** (E2E) Mit Testdaten erscheinen Flugzeuge, Antippen zeigt Typ und Landung/Start,
+  „Flugdaten: adsb.lol“ ist zu sehen; ohne Daten ist der Himmel leer; keine Fehler.
 - **WH-AK-10** Fokusverlust pausiert; Spiel erscheint im Portal mit Version 1.0.0.
 - **WH-AK-11** Ruhe-Regeln (Vitest + E2E): keine Zeitlimits, kein Verlieren, keine Punkte; alle
   Leerlauf-Animationen haben Zyklen ≥ 4 s (Atmen/Laterne 10 s); nichts blinkt schneller als 3 Hz;
