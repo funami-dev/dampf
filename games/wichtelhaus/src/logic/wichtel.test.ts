@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  STAIR_LIGHT,
+  newStairLight,
+  stepStairLight,
   BREATH,
   BREATH_CYCLE,
   DEFAULT_VOLUME,
@@ -21,6 +24,7 @@ import {
   activityInfo,
   ask,
   autoLight,
+  notePlane,
   toggleLight,
   atticOpen,
   catchUp,
@@ -295,5 +299,43 @@ describe("WH-AK-24: Licht in jedem Raum", () => {
     expect(autoLight(w)).toBe("Licht aus – gute Nacht!");
     expect(w.lights).toEqual({ wohnzimmer: true });
     expect(autoLight(w)).toBeNull();
+  });
+});
+
+describe("WH-AK-27: Licht im Treppenhaus", () => {
+  it("nachts weich an, bleibt 4 s, dann weich aus; tagsüber aus", () => {
+    const s = newStairLight();
+    expect(stepStairLight(s, true, false, 0.5)).toBe(0); // Tag
+    for (let i = 0; i < 4; i++) stepStairLight(s, true, true, 0.25);
+    expect(s.level).toBeCloseTo(1);
+    // verlassen: 4 s noch an
+    for (let t = 0; t < STAIR_LIGHT.hold - 0.01; t += 0.5) {
+      stepStairLight(s, false, true, 0.5);
+      expect(s.level).toBe(1);
+    }
+    stepStairLight(s, false, true, 0.5);
+    stepStairLight(s, false, true, 0.5);
+    expect(s.level).toBeLessThan(1);
+    for (let i = 0; i < 4; i++) stepStairLight(s, false, true, 0.5);
+    expect(s.level).toBe(0);
+  });
+});
+
+describe("WH-AK-28: Flugzeugbuch", () => {
+  it("neue Sorte einmal vermerkt, gespeichert; kaputte Daten → leer", () => {
+    const w = newWichtel({}, fixed(0));
+    expect(w.planesSeen).toEqual([]);
+    expect(notePlane(w, "jumbo")).toBe(true);
+    expect(notePlane(w, "jumbo")).toBe(false);
+    expect(notePlane(w, "ufo")).toBe(false);
+    expect(notePlane(w, "heli")).toBe(true);
+    const s = memory();
+    save(s, w);
+    expect(load(s)!.planesSeen).toEqual(["jumbo", "heli"]);
+    const raw = JSON.parse(s.data.get(KEY)!);
+    s.data.set(KEY, JSON.stringify({ ...raw, planesSeen: ["jumbo", "jumbo", "ufo", 3] }));
+    expect(load(s)!.planesSeen).toEqual(["jumbo"]);
+    s.data.set(KEY, JSON.stringify({ ...raw, planesSeen: "x" }));
+    expect(load(s)!.planesSeen).toEqual([]);
   });
 });

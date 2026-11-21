@@ -384,3 +384,44 @@ test("WH-AK-26: Bild-Knöpfe, Wichtel im Menü-Knopf, Status unten links", async
   }
   await expectNoErrors(errors);
 });
+
+test("WH-AK-28: Flugzeug antippen kommt ins Flugzeugbuch", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await moveIn(page);
+  await page.evaluate(() =>
+    (window.__dampf as Hooks).setFlights({
+      live: true,
+      runway: "west",
+      source: "adsb.lol (ODbL)",
+      flights: [{ type: "B744", cat: "jumbo", phase: "landung", track: 233, alt: 700 }],
+    }),
+  );
+  const vw = page.viewportSize()!.width;
+  const where = () => page.evaluate(() => (window.__dampf as Hooks).planePoint(0));
+  await expect
+    .poll(
+      async () => {
+        const p = await where();
+        return !!p && p.x > 40 && p.x < vw - 40;
+      },
+      { timeout: 20_000 },
+    )
+    .toBe(true);
+  const pt = (await where())!;
+  if (isMobile(page)) await page.touchscreen.tap(pt.x, pt.y);
+  else await page.mouse.click(pt.x, pt.y);
+  await expect.poll(async () => (await state(page)).bubble).toBe("Neu im Flugzeugbuch: Jumbo!");
+  await press(page, "Flugzeugbuch");
+  const book = page.getByRole("dialog", { name: "Flugzeugbuch" });
+  await expect(book.getByText("1 von 8 gesehen")).toBeVisible();
+  await expect(book.getByText("Jumbo", { exact: true })).toBeVisible();
+  await press(page, "Schließen");
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => !!window.__dampf), { timeout: 60_000 }).toBe(true);
+  await press(page, "Flugzeugbuch");
+  await expect(
+    page.getByRole("dialog", { name: "Flugzeugbuch" }).getByText("1 von 8 gesehen"),
+  ).toBeVisible();
+  await expectNoErrors(errors);
+});

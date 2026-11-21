@@ -7,6 +7,8 @@ import {
   BREATH_CYCLE,
   IDLE_CYCLES,
   REDUCED_MOTION_SLOWDOWN,
+  newStairLight,
+  stepStairLight,
   breathPhase,
   lanternLevel,
   sway,
@@ -31,6 +33,7 @@ import {
   giveGift,
   hasLight,
   isNight,
+  notePlane,
   load,
   newWichtel,
   save,
@@ -67,6 +70,9 @@ import {
   setReply,
   updateSky,
   watchRemark,
+  CATEGORIES,
+  CATEGORY_NAMES,
+  type Category,
   type FlightsReply,
 } from "./logic/planes.ts";
 
@@ -103,7 +109,9 @@ const FLIGHTS_URL = debugEnabled
   : ((import.meta.env.VITE_FLIGHTS_URL as string | undefined) ?? "");
 /** in Tests vorgegebene Daten: dann wird nichts abgerufen */
 let injected = false;
-let planeHits: { x: number; y: number; w: number; h: number; text: string }[] = [];
+let planeHits: { x: number; y: number; w: number; h: number; text: string; cat: Category }[] = [];
+/** Treppenhaus-Licht (WH-AK-27) */
+const stairLight = newStairLight();
 /** Beobachten: zu welcher Tätigkeit schon etwas gesagt wurde, und ob der Himmel leer war */
 const watch: { activity: unknown; empty: boolean } = { activity: null, empty: false };
 async function fetchFlights() {
@@ -165,6 +173,7 @@ layer.innerHTML = `
     <button class="wh-btn wh-icon" type="button" data-b="gift" aria-label="Geschenk" title="Geschenk">🎁</button>
     <button class="wh-btn wh-icon" type="button" data-b="knock" aria-label="Anklopfen" title="Anklopfen">🚪</button>
     <button class="wh-btn wh-icon" type="button" data-b="calm" aria-label="Ruhe" title="Ruhe">🕯️</button>
+    <button class="wh-btn wh-icon" type="button" data-b="book" aria-label="Flugzeugbuch" title="Flugzeugbuch">✈️</button>
     <button class="wh-btn wh-icon" type="button" data-b="letters" aria-label="Briefe" title="Briefe">✉️<span class="wh-badge" data-h="unread" hidden></span></button>
   </div>`;
 stage.append(layer);
@@ -360,6 +369,30 @@ const TASKS: [string, string, () => void][] = [
 ];
 let task: { id: string; started: number; done: boolean } | null = null;
 
+/** Flugzeugbuch: alle Sorten, gesehene mit Bild (WH-AK-28) */
+const planePics = new Map<Category, string>();
+function openPlaneBook() {
+  if (!world) return;
+  const seen = world.planesSeen;
+  const pic = (c: Category) => {
+    if (!planePics.has(c)) planePics.set(c, planeCanvas(c, false).toDataURL());
+    return planePics.get(c)!;
+  };
+  const el = drawer(
+    `<h2>✈️ Flugzeugbuch</h2><p>${seen.length} von ${CATEGORIES.length} gesehen</p>
+    <ul class="wh-planebook">${CATEGORIES.map((c) => {
+      const has = seen.includes(c);
+      return `<li class="${has ? "seen" : ""}"><img src="${pic(c)}" alt=""><span>${
+        has ? CATEGORY_NAMES[c] : "?"
+      }</span></li>`;
+    }).join("")}</ul>
+    <p><small>Tipp ein Flugzeug am Himmel an, dann kommt es ins Buch.</small></p>`,
+    "Flugzeugbuch",
+  );
+  sound.page();
+  el.classList.add("wh-scroll");
+}
+
 function openCalm() {
   if (!world) return;
   const w = world;
@@ -459,6 +492,7 @@ $('[data-b="shop"]').addEventListener("click", tap(openShop));
 $('[data-b="gift"]').addEventListener("click", tap(openGift));
 $('[data-b="knock"]').addEventListener("click", tap(openKnock));
 $('[data-b="calm"]').addEventListener("click", tap(openCalm));
+$('[data-b="book"]').addEventListener("click", tap(openPlaneBook));
 $('[data-b="letters"]').addEventListener("click", tap(openLetters));
 $('[data-b="sound"]').addEventListener("click", tap(openSound));
 $('[data-b="menu"]').addEventListener("click", (e) => {
@@ -687,6 +721,10 @@ class HouseScene extends Phaser.Scene {
         return;
       }
       tip.textContent = `✈️ ${hit.text}`;
+      if (world && notePlane(world, hit.cat)) {
+        say(`Neu im Flugzeugbuch: ${CATEGORY_NAMES[hit.cat]}!`, 4);
+        save(store, world);
+      }
       tip.style.left = `${Math.max(8, Math.min(r.width - 290, hit.x - 140))}px`;
       tip.style.top = `${Math.max(60, hit.y + 18)}px`;
       tip.hidden = false;
@@ -828,10 +866,13 @@ class HouseScene extends Phaser.Scene {
     }
     // Fensterglas zeigt den Himmel; die Raumbilder haben dort ein Loch
     const glass = night ? 0x2a3560 : mix(sky, 0xffffff, 0.35);
+    // nachts mit Licht: warm getöntes Glas (WH-AK-24, Version 1.8)
+    const litGlass = mix(0x2a3560, 0xffc870, 0.45);
+    const lit = (r: Room) => night && !!w?.lights[r];
     for (const r of Object.keys(ROOMS) as Room[]) {
       if (r === "dachboden") continue;
       const wr = windowRect(L.roomW);
-      R(roomX(r) + wr.x, floorY(L.rooms[r].floor) + wr.y, wr.w, wr.h, glass);
+      R(roomX(r) + wr.x, floorY(L.rooms[r].floor) + wr.y, wr.w, wr.h, lit(r) ? litGlass : glass);
     }
     const f = this.fg;
     f.clear();
@@ -865,6 +906,7 @@ class HouseScene extends Phaser.Scene {
         w: Math.max(28, (art.w * scale) / 2 + 10),
         h: Math.max(22, (art.h * scale) / 2 + 10),
         text: describePlane(pl.flight, pl.dir),
+        cat: pl.flight.cat,
       });
     }
     roomHits = [];
@@ -891,6 +933,23 @@ class HouseScene extends Phaser.Scene {
       }
       this.details(r, rx, ry, X, Y, k, night);
       this.lamp(r, rx, ry, X, Y, k, night, !!w?.lights[r]);
+      if (lit(r)) {
+        // weicher Schein ums Fenster
+        const wr = windowRect(L.roomW);
+        for (const [pad, a] of [
+          [10, 0.06],
+          [5, 0.1],
+        ] as const) {
+          this.fg.fillStyle(0xffc870, a);
+          this.fg.fillRoundedRect(
+            X(rx + wr.x - pad),
+            Y(ry + wr.y - pad),
+            (wr.w + 2 * pad) * k,
+            (wr.h + 2 * pad) * k,
+            pad * k,
+          );
+        }
+      }
     }
     // Außenwand rechts; Treppenhaus in der Mitte mit Zickzack-Treppe und Leiter (WH-AK-13)
     const F = (x: number, y: number, ww: number, hh: number, c: number, a = 1) => {
@@ -903,7 +962,15 @@ class HouseScene extends Phaser.Scene {
       const sm = stairX();
       const run = (L.stairW - 14) / 2;
       // Rückwand (hinter den Stufen) und Wände zu den Räumen
-      R(sl, top, L.stairW, L.floorH * L.floors, mix(0x3a2a20, 0xc4a882, night ? 0.5 : 1));
+      // nachts dunkel, mit Treppenhaus-Licht warm (WH-AK-27)
+      const sLvl = stairLight.level;
+      R(
+        sl,
+        top,
+        L.stairW,
+        L.floorH * L.floors,
+        mix(mix(0x3a2a20, 0xc4a882, night ? 0.5 : 1), 0xe8c48c, night ? sLvl * 0.55 : 0),
+      );
       for (let y = top + 4; y < GROUND; y += 10) R(sl, y, L.stairW, 1, 0x000000, 0.06);
       F(sl, top, 2, L.floorH * L.floors, 0x6b4f37);
       F(sl + L.stairW - 2, top, 2, L.floorH * L.floors, 0x6b4f37);
@@ -934,6 +1001,15 @@ class HouseScene extends Phaser.Scene {
         }
         // Boden der Etage
         F(sl + 2, yb - 2, L.stairW - 4, 2, 0x5a4434);
+        // Wandlampe je Etage
+        const ly = floorY(fl) + 14;
+        const lx = dir > 0 ? sl + 5 : sl + L.stairW - 9;
+        if (night && sLvl > 0) {
+          f.fillStyle(0xffd98a, 0.18 * sLvl);
+          f.fillCircle(X(lx + 2), Y(ly + 2), 18 * k);
+        }
+        F(lx, ly, 4, 4, 0x6b4f37);
+        F(lx + 1, ly + 1, 2, 2, night && sLvl > 0.5 ? 0xfff2b0 : 0x9a8a70);
       }
     }
     // Wichtel und Haustier
@@ -1175,6 +1251,12 @@ class HouseScene extends Phaser.Scene {
     const breath = sway(clock / slow, IDLE_CYCLES.atmen!); // 10 s
     const bob = walker.moving ? Math.abs(Math.sin(clock * 4)) * 1.5 : breath * 1.2;
     if (!walker.moving) arrivedFor = w.activity;
+    stepStairLight(
+      stairLight,
+      Math.abs(walker.x - stairX()) < L.stairW / 2 && Math.abs(walker.y - ty) > 1,
+      isNight(w.t),
+      dt,
+    );
     const x = walker.climbing ? walker.x + stairOffset(L, GROUND, walker.y).dx : walker.x;
     const y = walker.y - bob;
     const flip = walker.facing < 0;
@@ -1295,6 +1377,8 @@ if (debugEnabled) {
       t: world?.t ?? 0,
       lights: world ? Object.keys(world.lights).sort() : [],
       night: world ? isNight(world.t) : false,
+      planesSeen: world ? [...world.planesSeen] : [],
+      stairLight: stairLight.level,
       stairSteps,
       walkerY: walker.y,
     }),

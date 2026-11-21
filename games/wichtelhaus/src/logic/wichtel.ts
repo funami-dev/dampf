@@ -3,6 +3,8 @@
  * Reines TypeScript ohne Phaser/DOM, damit alles mit Vitest prüfbar ist.
  */
 
+import { CATEGORIES, type Category } from "./planes.ts";
+
 export const DAY = 360; // Sekunden pro Spieltag
 export const NIGHT_FROM = 0.75; // ab 3/4 des Tages ist Nacht …
 export const NIGHT_TO = 0.12; // … bis kurz nach Tagesbeginn
@@ -171,6 +173,8 @@ export interface World {
   muted: boolean;
   /** Licht je Raum an (WH-AK-24) */
   lights: Partial<Record<Room, boolean>>;
+  /** schon gesehene Flugzeug-Sorten (Flugzeugbuch, WH-AK-28) */
+  planesSeen: Category[];
 }
 
 const clamp = (v: number) => Math.max(0, Math.min(100, v));
@@ -210,7 +214,15 @@ export function newWichtel(
     volume: 0.3,
     muted: false,
     lights: {},
+    planesSeen: [],
   };
+}
+
+/** Flugzeug-Sorte ins Flugzeugbuch; true, wenn sie neu ist (WH-AK-28) */
+export function notePlane(w: World, c: string): boolean {
+  if (!(CATEGORIES as string[]).includes(c) || w.planesSeen.includes(c as Category)) return false;
+  w.planesSeen.push(c as Category);
+  return true;
 }
 
 /** Räume mit Licht (der Dachboden bleibt dunkel zum Sterne-Gucken) */
@@ -521,6 +533,9 @@ export function load(s: Store): World | null {
       activity: d.activity && d.activity.kind in ACT ? d.activity : w.activity,
       volume: num(d.volume) ? Math.max(0, Math.min(1, d.volume)) : 0.3,
       muted: d.muted === true,
+      planesSeen: Array.isArray(d.planesSeen)
+        ? [...new Set(d.planesSeen.filter((c) => (CATEGORIES as unknown[]).includes(c)))]
+        : [],
       lights:
         d.lights && typeof d.lights === "object"
           ? Object.fromEntries(

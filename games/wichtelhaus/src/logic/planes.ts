@@ -37,6 +37,17 @@ export const CATEGORIES: Category[] = [
   "klein",
   "heli",
 ];
+/** Namen der Sorten im Flugzeugbuch (WH-AK-28) */
+export const CATEGORY_NAMES: Record<Category, string> = {
+  kurz: "Kurzstrecken-Jet",
+  lang: "Langer Jet",
+  gross: "Großraumjet",
+  jumbo: "Jumbo",
+  regional: "Regionaljet",
+  propeller: "Propellerflugzeug",
+  klein: "Kleinflugzeug",
+  heli: "Hubschrauber",
+};
 export const SKY = { max: 3, minSecs: 20, maxSecs: 40, commentEvery: 120, spawnEvery: 6 };
 
 const NAMES: Record<string, string> = {
