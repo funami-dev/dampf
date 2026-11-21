@@ -47,6 +47,15 @@ import { debugEnabled } from "./debug.ts";
 import { fit, layoutFor, type Layout } from "./logic/layout.ts";
 import { FURNITURE, itemBox } from "./logic/furniture.ts";
 import { furnitureArt, petArt, roomArt, sleeperArt, wichtelArt, windowRect } from "./art/art.ts";
+import { PLANE_ART, planeCanvas } from "./art/planes.ts";
+import {
+  describe as describePlane,
+  newSky,
+  planePos,
+  setReply,
+  updateSky,
+  type FlightsReply,
+} from "./logic/planes.ts";
 
 const stage = mountGameShell({
   title: manifest.title,
@@ -72,6 +81,35 @@ const store: Store = {
   },
 };
 const sound = new Sound();
+
+// --- Flugzeuge über dem Haus (WH-AK-19/20): Live-Daten vom Dampf-Worker --------------------
+const traffic = newSky();
+// im Testmodus nur mit ?flights=… (sonst geben die Tests die Daten selbst vor)
+const FLIGHTS_URL = debugEnabled
+  ? (new URLSearchParams(location.search).get("flights") ?? "")
+  : ((import.meta.env.VITE_FLIGHTS_URL as string | undefined) ?? "");
+/** in Tests vorgegebene Daten: dann wird nichts abgerufen */
+let injected = false;
+let planeHits: { x: number; y: number; w: number; h: number; text: string }[] = [];
+async function fetchFlights() {
+  if (injected || !FLIGHTS_URL || document.hidden || paused) return;
+  try {
+    const res = await fetch(FLIGHTS_URL, { cache: "no-store" });
+    const data = (await res.json()) as FlightsReply;
+    if (!injected) setReply(traffic, data && Array.isArray(data.flights) ? data : null);
+  } catch {
+    if (!injected) setReply(traffic, null); // keine Daten → leerer Himmel
+  }
+  refreshCredit();
+}
+function refreshCredit() {
+  const el = document.querySelector<HTMLElement>(".wh-credit");
+  if (el) el.hidden = !traffic.reply;
+}
+if (FLIGHTS_URL) {
+  void fetchFlights();
+  window.setInterval(() => void fetchFlights(), 20_000);
+}
 const reduced =
   typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 const slow = reduced ? REDUCED_MOTION_SLOWDOWN : 1;
@@ -91,6 +129,8 @@ let clock = 0; // Sekunden seit Start (für Animationen)
 const layer = document.createElement("div");
 layer.className = "wh-layer";
 layer.innerHTML = `
+  <div class="wh-credit" hidden>Flugdaten: adsb.lol (ODbL)</div>
+  <div class="wh-planetip" role="status" hidden></div>
   <div class="wh-top" hidden>
     <div class="wh-needs" role="status" aria-label="So geht es dem Wichtel">
       <span data-n="hunger" title="Hunger">🍲<i><b></b></i></span>
@@ -459,6 +499,11 @@ function tick(dt: number) {
   const text = step(w, dt);
   if (walker.moving && w.activity === before) before.left += dt;
   if (text && clock > bubbleUntil) say(text, 4);
+  // Flugzeuge: ruhig weiterziehen lassen; der Wichtel sagt ab und zu etwas dazu
+  const before2 = traffic.planes.length;
+  const remark = updateSky(traffic, dt);
+  if (traffic.planes.length > before2) sound.plane();
+  if (remark && clock > bubbleUntil && w.activity.kind !== "schlafen") say(remark, 4);
   // Ruhe-Tätigkeit durch Halten (3 s)
   if (task && !task.done) {
     const p = Math.min(1, (clock - task.started) / 3);
@@ -579,6 +624,22 @@ class HouseScene extends Phaser.Scene {
     this.g = this.add.graphics().setDepth(0);
     this.fg = this.add.graphics().setDepth(2.5);
     this.fx = this.add.graphics().setDepth(3.5);
+    // Flugzeug antippen → kleine Sprechblase mit Typ und Landung/Start
+    const tip = document.querySelector<HTMLElement>(".wh-planetip")!;
+    let tipTimer = 0;
+    this.game.canvas.addEventListener("pointerdown", (e) => {
+      const r = this.game.canvas.getBoundingClientRect();
+      const x = e.clientX - r.left;
+      const y = e.clientY - r.top;
+      const hit = planeHits.find((p) => Math.abs(p.x - x) < p.w && Math.abs(p.y - y) < p.h);
+      if (!hit) return;
+      tip.textContent = `✈️ ${hit.text}`;
+      tip.style.left = `${Math.max(8, Math.min(r.width - 230, hit.x - 110))}px`;
+      tip.style.top = `${Math.max(60, hit.y + 18)}px`;
+      tip.hidden = false;
+      window.clearTimeout(tipTimer);
+      tipTimer = window.setTimeout(() => (tip.hidden = true), 4000);
+    });
     this.bubble = this.add
       .text(0, 0, "", {
         fontFamily: "system-ui, sans-serif",
@@ -724,6 +785,32 @@ class HouseScene extends Phaser.Scene {
     this.fx.clear();
     const tint = night ? 0x8a8aa8 : t > 0.62 ? 0xf2dcc8 : 0xffffff;
     this.seen.clear();
+    // Flugzeuge hoch über dem Haus (hinter dem Haus, vor dem Himmel)
+    planeHits = [];
+    const skyLow = Math.max(40, top - L.roofH - 30);
+    for (const pl of traffic.planes) {
+      const pos = planePos(pl);
+      const art = PLANE_ART[pl.flight.cat];
+      const px = -50 + pos.x * (W0 + 100);
+      const py = 16 + (1 - pos.y) * (skyLow - 16);
+      const scale = k * 1.6;
+      this.img(`plane:${pl.id}`, `pl-${pl.flight.cat}-${night ? "n" : "d"}`, () =>
+        planeCanvas(pl.flight.cat, night),
+      )
+        .setOrigin(0.5, 0.5)
+        .setPosition(X(px), Y(py))
+        .setScale(scale)
+        .setFlipX(pl.dir < 0)
+        .setDepth(0.5)
+        .clearTint();
+      planeHits.push({
+        x: X(px),
+        y: Y(py),
+        w: Math.max(28, (art.w * scale) / 2 + 10),
+        h: Math.max(22, (art.h * scale) / 2 + 10),
+        text: describePlane(pl.flight, pl.dir),
+      });
+    }
     for (const r of Object.keys(ROOMS) as Room[]) {
       if (r === "dachboden") continue;
       const rx = roomX(r);
@@ -1064,8 +1151,24 @@ if (debugEnabled) {
       reduced,
       sprites: spritesShown,
       bathing: bathingShown,
+      planes: traffic.planes.length,
+      planeTexts: planeHits.map((p) => p.text),
+      credit: !!traffic.reply,
       t: world?.t ?? 0,
     }),
+    /** Flugdaten vorgeben (null = keine Daten) und Flugzeuge sofort starten lassen */
+    setFlights: (r: FlightsReply | null) => {
+      injected = true;
+      setReply(traffic, r);
+      traffic.nextSpawn = 0;
+      refreshCredit();
+    },
+    planePoint: (i: number) => {
+      const p = planeHits[i];
+      if (!p) return null;
+      const r = document.querySelector("canvas")!.getBoundingClientRect();
+      return { x: r.left + p.x, y: r.top + p.y };
+    },
     advance: (s: number) => {
       if (world) for (let i = 0; i < s; i++) step(world, 1);
     },

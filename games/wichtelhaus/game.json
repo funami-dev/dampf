@@ -7,8 +7,18 @@
   "status": "published",
   "order": 100,
   "addedAt": "2026-11-10",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "changelog": [
+    {
+      "version": "1.4.0",
+      "date": "2026-11-21",
+      "time": "14:52",
+      "items": [
+        "Das Wichtelhaus steht jetzt am Düsseldorfer Flughafen: Über dem Dach ziehen echte Flugzeuge vorbei",
+        "Tipp ein Flugzeug an und erfahre, welches es ist – und ob es landet oder startet",
+        "Der Wichtel freut sich, wenn ein besonderes Flugzeug vorbeikommt"
+      ]
+    },
     {
       "version": "1.3.1",
       "date": "2026-11-11",

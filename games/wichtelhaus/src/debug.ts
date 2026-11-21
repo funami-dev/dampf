@@ -4,6 +4,9 @@ export interface DebugHooks {
   /** Spielzeit um s Sekunden weiterlaufen lassen */
   advance(s: number): void;
   setNeeds(n: Partial<Record<"hunger" | "energy" | "fun" | "clean", number>>): void;
+  /** Flugdaten vorgeben (WH-AK-20) */
+  setFlights(r: unknown): void;
+  planePoint(i: number): { x: number; y: number } | null;
 }
 
 declare global {

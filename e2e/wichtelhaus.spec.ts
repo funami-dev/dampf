@@ -19,11 +19,16 @@ interface WhState {
   calmSeconds: number | null;
   sprites: number;
   bathing: boolean;
+  planes: number;
+  planeTexts: string[];
+  credit: boolean;
 }
 interface Hooks {
   state(): WhState;
   advance(s: number): void;
   setNeeds(n: Record<string, number>): void;
+  setFlights(r: unknown): void;
+  planePoint(i: number): { x: number; y: number } | null;
 }
 declare global {
   interface Window {
@@ -182,6 +187,48 @@ test("WH-AK-17: Baden auf Bitte, Geschenke einzeln pro Tag", async ({ page }) =>
   await press(page, "🛁 Geh doch baden!");
   await expect.poll(async () => (await state(page)).activity).toBe("baden");
   await expect.poll(async () => (await state(page)).bathing, { timeout: 30_000 }).toBe(true);
+  await expectNoErrors(errors);
+});
+
+test("WH-AK-20: Flugzeuge mit Testdaten, Antippen zeigt den Typ, ohne Daten leer", async ({
+  page,
+}) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await moveIn(page);
+  expect((await state(page)).planes).toBe(0);
+  await expect(page.getByText("Flugdaten: adsb.lol (ODbL)")).toBeHidden();
+  await page.evaluate(() =>
+    (window.__dampf as Hooks).setFlights({
+      live: true,
+      runway: "west",
+      source: "adsb.lol (ODbL)",
+      flights: [{ type: "B748", cat: "jumbo", phase: "landung", track: 233, alt: 600 }],
+    }),
+  );
+  await expect.poll(async () => (await state(page)).planes).toBe(1);
+  await expect(page.getByText("Flugdaten: adsb.lol (ODbL)")).toBeVisible();
+  expect((await state(page)).planeTexts).toEqual(["Boeing 747-8 – Landung von Osten"]);
+  // es kommt von rechts herein: warten, bis es gut zu sehen ist
+  const vw = page.viewportSize()!.width;
+  const where = () => page.evaluate(() => (window.__dampf as Hooks).planePoint(0));
+  await expect
+    .poll(
+      async () => {
+        const p = await where();
+        return !!p && p.x > 40 && p.x < vw - 40;
+      },
+      { timeout: 20_000 },
+    )
+    .toBe(true);
+  const pt = (await where())!;
+  if (isMobile(page)) await page.touchscreen.tap(pt.x, pt.y);
+  else await page.mouse.click(pt.x, pt.y);
+  await expect(page.getByText("✈️ Boeing 747-8 – Landung von Osten")).toBeVisible();
+  // keine Daten → leerer Himmel
+  await page.evaluate(() => (window.__dampf as Hooks).setFlights(null));
+  await expect.poll(async () => (await state(page)).planes).toBe(0);
+  await expect(page.getByText("Flugdaten: adsb.lol (ODbL)")).toBeHidden();
   await expectNoErrors(errors);
 });
 

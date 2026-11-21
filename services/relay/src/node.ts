@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
 import { CORS, Hub, route } from "./hub.ts";
 import { FB_LIMITS, FeedbackService, MemoryRepo, isFeedbackPath } from "./feedback.ts";
+import { FLIGHTS_PATH, handleFlights } from "./flights.ts";
 
 const port = Number(process.env.PORT ?? 8787);
 const hub = new Hub();
@@ -12,6 +13,15 @@ const feedback = new FeedbackService(new MemoryRepo(), {
 });
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://x");
+  // Flugverkehr: lokal ohne Quelle → leerer Himmel (Tests geben Daten über den Test-Zugang vor)
+  if (url.pathname === FLIGHTS_PATH) {
+    const r = await handleFlights(async () => {
+      throw new Error("lokal keine Quelle");
+    });
+    res.writeHead(r.status, r.headers);
+    res.end(r.body);
+    return;
+  }
   if (isFeedbackPath(url.pathname)) {
     // Body höchstens bis knapp über die Grenze lesen
     let body = "";

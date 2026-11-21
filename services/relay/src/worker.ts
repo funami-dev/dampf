@@ -5,6 +5,7 @@
 import { CORS, Hub, route } from "./hub.ts";
 import { FB_LIMITS, FeedbackService, isFeedbackPath } from "./feedback.ts";
 import { SqlRepo, type SqlLike } from "./feedback-sql.ts";
+import { CACHE_SECONDS, FLIGHTS_PATH, handleFlights } from "./flights.ts";
 
 interface Namespace {
   idFromName(name: string): unknown;
@@ -31,6 +32,17 @@ export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
     if (url.pathname === "/") return new Response("Dampf-Raum-Server", { status: 200 });
+    // Flugverkehr Düsseldorf fürs Wichtelhaus; Cloudflare speichert die Quelle kurz zwischen,
+    // so wird adsb.lol höchstens alle 20 s gefragt – für alle Spieler gemeinsam
+    if (url.pathname === FLIGHTS_PATH) {
+      const r = await handleFlights((u) =>
+        fetch(u, {
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; kids-game-flight-widget)" },
+          cf: { cacheTtl: CACHE_SECONDS, cacheEverything: true },
+        } as RequestInit),
+      );
+      return new Response(r.body, { status: r.status, headers: r.headers });
+    }
     if (isFeedbackPath(url.pathname))
       return env.FEEDBACK.get(env.FEEDBACK.idFromName("feedback")).fetch(req);
     const r = route(url.pathname);
