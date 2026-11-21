@@ -141,6 +141,22 @@ describe("WH-AK-03/04: Einkaufen, Geschenke, Bitten", () => {
     w.needs.clean = 98;
     expect(ask(w, "baden")).toEqual({ ok: false, text: "Ich bin doch ganz sauber!" });
   });
+  it("WH-AK-23: Flugzeuge beobachten auf Bitte", () => {
+    const w = newWichtel({});
+    w.t = DAY * 0.3;
+    w.needs = { hunger: 80, energy: 80, fun: 40, clean: 80 };
+    w.friendship = 0;
+    expect(ask(w, "flugzeuge").ok).toBe(true);
+    expect([w.activity.kind, w.activity.room]).toEqual(["flugzeuge", "schlafzimmer"]);
+    for (let k = 0; k < 30; k++) step(w, 1, fixed(0.5));
+    expect(w.needs.fun).toBeGreaterThan(40);
+    w.friendship = ATTIC_AT;
+    w.needs.energy = 80;
+    ask(w, "flugzeuge");
+    expect(w.activity.room).toBe("dachboden");
+    w.needs.energy = 10;
+    expect(ask(w, "flugzeuge")).toEqual({ ok: false, text: "Jetzt nicht, ich bin so müde …" });
+  });
   it("alte Spielstände: Geschenk von heute zählt, neue Felder kommen dazu", () => {
     const s = memory();
     const w = newWichtel({ name: "Pip" });
@@ -164,7 +180,15 @@ describe("WH-AK-03/04: Einkaufen, Geschenke, Bitten", () => {
     expect(no).toEqual({ ok: false, text: "Jetzt nicht, ich bin so müde …" });
     w.needs.energy = 95;
     expect(ask(w, "schlafen").ok).toBe(false);
-    for (const r of ["musik", "basteln", "vorlesen", "schlafen", "spielen", "baden"] as const)
+    for (const r of [
+      "musik",
+      "basteln",
+      "vorlesen",
+      "schlafen",
+      "spielen",
+      "baden",
+      "flugzeuge",
+    ] as const)
       expect(ask(w, r).text.length).toBeGreaterThan(5);
   });
 });

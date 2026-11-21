@@ -137,6 +137,13 @@ Flugverkehr** vorbei – live, aber ruhig.
 - **Der Wichtel kommentiert** ab und zu (höchstens alle 2 Minuten) ein Flugzeug, passend zur Sorte:
   „Oh, ein großer Jumbo!“, „Ein Propellerflugzeug – das brummt so gemütlich.“, „Ein Hubschrauber!“
   – nur wenn er wach ist und nichts anderes sagt.
+- **Flugzeuge beobachten** (Version 1.6, Feedback `fb_a17in8m7`): Beim Anklopfen gibt es
+  „✈️ Schau mal die Flugzeuge!“. Er geht ans Fenster oben (mit freiem Dachboden ans Teleskop) und
+  sagt etwas zum echten Flugzeug am Himmel, z. B. „Da! Ein Airbus A320 von Pegasus – der kommt
+  aus Kayseri (Türkei)!“ oder bei einem Start „… – der fliegt nach Monastir (Tunesien). Gute
+  Reise!“. Ist der Himmel leer: „Gerade ist der Himmel leer … vielleicht kommt gleich eins.“ –
+  kommt dann eins, sagt er noch etwas. Nachts: „Ich sehe nur die Lichter der Flugzeuge – schön!“.
+  Sehr müde (Energie unter 20 %) sagt er freundlich Nein. Macht etwas Spaß (+15 %).
 - **Ohne Live-Daten** (keine Verbindung, Störung, Nachtflugverbot) bleibt der Himmel leer; es
   werden keine ausgedachten Flugzeuge gezeigt.
 
@@ -232,6 +239,8 @@ Flugverkehr** vorbei – live, aber ruhig.
   Antwort von adsbdb.com → Start/Ziel mit Stadt und Land, unbekannte Flugnummer → keine Strecke; Flugnummern erscheinen nicht
   in der Antwort; fällt die Routen-Abfrage aus, kommen die Flugzeuge trotzdem (ohne Strecke).
 - **WH-AK-22** (E2E) Antippen zeigt Fluggesellschaft und „von … nach …“, wenn bekannt.
+- **WH-AK-23** (Vitest) Flugzeuge beobachten: Bitte angenommen (oben bzw. Dachboden), müde → Nein;
+  Sätze für Landung mit Herkunft, Start mit Ziel, leeren Himmel und Nacht; danach mehr Spaß.
 - **WH-AK-19** (Vitest, Spiel) Flugzeuge am Himmel: höchstens 3; Westbetrieb → von rechts nach
   links, Ostbetrieb → von links nach rechts; jede Sorte hat ein Bild und einen Wichtel-Kommentar;
   Kommentare höchstens alle 2 Minuten; keine Daten → kein Flugzeug.
