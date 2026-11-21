@@ -10,8 +10,18 @@
   "status": "published",
   "order": 110,
   "addedAt": "2026-11-14",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "changelog": [
+    {
+      "version": "1.2.0",
+      "date": "2026-11-22",
+      "time": "00:53",
+      "items": [
+        "Neue Bauteile: LED, Widerstand mit Farbringen und ein Messgerät für Volt und mA",
+        "Ohne Widerstand macht die LED Puff – mit Bremse leuchtet sie",
+        "Drei neue Missionen: LED mit Bremse, Spannung messen, Strom messen"
+      ]
+    },
     {
       "version": "1.1.0",
       "date": "2026-11-15",

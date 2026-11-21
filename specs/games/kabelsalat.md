@@ -133,13 +133,51 @@ Leise Web-Audio-Klänge: Einrasten (Klick), Schalter (Klack), Lämpchen geht an 
 Kurzschluss (kurzes tiefes Brummen), Mission geschafft (kleine Melodie). Lautstärke und Stumm im
 Menü; startet leise (30 %).
 
-## Später (nicht in 1.0)
+## Version 1.2: LED, Widerstand und Messgerät (Vorschlag im Chat angenommen)
 
-- Version 1.1: LED (2 Punkte: Anode/Kathode, Richtung!) und Widerstand mit Farbringen, Puff-Wölkchen bei LED ohne
-  Widerstand; Multimeter (Volt und Milliampere an zwei Messspitzen).
-- Version 1.2: Taster, Drehregler (Potentiometer), Summer.
-- Version 1.3: Kondensator (lädt und entlädt sich, Lämpchen glimmt nach), einfaches „Oszilloskop“.
-- Version 1.4: Wechselstromquelle, Diode, Gleichrichter.
+### Neue Bauteile
+
+| Bauteil    | Anschlusspunkte   | Verhalten                                                                       |
+| ---------- | ----------------- | ------------------------------------------------------------------------------- |
+| LED        | 2 (A = +, K = −)  | leuchtet nur richtig herum (A zum Plus); braucht etwa 2 V; zu viel Strom → Puff |
+| Widerstand | 2                 | bremst den Strom; Wert 100 Ω, 220 Ω, 470 Ω oder 1 kΩ, mit Farbringen            |
+| Messgerät  | 2 (+ rot, − blau) | zeigt **Volt** (Spannung zwischen den Spitzen) oder **mA** (Strom hindurch)     |
+
+- **LED:** Die Rechnung nimmt eine Schwellspannung von 2,0 V und einen kleinen Eigenwiderstand
+  (5 Ω). Andersherum eingebaut fließt kein Strom. Helligkeit: unter 1 mA aus, bis 8 mA schwach,
+  bis 30 mA hell. **Über 30 mA:** ein kleines graues **Puff-Wölkchen** steigt auf, die LED bleibt
+  dunkel und eine Sprechblase erklärt: „Puff! Zu viel Strom – die LED braucht einen Widerstand als
+  Bremse.“ Nichts geht kaputt: Mit Widerstand leuchtet sie sofort wieder.
+- **Widerstand:** Block mit Farbringen nach Wert (100 Ω braun-schwarz-braun, 220 Ω
+  rot-rot-braun, 470 Ω gelb-violett-braun, 1 kΩ braun-schwarz-rot). Im Modus Bauen: Widerstand
+  antippen, dann „🎨 Wert“ wechselt reihum (Start 220 Ω). Auf dem Block steht der Wert.
+- **Messgerät:** Block mit kleiner Anzeige. Im Modus ▶ Ausprobieren schaltet Antippen zwischen
+  **V** und **mA** um (Start: V). Als Voltmeter misst es fast stromlos (10 MΩ); als
+  Strommesser ist es fast ein Kabel (0,1 Ω) – darum gehört es dann **in den Kreis**. Steckt es auf
+  mA direkt an der Batterie, gibt es einen Kurzschluss (wie in echt), mit Hinweis
+  „Auf mA ist das Messgerät wie ein Kabel – miss Strom immer in Reihe.“ Anzeige gerundet
+  („4,5 V“, „290 mA“), eine Nachkommastelle bei Volt.
+- **Schaltplan:** LED als Dreieck mit Strich und zwei Pfeilen (leuchtet gelb, wenn an), Widerstand
+  als Rechteck mit Wert, Messgerät als Kreis mit „V“ bzw. „A“.
+- **Bauteile-Buch:** Steckbriefe für LED, Widerstand und Messgerät.
+
+### Neue Missionen
+
+9. **LED mit Bremse:** Batterie, LED, Widerstand. Die LED soll leuchten, ohne Puff. (Erklärung:
+   Die LED braucht einen Widerstand, und sie leuchtet nur richtig herum: A zum Plus.)
+10. **Spannung messen:** Batterie, Lämpchen, Messgerät. Das Lämpchen leuchtet, und das Messgerät
+    zeigt auf **V** die Spannung am Lämpchen (mindestens 3,5 V).
+11. **Strom messen:** Batterie, Lämpchen, Messgerät. Das Messgerät steckt **in Reihe** im Kreis,
+    steht auf **mA** und zeigt den Strom (mindestens 200 mA); das Lämpchen leuchtet.
+
+Jede neue Mission hat 3–6 Tipp-Schritte wie die anderen. Nach Mission 9 sind LED und Widerstand,
+nach Mission 10 das Messgerät im Freibau verfügbar.
+
+## Später
+
+- Version 1.3: Taster, Drehregler (Potentiometer), Summer.
+- Version 1.4: Kondensator (lädt und entlädt sich, Lämpchen glimmt nach), einfaches „Oszilloskop“.
+- Version 1.5: Wechselstromquelle, Diode, Gleichrichter.
 - Danach: Transistor (3 Punkte: Basis, Kollektor, Emitter) als Schalter, Lichtsensor, Motor.
 
 ## Akzeptanzkriterien
@@ -175,5 +213,18 @@ Menü; startet leise (30 %).
 - **KS-AK-12** (E2E) Tipp-Knopf zeigt nacheinander die Schritte, ein erledigter Schritt bekommt ✓;
   auf einem breiten Bildschirm (1300 × 700) füllen Werkbank und Schaltplan zusammen mindestens
   85 % der Breite und 75 % der Höhe des Spielbereichs.
+- **KS-AK-13** (Vitest) LED und Widerstand: Batterie + 220 Ω + LED richtig herum → etwa 11 mA
+  (±10 %), „hell“; mit 1 kΩ „schwach“; falsch herum → kein Strom; ohne Widerstand → „puff“ und kein
+  Leuchten; Werte wechseln reihum 100 → 220 → 470 → 1000 → 100; Wert bleibt beim Speichern,
+  unbekannte Werte → 220 Ω.
+- **KS-AK-14** (Vitest) Messgerät: auf V über dem Lämpchen ≈ Spannung am Lämpchen, ändert den Strom
+  nicht merklich (±1 %); auf mA in Reihe ≈ Lämpchenstrom (±5 %); auf mA direkt an der Batterie →
+  Kurzschluss; Umschalten nur im Modus Ausprobieren (toggle).
+- **KS-AK-15** (Vitest) Missionen 9–11: richtige Lösungen bestehen, falsche nicht (9: LED falsch
+  herum oder ohne Widerstand; 10: Messgerät auf mA; 11: Messgerät auf V oder parallel); Tipp-Schritte
+  wie KS-AK-11.
+- **KS-AK-16** (E2E) Mission 9 bauen: LED ohne Widerstand → Puff-Hinweis; mit Widerstand leuchtet
+  sie und die Mission ist geschafft; Widerstandswert über „🎨 Wert“ wechseln; Schaltplan zeigt die
+  neuen Symbole; keine Fehler.
 - **KS-AK-10** Ruhig und sicher: nichts blinkt schneller als 2 Hz, Klänge starten leise,
   Fokusverlust pausiert die Lichtpunkte (die Schaltung bleibt).

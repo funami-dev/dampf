@@ -21,6 +21,9 @@ import {
   samePin,
   toggle,
   wiresAt,
+  TOGGLES,
+  cycleValue,
+  ohms,
   type Circuit,
   type Kind,
   type Part,
@@ -82,7 +85,25 @@ const KIND_ICON: Record<Kind, string> = {
   lampe: "💡",
   schalter: "🔘",
   umschalter: "🔀",
+  led: "🔆",
+  widerstand: "🟫",
+  messgeraet: "📟",
 };
+/** Farbringe der Widerstände (KS-AK-13) */
+const RINGS: Record<number, number[]> = {
+  100: [0x8b4513, 0x111111, 0x8b4513],
+  220: [0xe74c3c, 0xe74c3c, 0x8b4513],
+  470: [0xf1c40f, 0x8e44ad, 0x8b4513],
+  1000: [0x8b4513, 0x111111, 0xe74c3c],
+};
+const ohmText = (o: number) => (o >= 1000 ? `${o / 1000} kΩ` : `${o} Ω`);
+/** Anzeige des Messgeräts: „4,5 V“ bzw. „290 mA“ */
+const meterText = (m: { mode: "V" | "mA"; value: number } | undefined) =>
+  !m
+    ? "–"
+    : m.mode === "V"
+      ? `${m.value.toFixed(1).replace(".", ",").replace("-0,0", "0,0")} V`
+      : `${Math.round(m.value)} mA`;
 const BOOK: Record<Kind, { text: string; symbol: string; daily: string }> = {
   batterie: {
     text: "Die Batterie schiebt den Strom an: aus dem Pluspol (+) heraus, durch die Schaltung und zurück in den Minuspol (−). Diese hat 4,5 Volt.",
@@ -103,6 +124,21 @@ const BOOK: Record<Kind, { text: string; symbol: string; daily: string }> = {
     text: "Der Umschalter verbindet seine Mitte (M) entweder mit A oder mit B – nie mit beiden.",
     symbol: "eine Klappe, die zwischen zwei Anschlüssen hin und her kippt",
     daily: "Licht im Treppenhaus, oben und unten schaltbar",
+  },
+  led: {
+    text: "Eine LED (Leuchtdiode) leuchtet nur in eine Richtung: A (langes Bein) zum Plus, K zum Minus. Sie braucht etwa 2 Volt und einen Widerstand als Bremse – sonst macht sie Puff.",
+    symbol: "ein Dreieck mit einem Strich davor und zwei kleinen Pfeilen",
+    daily: "Fahrradlicht, Lämpchen am Fernseher, Ampel",
+  },
+  widerstand: {
+    text: "Ein Widerstand bremst den Strom. Je mehr Ohm (Ω), desto weniger Strom. Die Farbringe verraten den Wert.",
+    symbol: "ein schmales Rechteck",
+    daily: "in fast jedem Gerät mit Elektronik",
+  },
+  messgeraet: {
+    text: "Das Messgerät zeigt Volt (Spannung, daneben stecken) oder mA (Strom, in Reihe stecken). Auf mA ist es fast ein Kabel!",
+    symbol: "ein Kreis mit V (Volt) oder A (Ampere)",
+    daily: "Werkzeugkiste von Elektrikern",
   },
 };
 
@@ -129,6 +165,7 @@ layer.innerHTML = `
   </div>
   <div class="ks-sel" hidden>
     <button class="ks-btn" type="button" data-b="drehen">↻ Drehen</button>
+    <button class="ks-btn" type="button" data-b="wert" hidden>🎨 Wert</button>
     <button class="ks-btn" type="button" data-b="weg">🗑 Weg</button>
   </div>
   <div class="ks-toast" role="alert" hidden></div>
@@ -182,6 +219,15 @@ $('[data-b="view"]').addEventListener("click", () => {
 });
 $('[data-b="menu"]').addEventListener("click", () => openMenu());
 $('[data-b="drehen"]').addEventListener("click", () => rotateSelected());
+$('[data-b="wert"]').addEventListener("click", () => {
+  if (selected.part === undefined) return;
+  const o = cycleValue(circuit, selected.part);
+  if (o !== null) {
+    sound.click();
+    toast(`Widerstand: ${ohmText(o)}`, 1.5);
+    changed();
+  }
+});
 $('[data-b="weg"]').addEventListener("click", () => deleteSelected());
 
 /** Was ist noch in der Kiste? */
@@ -253,6 +299,10 @@ function refreshUi() {
   kitEl.querySelector('[data-b="leer"]')?.addEventListener("click", () => clearFree());
   selEl.hidden = mode !== "bauen" || (selected.part === undefined && selected.wire === undefined);
   $<HTMLButtonElement>('[data-b="drehen"]').hidden = selected.part === undefined;
+  const selPart = circuit.parts.find((p) => p.id === selected.part);
+  const wert = $<HTMLButtonElement>('[data-b="wert"]');
+  wert.hidden = selPart?.kind !== "widerstand";
+  if (selPart?.kind === "widerstand") wert.textContent = `🎨 Wert: ${ohmText(ohms(selPart))}`;
   $('[data-b="view"]').textContent = view === "werkbank" ? "📐 Schaltplan" : "🔧 Werkbank";
 }
 
@@ -320,6 +370,7 @@ function deleteSelected() {
 // --- Rechnen, prüfen, speichern ---------------------------------------------------------
 let lastLit = new Set<number>();
 let lastShort = false;
+let lastPuff = false;
 function changed(byToggle = false) {
   tried = byToggle ? true : false;
   result = solve(circuit);
@@ -328,16 +379,28 @@ function changed(byToggle = false) {
       .filter(([, l]) => l.level !== "aus")
       .map(([id]) => Number(id)),
   );
+  for (const [id, l] of Object.entries(result.leds))
+    if (l.level === "hell" || l.level === "schwach") lit.add(Number(id));
   if ([...lit].some((id) => !lastLit.has(id))) sound.pling();
   lastLit = lit;
   if (result.short && !lastShort) {
     sound.buzz();
+    const meterShort = Object.values(result.meters).some((m) => m.mode === "mA");
     toast(
-      "⚠️ Kurzschluss! Der Strom nimmt den kürzesten Weg und geht nicht durch das Lämpchen.",
+      meterShort
+        ? "⚠️ Kurzschluss! Auf mA ist das Messgerät wie ein Kabel – miss Strom immer in Reihe."
+        : "⚠️ Kurzschluss! Der Strom nimmt den kürzesten Weg und geht nicht durch das Lämpchen.",
       5,
     );
   }
   lastShort = result.short;
+  // LED mit zu viel Strom: Puff (KS-AK-13)
+  const puff = Object.values(result.leds).some((l) => l.level === "puff");
+  if (puff && !lastPuff) {
+    sound.buzz();
+    toast("💨 Puff! Zu viel Strom – die LED braucht einen Widerstand als Bremse.", 5);
+  }
+  lastPuff = puff;
   if (mission) {
     data.builds[mission.id] = clone(circuit);
     const v = checkMission(mission, circuit);
@@ -576,6 +639,9 @@ const PART_COLORS: Record<Kind, number> = {
   lampe: 0x3d4a5c,
   schalter: 0x34495e,
   umschalter: 0x3b4b5e,
+  led: 0x3d4a5c,
+  widerstand: 0x3a4a4a,
+  messgeraet: 0x2f3e46,
 };
 
 /** Kabel als weicher Bogen: Punkte entlang der Kurve */
@@ -774,7 +840,7 @@ class Bench extends Phaser.Scene {
     if (!w) return;
     const hit = hitTest(w.x, w.y, benchFrame.k);
     if (mode === "probieren") {
-      if (hit.part && (hit.part.kind === "schalter" || hit.part.kind === "umschalter")) {
+      if (hit.part && TOGGLES.includes(hit.part.kind)) {
         toggle(circuit, hit.part.id);
         sound.clack();
         changed(true);
@@ -1094,6 +1160,79 @@ class Bench extends Phaser.Scene {
         line([-10, 0], p.on ? [24, 20] : [24, -20], 6, 0x2ecc71);
         break;
       }
+      case "led": {
+        const led = result.leds[p.id];
+        const lvl = led?.level ?? "aus";
+        const c = rot(0, -6);
+        if (lvl === "hell" || lvl === "schwach")
+          g.fillStyle(0xff6b6b, lvl === "hell" ? 0.4 : 0.18).fillCircle(
+            c.x,
+            c.y,
+            (lvl === "hell" ? 40 : 28) * k,
+          );
+        // Kuppel und Beinchen (A länger)
+        g.fillStyle(
+          lvl === "hell" ? 0xff5252 : lvl === "schwach" ? 0xc0504d : 0x7a3b3b,
+          1,
+        ).fillCircle(c.x, c.y, 14 * k);
+        const top = rot(-14, -6);
+        const bot = rot(14, 8);
+        g.fillRect(
+          Math.min(top.x, bot.x),
+          Math.min(top.y, bot.y),
+          Math.abs(bot.x - top.x),
+          Math.abs(bot.y - top.y),
+        );
+        line([-30, 0], [-6, 8], 3, 0xbdc3c7);
+        line([30, 0], [6, 8], 3, 0xbdc3c7);
+        if (lvl === "puff") {
+          // ruhig aufsteigendes graues Wölkchen (Zyklus 2 s)
+          const t = (clock % 2) / 2;
+          const a = 0.6 * (1 - t);
+          const cx = X(p.x);
+          const cy = Y(p.y - s - 6 - t * 24);
+          g.fillStyle(0xb0b7bf, a);
+          g.fillCircle(cx - 8 * k, cy, 9 * k);
+          g.fillCircle(cx + 6 * k, cy - 4 * k, 11 * k);
+          g.fillCircle(cx + 2 * k, cy + 6 * k, 8 * k);
+        }
+        break;
+      }
+      case "widerstand": {
+        line([-30, 0], [-20, 0], 3, 0xbdc3c7);
+        line([20, 0], [30, 0], 3, 0xbdc3c7);
+        const a = rot(-20, -9);
+        const c = rot(20, 9);
+        g.fillStyle(0xe0c9a6, 1).fillRect(
+          Math.min(a.x, c.x),
+          Math.min(a.y, c.y),
+          Math.abs(c.x - a.x),
+          Math.abs(c.y - a.y),
+        );
+        const o = ohms(p);
+        (RINGS[o] ?? RINGS[220]!).forEach((col, i) => {
+          const r1 = rot(-13 + i * 8, -9);
+          const r2 = rot(-9 + i * 8, 9);
+          g.fillStyle(col, 1).fillRect(
+            Math.min(r1.x, r2.x),
+            Math.min(r1.y, r2.y),
+            Math.abs(r2.x - r1.x),
+            Math.abs(r2.y - r1.y),
+          );
+        });
+        const t = rot(0, 24);
+        this.label(ohmText(o), t.x, t.y, Math.max(8, 11 * k), "#cfd8dc");
+        break;
+      }
+      case "messgeraet": {
+        const m = result.meters[p.id];
+        // Gehäuse mit Anzeige (Text immer waagrecht)
+        g.fillStyle(0xf1c40f, 1).fillRoundedRect(X(p.x - 30), Y(p.y - 30), 60 * k, 44 * k, 6 * k);
+        g.fillStyle(0x203a2c, 1).fillRect(X(p.x - 24), Y(p.y - 24), 48 * k, 20 * k);
+        this.label(meterText(m), X(p.x), Y(p.y - 14), Math.max(9, 12 * k), "#9dffb0");
+        this.label(p.on ? "mA" : "V", X(p.x), Y(p.y + 4), Math.max(8, 11 * k), "#2c2c2c");
+        break;
+      }
     }
     // Anschlusspunkte
     PARTS[p.kind].pins.forEach((d, i) => {
@@ -1199,6 +1338,56 @@ class Bench extends Phaser.Scene {
           line([18, 20], [40, 20]);
           line([-14, 0], p.on ? [18, 20] : [18, -20]);
           break;
+        case "led": {
+          const lvl = result.leds[p.id]?.level ?? "aus";
+          line([-40, 0], [-12, 0]);
+          line([12, 0], [40, 0]);
+          const A1 = rot(-12, -12);
+          const A2 = rot(-12, 12);
+          const T = rot(12, 0);
+          if (lvl === "hell" || lvl === "schwach")
+            g.fillStyle(0xfff176, lvl === "hell" ? 1 : 0.5).fillTriangle(
+              A1.x,
+              A1.y,
+              A2.x,
+              A2.y,
+              T.x,
+              T.y,
+            );
+          g.lineStyle(2 * k, ink, 1).strokeTriangle(A1.x, A1.y, A2.x, A2.y, T.x, T.y);
+          line([12, -12], [12, 12], 3);
+          // zwei Pfeile nach außen (Licht)
+          line([2, -14], [10, -24]);
+          line([8, -12], [16, -22]);
+          break;
+        }
+        case "widerstand": {
+          line([-40, 0], [-18, 0]);
+          line([18, 0], [40, 0]);
+          const a = rot(-18, -8);
+          const c = rot(18, 8);
+          g.lineStyle(2 * k, ink, 1).strokeRect(
+            Math.min(a.x, c.x),
+            Math.min(a.y, c.y),
+            Math.abs(c.x - a.x),
+            Math.abs(c.y - a.y),
+          );
+          const t = rot(0, -18);
+          this.label(ohmText(ohms(p)), t.x, t.y, Math.max(9, 12 * k), "#2b2b2b");
+          break;
+        }
+        case "messgeraet": {
+          const pa = pinPos(p, 0);
+          const pb = pinPos(p, 1);
+          const c = rot(0, 0);
+          g.lineStyle(2 * k, ink, 1);
+          g.lineBetween(X(pa.x), Y(pa.y), c.x - 0, c.y);
+          g.lineBetween(X(pb.x), Y(pb.y), c.x, c.y);
+          g.fillStyle(0xf7f4ea, 1).fillCircle(c.x, c.y, 16 * k);
+          g.lineStyle(2 * k, ink, 1).strokeCircle(c.x, c.y, 16 * k);
+          this.label(p.on ? "A" : "V", c.x, c.y, Math.max(11, 16 * k), "#2b2b2b");
+          break;
+        }
       }
       // Verbindungspunkte an Abzweigungen
       PARTS[p.kind].pins.forEach((_, i) => {
@@ -1247,7 +1436,14 @@ if (debugEnabled) {
         y: p.y,
         rot: p.rot,
         on: p.on,
+        val: p.kind === "widerstand" ? ohms(p) : null,
       })),
+      leds: circuit.parts
+        .filter((p) => p.kind === "led")
+        .map((p) => result.leds[p.id]?.level ?? "aus"),
+      meters: circuit.parts
+        .filter((p) => p.kind === "messgeraet")
+        .map((p) => meterText(result.meters[p.id])),
       wires: circuit.wires.length,
       lamps: circuit.parts
         .filter((p) => p.kind === "lampe")
