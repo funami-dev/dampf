@@ -22,6 +22,9 @@ interface WhState {
   planes: number;
   planeTexts: string[];
   credit: boolean;
+  lights: string[];
+  night: boolean;
+  stairSteps: number;
 }
 interface Hooks {
   state(): WhState;
@@ -29,6 +32,7 @@ interface Hooks {
   setNeeds(n: Record<string, number>): void;
   setFlights(r: unknown): void;
   planePoint(i: number): { x: number; y: number } | null;
+  roomPoint(r: string): { x: number; y: number } | null;
 }
 declare global {
   interface Window {
@@ -66,7 +70,7 @@ test("WH-AK-07: Einzug, Einkaufen, Neuladen behält alles", async ({ page }) => 
   expect(await state(page)).toMatchObject({ name: "Pip", pet: "igel" });
   await expect.poll(async () => (await state(page)).bubble).toMatch(/Hallo! Ich bin Pip\./);
   const before = (await state(page)).food;
-  await press(page, "🧺 Einkaufen");
+  await press(page, "Einkaufen");
   await press(page, "🍰 Kuchen");
   await press(page, "🍲 Suppe");
   expect((await state(page)).food).toBe(before + 2);
@@ -85,7 +89,7 @@ test("WH-AK-08: Anklopfen bekommt eine Antwort; Brief lesen", async ({ page }) =
   await page.evaluate(() =>
     (window.__dampf as Hooks).setNeeds({ hunger: 90, energy: 90, fun: 60, clean: 90 }),
   );
-  await press(page, "🚪 Anklopfen");
+  await press(page, "Anklopfen");
   await press(page, "🎵 Spiel etwas vor!");
   await expect.poll(async () => (await state(page)).bubble).toMatch(/spiele dir etwas vor|Jetzt/);
   // einen Spieltag später liegt ein Brief da
@@ -109,7 +113,7 @@ test("WH-AK-09: Mobile – Haus und Knöpfe sichtbar, kein Querscrollen", async 
   const vw = page.viewportSize()!.width;
   const vh = page.viewportSize()!.height;
   await page.getByRole("button", { name: "Menü" }).tap();
-  for (const name of ["🧺 Einkaufen", "🎁 Geschenk", "🚪 Anklopfen", "🕯️ Ruhe", /Briefe/]) {
+  for (const name of ["Einkaufen", "Geschenk", "Anklopfen", "Ruhe", /Briefe/]) {
     const b = (await page.getByRole("button", { name }).first().boundingBox())!;
     expect(b.x).toBeGreaterThanOrEqual(0);
     expect(b.x + b.width).toBeLessThanOrEqual(vw);
@@ -126,7 +130,7 @@ test("WH-AK-14: Menü-Knopf auf dem Handy, Knopfreihe am Desktop", async ({ page
   await open(page);
   await moveIn(page);
   const menu = page.getByRole("button", { name: "Menü" });
-  const shop = page.getByRole("button", { name: "🧺 Einkaufen" });
+  const shop = page.getByRole("button", { name: "Einkaufen" });
   if (!isMobile(page)) {
     await expect(menu).toBeHidden();
     await expect(shop).toBeVisible();
@@ -171,10 +175,10 @@ test("WH-AK-17: Baden auf Bitte, Geschenke einzeln pro Tag", async ({ page }) =>
   await open(page);
   await moveIn(page);
   // jedes Geschenk einmal am Tag
-  await press(page, "🎁 Geschenk");
+  await press(page, "Geschenk");
   await press(page, "🧸 Teddy");
   await expect.poll(async () => (await state(page)).bubble).toMatch(/Teddy/);
-  await press(page, "🎁 Geschenk");
+  await press(page, "Geschenk");
   await expect(page.getByRole("button", { name: "🧸 Teddy" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "📖 Buch" })).toBeEnabled();
   await expect(page.locator(".wh-gifts button")).toHaveCount(19);
@@ -183,7 +187,7 @@ test("WH-AK-17: Baden auf Bitte, Geschenke einzeln pro Tag", async ({ page }) =>
   await page.evaluate(() =>
     (window.__dampf as Hooks).setNeeds({ clean: 50, energy: 90, hunger: 90 }),
   );
-  await press(page, "🚪 Anklopfen");
+  await press(page, "Anklopfen");
   await press(page, "🛁 Geh doch baden!");
   await expect.poll(async () => (await state(page)).activity).toBe("baden");
   await expect.poll(async () => (await state(page)).bathing, { timeout: 30_000 }).toBe(true);
@@ -272,7 +276,7 @@ test("WH-AK-12: Ruhemoment – Laterne heller und dunkler; Bürsten per Halten",
   test.setTimeout(60_000);
   await open(page);
   await moveIn(page);
-  await press(page, "🕯️ Ruhe");
+  await press(page, "Ruhe");
   await press(page, /Ruhemoment/);
   const dlg = page.getByRole("dialog", { name: "Ruhemoment" });
   await expect(dlg).toBeVisible();
@@ -285,7 +289,7 @@ test("WH-AK-12: Ruhemoment – Laterne heller und dunkler; Bürsten per Halten",
   await press(page, "Fertig");
   await expect(dlg).toBeHidden();
   // Haustier bürsten: Knopf 3 s halten
-  await press(page, "🕯️ Ruhe");
+  await press(page, "Ruhe");
   const brush = page.getByRole("button", { name: /Haustier bürsten/ });
   const box = (await brush.boundingBox())!;
   const f0 = (await state(page)).friendship;
@@ -296,4 +300,87 @@ test("WH-AK-12: Ruhemoment – Laterne heller und dunkler; Bürsten per Halten",
     .toBeGreaterThan(f0);
   await page.mouse.up();
   await expect.poll(async () => (await state(page)).bubble).toMatch(/das mag es/);
+});
+
+test("WH-AK-25: Treppenhaus, Licht an/aus per Antippen, Flugzeuge nachts", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors = trackErrors(page);
+  await open(page);
+  await moveIn(page);
+  // müde → er geht ins Schlafzimmer oben und nimmt dabei das Treppenhaus
+  await page.evaluate(() =>
+    (window.__dampf as Hooks).setNeeds({ energy: 5, hunger: 90, fun: 90, clean: 90 }),
+  );
+  await expect
+    .poll(async () => (await state(page)).stairSteps, { timeout: 40_000 })
+    .toBeGreaterThan(0);
+  // Nacht
+  await page.evaluate(() => (window.__dampf as Hooks).advance(200));
+  const tap = async (room: string) => {
+    const p = (await page.evaluate((r) => (window.__dampf as Hooks).roomPoint(r), room))!;
+    if (isMobile(page)) await page.touchscreen.tap(p.x, p.y);
+    else await page.mouse.click(p.x, p.y);
+  };
+  expect((await state(page)).lights).not.toContain("werkstatt");
+  await tap("werkstatt");
+  await expect.poll(async () => (await state(page)).lights).toContain("werkstatt");
+  await tap("werkstatt");
+  await expect.poll(async () => (await state(page)).lights).not.toContain("werkstatt");
+  await tap("bad");
+  await expect.poll(async () => (await state(page)).lights).toContain("bad");
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => !!window.__dampf), { timeout: 60_000 }).toBe(true);
+  expect((await state(page)).lights).toContain("bad");
+  expect((await state(page)).lights).not.toContain("werkstatt");
+  // nachts sind Flugzeuge als Umriss zu sehen und antippbar
+  await page.evaluate(() =>
+    (window.__dampf as Hooks).setFlights({
+      live: true,
+      runway: "ost",
+      source: "adsb.lol (ODbL)",
+      flights: [{ type: "A320", cat: "kurz", phase: "start", track: 53, alt: 800 }],
+    }),
+  );
+  await expect.poll(async () => (await state(page)).planes).toBe(1);
+  expect((await state(page)).night).toBe(true);
+  const vw = page.viewportSize()!.width;
+  const where = () => page.evaluate(() => (window.__dampf as Hooks).planePoint(0));
+  await expect
+    .poll(
+      async () => {
+        const p = await where();
+        return !!p && p.x > 40 && p.x < vw - 40;
+      },
+      { timeout: 20_000 },
+    )
+    .toBe(true);
+  const pt = (await where())!;
+  if (isMobile(page)) await page.touchscreen.tap(pt.x, pt.y);
+  else await page.mouse.click(pt.x, pt.y);
+  await expect(page.getByText("✈️ Airbus A320 – Start Richtung Osten")).toBeVisible();
+  await expectNoErrors(errors);
+});
+
+test("WH-AK-26: Bild-Knöpfe, Wichtel im Menü-Knopf, Status unten links", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await moveIn(page);
+  const vw = page.viewportSize()!.width;
+  const vh = page.viewportSize()!.height;
+  const st = (await page.getByRole("status", { name: "So geht es dem Wichtel" }).boundingBox())!;
+  expect(st.x).toBeLessThan(vw / 3);
+  expect(st.y).toBeGreaterThan(vh / 2);
+  expect(st.width).toBeLessThanOrEqual(160);
+  if (isMobile(page)) {
+    const menu = page.getByRole("button", { name: "Menü" });
+    await expect(menu.locator("img")).toHaveAttribute("src", /^data:image\/png/);
+    await menu.tap();
+  }
+  for (const name of ["Einkaufen", "Geschenk", "Anklopfen", "Ruhe", "Briefe"]) {
+    const b = page.getByRole("button", { name, exact: true });
+    await expect(b).toBeVisible();
+    await expect(b).toHaveAttribute("title", name);
+    expect((await b.innerText()).replace(/\d/g, "").trim()).not.toMatch(/[A-Za-zÄÖÜäöü]/);
+  }
+  await expectNoErrors(errors);
 });

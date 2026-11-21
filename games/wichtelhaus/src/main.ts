@@ -159,13 +159,13 @@ layer.innerHTML = `
       <button class="wh-btn wh-small" type="button" data-b="sound" aria-label="Klang">🔈</button>
     </div>
   </div>
-  <button class="wh-btn wh-fab" type="button" data-b="menu" aria-label="Menü" aria-expanded="false" hidden>☰<span class="wh-dot" data-h="dot" hidden></span></button>
+  <button class="wh-btn wh-fab" type="button" data-b="menu" aria-label="Menü" aria-expanded="false" hidden><img class="wh-fab-img" alt="" data-h="fabimg"><span class="wh-dot" data-h="dot" hidden></span></button>
   <div class="wh-bar" id="wh-actions" hidden>
-    <button class="wh-btn" type="button" data-b="shop">🧺 Einkaufen</button>
-    <button class="wh-btn" type="button" data-b="gift">🎁 Geschenk</button>
-    <button class="wh-btn" type="button" data-b="knock">🚪 Anklopfen</button>
-    <button class="wh-btn" type="button" data-b="calm">🕯️ Ruhe</button>
-    <button class="wh-btn" type="button" data-b="letters">✉️ Briefe<span class="wh-badge" data-h="unread" hidden></span></button>
+    <button class="wh-btn wh-icon" type="button" data-b="shop" aria-label="Einkaufen" title="Einkaufen">🧺</button>
+    <button class="wh-btn wh-icon" type="button" data-b="gift" aria-label="Geschenk" title="Geschenk">🎁</button>
+    <button class="wh-btn wh-icon" type="button" data-b="knock" aria-label="Anklopfen" title="Anklopfen">🚪</button>
+    <button class="wh-btn wh-icon" type="button" data-b="calm" aria-label="Ruhe" title="Ruhe">🕯️</button>
+    <button class="wh-btn wh-icon" type="button" data-b="letters" aria-label="Briefe" title="Briefe">✉️<span class="wh-badge" data-h="unread" hidden></span></button>
   </div>`;
 stage.append(layer);
 const $ = <E extends HTMLElement>(s: string) => layer.querySelector<E>(s)!;
@@ -259,6 +259,8 @@ function openSetup() {
 }
 
 function showUi(on: boolean) {
+  // Menü-Knopf zeigt den eigenen Wichtel (Feedback fb_0h1ppn9r)
+  if (on && world) h("fabimg").setAttribute("src", wichtelArt(world.hat, "stand").toDataURL());
   $(".wh-top").hidden = !on;
   $(".wh-bar").hidden = !on;
   $('[data-b="menu"]').hidden = !on;

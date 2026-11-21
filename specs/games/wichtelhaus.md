@@ -196,7 +196,13 @@ Flugverkehr** vorbei – live, aber ruhig.
 
 ## Steuerung
 
-- Maus/Touch: Knöpfe unten („Einkaufen“, „Geschenk“, „Anklopfen“, „Ruhemoment“, „Briefe“, 🔈),
+- **Nur Bilder statt Schrift** (Version 1.7, Feedback `fb_0h1ppn9r`): Die fünf Aktionen sind runde
+  Bild-Knöpfe 🧺 🎁 🚪 🕯️ ✉️ ohne Text (der Name steht als Tooltip und für Vorleseprogramme dabei).
+  Der Menü-Knopf unten rechts zeigt **den eigenen Wichtel** mit seiner Mützenfarbe statt ☰.
+- **Statusanzeige klein unten links** (Feedback `fb_0h1ppn9r`): Bedürfnisse als kompaktes 2×2-Feld,
+  darunter Tag, Freundschaft und 🔈 – oben bleibt der Himmel frei für die Flugzeuge. Die Quelle
+  der Flugdaten steht klein oben links.
+- Maus/Touch: Knöpfe unten (Einkaufen, Geschenk, Anklopfen, Ruhemoment, Briefe),
   **auf kleinen Bildschirmen** (bis 600 px breit oder bis 450 px hoch) stattdessen ein runder **Menü-Knopf ☰ unten
   rechts**; er öffnet die fünf Aktionen als kleine Liste darüber, ein ungelesener Brief zeigt sich
   als Punkt am Menü-Knopf. Esc, ein Tipp daneben oder eine gewählte Aktion schließt die Liste
@@ -270,6 +276,9 @@ Flugverkehr** vorbei – live, aber ruhig.
   ohne Licht; gespeichert und geladen, kaputte Daten → kein Licht. Der Wichtel macht nachts beim
   Ankommen in einem dunklen Raum Licht an (mit Satz), nicht tagsüber und nicht, wenn es schon
   brennt; geht er schlafen, macht er das Schlafzimmerlicht aus.
+- **WH-AK-26** (E2E) Die Aktionen zeigen nur Bilder (kein Text im Knopf, Name als Tooltip); der
+  Menü-Knopf zeigt ein Wichtel-Bild; die Statusanzeige liegt unten links (untere Bildhälfte, linkes
+  Drittel) und ist höchstens 160 Punkte breit.
 - **WH-AK-25** (E2E) Nachts einen Raum antippen schaltet sein Licht an, noch einmal antippen aus;
   nach Neuladen ist es so geblieben; der Wichtel läuft durchs Treppenhaus in eine andere Etage;
   nachts sind Flugzeuge zu sehen und antippbar; keine Fehler.

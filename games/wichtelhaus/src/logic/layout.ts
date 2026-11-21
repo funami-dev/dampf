@@ -22,9 +22,9 @@ export interface Layout {
 }
 
 export const FLOOR_H = 110;
-/** Rand oben (Leisten) und unten (Wiese) in virtuellen Pixeln */
-export const TOP_MARGIN = 64;
-export const BOTTOM_MARGIN = 64;
+/** Rand oben (Himmel) und unten (Wiese mit der kleinen Statusanzeige) in virtuellen Pixeln */
+export const TOP_MARGIN = 24;
+export const BOTTOM_MARGIN = 76;
 
 const ROOMS_PLAN: Layout["rooms"] = {
   kueche: { floor: 0, col: 0 },

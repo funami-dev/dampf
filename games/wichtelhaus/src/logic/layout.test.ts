@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  BOTTOM_MARGIN,
   colX,
   fit,
   houseWidth,
@@ -64,7 +65,7 @@ describe("WH-AK-13: Hausplan", () => {
       const f = fit(l, w, h);
       expect(l.width * f.k).toBeLessThanOrEqual(w + 0.01);
       expect(neededHeight(l) * f.k).toBeLessThanOrEqual(h + 0.01);
-      expect(f.ground + 64).toBeCloseTo(f.visibleH);
+      expect(f.ground + BOTTOM_MARGIN).toBeCloseTo(f.visibleH);
     }
   });
 });

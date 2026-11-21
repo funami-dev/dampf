@@ -7,8 +7,19 @@
   "status": "published",
   "order": 100,
   "addedAt": "2026-11-10",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "changelog": [
+    {
+      "version": "1.7.0",
+      "date": "2026-11-21",
+      "time": "18:00",
+      "items": [
+        "Neues Treppenhaus in der Mitte – der Wichtel läuft die Stufen hoch und runter",
+        "In jedem Raum gibt es Licht: Raum antippen macht es an oder aus",
+        "Der Wichtel macht nachts selbst Licht an und zum Schlafen wieder aus",
+        "Nachts sieht man die Flugzeuge jetzt als feine Umrisse mit ihren Lichtern"
+      ]
+    },
     {
       "version": "1.6.0",
       "date": "2026-11-21",
