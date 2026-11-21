@@ -7,6 +7,8 @@ export interface DebugHooks {
   /** Flugdaten vorgeben (WH-AK-20) */
   setFlights(r: unknown): void;
   planePoint(i: number): { x: number; y: number } | null;
+  /** Bildschirmpunkt in einem Raum (zum Antippen, WH-AK-25) */
+  roomPoint(r: string): { x: number; y: number } | null;
 }
 
 declare global {

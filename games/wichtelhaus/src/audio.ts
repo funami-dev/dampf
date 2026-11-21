@@ -97,6 +97,10 @@ export class Sound {
   water() {
     this.swish(1.2, 900, 0.18, 0.5);
   }
+  /** leiser Klick des Lichtschalters */
+  click() {
+    this.tone(1400, 0, 0.08, 0.08, "triangle");
+  }
   knock() {
     this.tone(140, 0, 0.18, 0.35, "triangle");
     this.tone(140, 0.28, 0.18, 0.3, "triangle");
