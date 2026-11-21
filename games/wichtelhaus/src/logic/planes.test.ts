@@ -9,6 +9,7 @@ import {
   planePos,
   setReply,
   updateSky,
+  watchRemark,
   type Flight,
   type FlightsReply,
 } from "./planes.ts";
@@ -94,5 +95,38 @@ describe("WH-AK-19: Flugzeuge am Himmel", () => {
     expect(said.length).toBeGreaterThan(1);
     for (let i = 1; i < said.length; i++)
       expect(said[i]! - said[i - 1]!).toBeGreaterThanOrEqual(120);
+  });
+});
+
+describe("WH-AK-23: Flugzeuge beobachten", () => {
+  it("Sätze zum echten Flugzeug, leerer Himmel, Nacht", () => {
+    const s = newSky();
+    setReply(
+      s,
+      reply([
+        fl({
+          airline: "Pegasus",
+          from: { city: "Kayseri", country: "Türkei" },
+          to: { city: "Düsseldorf", country: "Deutschland" },
+        }),
+      ]),
+    );
+    updateSky(s, 1, fixed(0.5));
+    expect(watchRemark(s.planes, false)).toBe(
+      "Da! Ein Airbus A320 von Pegasus – der kommt aus Kayseri (Türkei)!",
+    );
+    s.planes[0]!.flight = fl({
+      phase: "start",
+      type: "",
+      cat: "kurz",
+      to: { city: "Monastir", country: "Tunesien" },
+    });
+    expect(watchRemark(s.planes, false)).toBe(
+      "Da! Ein Passagierjet – der fliegt nach Monastir (Tunesien). Gute Reise!",
+    );
+    expect(watchRemark(s.planes, true)).toBe("Ich sehe nur die Lichter der Flugzeuge – schön!");
+    expect(watchRemark([], false)).toBe(
+      "Gerade ist der Himmel leer … vielleicht kommt gleich eins.",
+    );
   });
 });

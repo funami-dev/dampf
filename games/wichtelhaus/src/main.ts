@@ -54,6 +54,7 @@ import {
   planePos,
   setReply,
   updateSky,
+  watchRemark,
   type FlightsReply,
 } from "./logic/planes.ts";
 
@@ -91,6 +92,8 @@ const FLIGHTS_URL = debugEnabled
 /** in Tests vorgegebene Daten: dann wird nichts abgerufen */
 let injected = false;
 let planeHits: { x: number; y: number; w: number; h: number; text: string }[] = [];
+/** Beobachten: zu welcher Tätigkeit schon etwas gesagt wurde, und ob der Himmel leer war */
+const watch: { activity: unknown; empty: boolean } = { activity: null, empty: false };
 async function fetchFlights() {
   if (injected || !FLIGHTS_URL || document.hidden || paused) return;
   try {
@@ -318,6 +321,7 @@ function openKnock() {
     ],
     ["schlafen", "🌙 Geh schlafen!"],
     ["baden", "🛁 Geh doch baden!"],
+    ["flugzeuge", "✈️ Schau mal die Flugzeuge!"],
   ];
   const el = drawer(
     `<h2>🚪 Anklopfen</h2><p>Worum möchtest du ${escapeHtml(w.name)} bitten?</p>
@@ -504,6 +508,16 @@ function tick(dt: number) {
   const remark = updateSky(traffic, dt);
   if (traffic.planes.length > before2) sound.plane();
   if (remark && clock > bubbleUntil && w.activity.kind !== "schlafen") say(remark, 4);
+  // Flugzeuge beobachten (WH-AK-23): angekommen → zum echten Flugzeug etwas sagen; war der
+  // Himmel leer und kommt dann eins, noch einmal
+  if (w.activity.kind === "flugzeuge" && !walker.moving) {
+    const n = traffic.planes.length;
+    if (watch.activity !== w.activity || (watch.empty && n > 0)) {
+      watch.activity = w.activity;
+      watch.empty = n === 0;
+      say(watchRemark(traffic.planes, isNight(w.t)), 6);
+    }
+  }
   // Ruhe-Tätigkeit durch Halten (3 s)
   if (task && !task.done) {
     const p = Math.min(1, (clock - task.started) / 3);

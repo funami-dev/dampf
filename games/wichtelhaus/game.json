@@ -7,8 +7,16 @@
   "status": "published",
   "order": 100,
   "addedAt": "2026-11-10",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "changelog": [
+    {
+      "version": "1.6.0",
+      "date": "2026-11-21",
+      "time": "16:12",
+      "items": [
+        "Klopf an und bitte den Wichtel: „Schau mal die Flugzeuge!“ – er erzählt dir, woher sie kommen und wohin sie fliegen"
+      ]
+    },
     {
       "version": "1.5.0",
       "date": "2026-11-21",

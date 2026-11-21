@@ -49,8 +49,10 @@ export type ActivityKind =
   | "schreiben"
   | "traurig"
   | "bummeln"
-  | "sterne";
-export type Request = "musik" | "basteln" | "vorlesen" | "schlafen" | "spielen" | "baden";
+  | "sterne"
+  | "flugzeuge";
+export type Request =
+  "musik" | "basteln" | "vorlesen" | "schlafen" | "spielen" | "baden" | "flugzeuge";
 
 export const HAT_COLORS = ["#c0392b", "#2e86c1", "#27ae60", "#8e44ad", "#d68910", "#16a085"];
 export const PETS: Record<Pet, string> = { katze: "Katze", igel: "Igel", drache: "kleiner Drache" };
@@ -121,6 +123,8 @@ const ACT: Record<ActivityKind, { room: Room; seconds: number; text: string }> =
   traurig: { room: "kueche", seconds: 15, text: "Ich habe Hunger … der Schrank ist leer." },
   bummeln: { room: "wohnzimmer", seconds: 10, text: "Hm, was mache ich jetzt?" },
   sterne: { room: "dachboden", seconds: 20, text: "So viele Sterne heute!" },
+  // Flugzeuge beobachten (WH-AK-23): oben am Fenster, mit Dachboden am Teleskop
+  flugzeuge: { room: "schlafzimmer", seconds: 24, text: "Mal sehen, was da oben fliegt …" },
 };
 export const activityInfo = (k: ActivityKind) => ACT[k];
 
@@ -288,6 +292,10 @@ function finish(w: World, a: Activity) {
       n.fun = clamp(n.fun + 35);
       remember(w, "Auf dem Dachboden habe ich Sterne gezählt.");
       break;
+    case "flugzeuge":
+      n.fun = clamp(n.fun + 15);
+      remember(w, "Wir haben zusammen Flugzeuge beobachtet.");
+      break;
     case "schreiben":
     case "traurig":
     case "bummeln":
@@ -373,6 +381,7 @@ const REQ: Record<Request, ActivityKind> = {
   schlafen: "schlafen",
   spielen: "spielen",
   baden: "baden",
+  flugzeuge: "flugzeuge",
 };
 
 /** Anklopfen und bitten – immer mit Antwort (WH-AK-04) */
@@ -391,6 +400,9 @@ export function ask(
   if (r === "schlafen") {
     ok = n.energy < 80 || isNight(w.t);
     no = "Ich bin noch gar nicht müde!";
+  } else if (r === "flugzeuge") {
+    ok = n.energy >= 20;
+    no = "Jetzt nicht, ich bin so müde …";
   } else if (r === "baden") {
     ok = n.clean < 95;
     no = "Ich bin doch ganz sauber!";
@@ -405,7 +417,9 @@ export function ask(
     ok = mood > 35 || rand() < 0.5;
   }
   if (!ok) return { ok, text: no };
-  w.activity = { kind, room: ACT[kind].room, left: ACT[kind].seconds };
+  // mit offenem Dachboden schaut er durchs Teleskop
+  const room = kind === "flugzeuge" && atticOpen(w) ? "dachboden" : ACT[kind].room;
+  w.activity = { kind, room, left: ACT[kind].seconds };
   befriend(w, 1);
   const yes: Record<Request, string> = {
     musik: "Gern! Ich spiele dir etwas vor.",
@@ -414,6 +428,7 @@ export function ask(
     schlafen: "Gute Idee … gähn.",
     spielen: "Au ja, wir spielen!",
     baden: "Plitsch, platsch – ab in die Wanne!",
+    flugzeuge: "Au ja, ich schau mal raus!",
   };
   return { ok, text: yes[r] };
 }

@@ -218,3 +218,23 @@ export function planePos(p: Plane): { x: number; y: number } {
   const t = p.p;
   return { x: p.dir === 1 ? t : 1 - t, y: p.y0 + (p.y1 - p.y0) * t };
 }
+
+/**
+ * Was sagt der Wichtel beim Flugzeuge-Beobachten? (WH-AK-23) – zum ersten Flugzeug am Himmel,
+ * nachts nur die Lichter, sonst „Himmel leer“.
+ */
+export function watchRemark(planes: Plane[], night: boolean): string {
+  if (!planes.length) return "Gerade ist der Himmel leer … vielleicht kommt gleich eins.";
+  if (night) return "Ich sehe nur die Lichter der Flugzeuge – schön!";
+  const f = planes[0]!.flight;
+  const name = NAMES[f.type] ? `ein ${NAMES[f.type]}` : nameOf(f);
+  const who = f.airline ? `${name} von ${f.airline}` : name;
+  const at = (p: Place) => (p.country ? `${p.city} (${p.country})` : p.city);
+  const tail =
+    f.phase === "landung" && f.from
+      ? ` – der kommt aus ${at(f.from)}!`
+      : f.phase === "start" && f.to
+        ? ` – der fliegt nach ${at(f.to)}. Gute Reise!`
+        : "!";
+  return `Da! ${who.charAt(0).toUpperCase()}${who.slice(1)}${tail}`;
+}
