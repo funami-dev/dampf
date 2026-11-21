@@ -5,8 +5,16 @@
 export type Category =
   "kurz" | "lang" | "gross" | "jumbo" | "regional" | "propeller" | "klein" | "heli";
 export type Phase = "landung" | "start" | "ueberflug";
+export interface Place {
+  city: string;
+  country: string;
+}
 export interface Flight {
   type: string;
+  /** nur wenn bekannt (WH-AK-21/22) */
+  airline?: string;
+  from?: Place;
+  to?: Place;
   cat: Category;
   phase: Phase;
   track: number;
@@ -118,7 +126,10 @@ export function describe(f: Flight, dir: 1 | -1): string {
         ? `Start Richtung ${to}`
         : `Überflug Richtung ${to}`;
   const n = nameOf(f);
-  return `${n.charAt(0).toUpperCase()}${n.slice(1)} – ${what}`;
+  const plane = `${n.charAt(0).toUpperCase()}${n.slice(1)} – ${what}`;
+  const at = (p: Place) => (p.country ? `${p.city} (${p.country})` : p.city);
+  const route = f.from && f.to ? ` · von ${at(f.from)} nach ${at(f.to)}` : "";
+  return `${f.airline ? `${f.airline} · ` : ""}${plane}${route}`;
 }
 
 export interface Plane {

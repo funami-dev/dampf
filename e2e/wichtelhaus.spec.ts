@@ -190,25 +190,38 @@ test("WH-AK-17: Baden auf Bitte, Geschenke einzeln pro Tag", async ({ page }) =>
   await expectNoErrors(errors);
 });
 
-test("WH-AK-20: Flugzeuge mit Testdaten, Antippen zeigt den Typ, ohne Daten leer", async ({
+test("WH-AK-20/22: Flugzeuge mit Testdaten, Antippen zeigt Typ, Gesellschaft und Strecke", async ({
   page,
 }) => {
   const errors = trackErrors(page);
   await open(page);
   await moveIn(page);
   expect((await state(page)).planes).toBe(0);
-  await expect(page.getByText("Flugdaten: adsb.lol (ODbL)")).toBeHidden();
+  await expect(page.getByText(/Flugdaten: adsb.lol \(ODbL\)/)).toBeHidden();
   await page.evaluate(() =>
     (window.__dampf as Hooks).setFlights({
       live: true,
       runway: "west",
       source: "adsb.lol (ODbL)",
-      flights: [{ type: "B748", cat: "jumbo", phase: "landung", track: 233, alt: 600 }],
+      flights: [
+        {
+          type: "B748",
+          cat: "jumbo",
+          phase: "landung",
+          track: 233,
+          alt: 600,
+          airline: "Lufthansa",
+          from: { city: "Frankfurt", country: "Deutschland" },
+          to: { city: "Düsseldorf", country: "Deutschland" },
+        },
+      ],
     }),
   );
   await expect.poll(async () => (await state(page)).planes).toBe(1);
-  await expect(page.getByText("Flugdaten: adsb.lol (ODbL)")).toBeVisible();
-  expect((await state(page)).planeTexts).toEqual(["Boeing 747-8 – Landung von Osten"]);
+  await expect(page.getByText("Flugdaten: adsb.lol (ODbL) · Strecken: adsbdb.com")).toBeVisible();
+  const text =
+    "Lufthansa · Boeing 747-8 – Landung von Osten · von Frankfurt (Deutschland) nach Düsseldorf (Deutschland)";
+  expect((await state(page)).planeTexts).toEqual([text]);
   // es kommt von rechts herein: warten, bis es gut zu sehen ist
   const vw = page.viewportSize()!.width;
   const where = () => page.evaluate(() => (window.__dampf as Hooks).planePoint(0));
@@ -224,11 +237,12 @@ test("WH-AK-20: Flugzeuge mit Testdaten, Antippen zeigt den Typ, ohne Daten leer
   const pt = (await where())!;
   if (isMobile(page)) await page.touchscreen.tap(pt.x, pt.y);
   else await page.mouse.click(pt.x, pt.y);
-  await expect(page.getByText("✈️ Boeing 747-8 – Landung von Osten")).toBeVisible();
+  // WH-AK-22: Fluggesellschaft und Strecke in der Sprechblase
+  await expect(page.getByText(`✈️ ${text}`)).toBeVisible();
   // keine Daten → leerer Himmel
   await page.evaluate(() => (window.__dampf as Hooks).setFlights(null));
   await expect.poll(async () => (await state(page)).planes).toBe(0);
-  await expect(page.getByText("Flugdaten: adsb.lol (ODbL)")).toBeHidden();
+  await expect(page.getByText(/Flugdaten: adsb.lol \(ODbL\)/)).toBeHidden();
   await expectNoErrors(errors);
 });
 

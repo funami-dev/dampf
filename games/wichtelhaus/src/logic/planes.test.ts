@@ -44,6 +44,19 @@ describe("WH-AK-19: Flugzeuge am Himmel", () => {
     expect(describeFlight(fl({ type: "XYZ1", cat: "heli", phase: "ueberflug" }), 1)).toBe(
       "Ein Hubschrauber – Überflug Richtung Osten",
     );
+    // WH-AK-22: Fluggesellschaft und Strecke, wenn bekannt
+    expect(
+      describeFlight(
+        fl({
+          airline: "Eurowings",
+          from: { city: "Palma", country: "Spanien" },
+          to: { city: "Düsseldorf", country: "Deutschland" },
+        }),
+        -1,
+      ),
+    ).toBe(
+      "Eurowings · Airbus A320 – Landung von Osten · von Palma (Spanien) nach Düsseldorf (Deutschland)",
+    );
   });
   it("höchstens 3; Westbetrieb fliegt nach links; keine Daten → leer", () => {
     const s = newSky();

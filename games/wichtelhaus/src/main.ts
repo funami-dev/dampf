@@ -129,7 +129,7 @@ let clock = 0; // Sekunden seit Start (für Animationen)
 const layer = document.createElement("div");
 layer.className = "wh-layer";
 layer.innerHTML = `
-  <div class="wh-credit" hidden>Flugdaten: adsb.lol (ODbL)</div>
+  <div class="wh-credit" hidden>Flugdaten: adsb.lol (ODbL) · Strecken: adsbdb.com</div>
   <div class="wh-planetip" role="status" hidden></div>
   <div class="wh-top" hidden>
     <div class="wh-needs" role="status" aria-label="So geht es dem Wichtel">
@@ -634,7 +634,7 @@ class HouseScene extends Phaser.Scene {
       const hit = planeHits.find((p) => Math.abs(p.x - x) < p.w && Math.abs(p.y - y) < p.h);
       if (!hit) return;
       tip.textContent = `✈️ ${hit.text}`;
-      tip.style.left = `${Math.max(8, Math.min(r.width - 230, hit.x - 110))}px`;
+      tip.style.left = `${Math.max(8, Math.min(r.width - 290, hit.x - 140))}px`;
       tip.style.top = `${Math.max(60, hit.y + 18)}px`;
       tip.hidden = false;
       window.clearTimeout(tipTimer);
