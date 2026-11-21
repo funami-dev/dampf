@@ -95,6 +95,11 @@ Das Spiel macht **keine Gesundheitsversprechen**.
     („Ich mach mal Licht an.“). Geht er schlafen, macht er das Licht im Schlafzimmer aus („Licht
     aus – gute Nacht!“). Andere Lichter lässt er, wie sie sind.
   - Das Spiel merkt sich, welche Lichter an sind. Der Dachboden hat kein Licht (Sterne gucken).
+  - **Fenster leuchten** (Version 1.8): Brennt nachts Licht, ist das Fensterglas warm getönt und
+    ein weicher Schein liegt ums Fenster – man sieht von Weitem, wo Licht ist.
+  - **Licht im Treppenhaus** (Version 1.8): Im Treppenhaus hängt je Etage eine kleine Wandlampe.
+    Nachts geht sie weich an (1 s), sobald der Wichtel ins Treppenhaus kommt, und 4 s nachdem er
+    es verlassen hat weich wieder aus. Tagsüber bleibt sie aus.
 - **Musikzimmer:** ein großes Klavier mit Tasten und Hocker; spielt der Wichtel, sitzt er davor
   und kleine Noten steigen auf.
 - Eine Tätigkeit beginnt erst, wenn er im Raum angekommen ist (der Weg zählt nicht mit).
@@ -162,6 +167,11 @@ Flugverkehr** vorbei – live, aber ruhig.
   Reise!“. Ist der Himmel leer: „Gerade ist der Himmel leer … vielleicht kommt gleich eins.“ –
   kommt dann eins, sagt er noch etwas. Nachts: „Nachts sehe ich nur die Umrisse und die Lichter – schön!“.
   Sehr müde (Energie unter 20 %) sagt er freundlich Nein. Macht etwas Spaß (+15 %).
+- **Flugzeugbuch** (Version 1.8): Tippt man ein Flugzeug an, kommt seine Sorte ins Flugzeugbuch
+  (Knopf ✈️, „Flugzeugbuch“). Ist sie neu, sagt der Wichtel „Neu im Flugzeugbuch: Jumbo!“. Das
+  Buch zeigt alle 8 Sorten – Kurzstrecken-Jet, Langer Jet, Großraumjet, Jumbo, Regionaljet,
+  Propellerflugzeug, Kleinflugzeug, Hubschrauber – gesehene mit Bild, noch nicht gesehene als
+  grauer Umriss mit „?“, dazu „3 von 8 gesehen“. Keine Punkte, kein Druck; gespeichert.
 - **Ohne Live-Daten** (keine Verbindung, Störung, Nachtflugverbot) bleibt der Himmel leer; es
   werden keine ausgedachten Flugzeuge gezeigt.
 
@@ -197,7 +207,7 @@ Flugverkehr** vorbei – live, aber ruhig.
 ## Steuerung
 
 - **Nur Bilder statt Schrift** (Version 1.7, Feedback `fb_0h1ppn9r`): Die fünf Aktionen sind runde
-  Bild-Knöpfe 🧺 🎁 🚪 🕯️ ✉️ ohne Text (der Name steht als Tooltip und für Vorleseprogramme dabei).
+  Bild-Knöpfe 🧺 🎁 🚪 🕯️ ✉️ (ab 1.8 auch ✈️ Flugzeugbuch) ohne Text (der Name steht als Tooltip und für Vorleseprogramme dabei).
   Der Menü-Knopf unten rechts zeigt **den eigenen Wichtel** mit seiner Mützenfarbe statt ☰.
 - **Statusanzeige klein unten links** (Feedback `fb_0h1ppn9r`): Bedürfnisse als kompaktes 2×2-Feld,
   darunter Tag, Freundschaft und 🔈 – oben bleibt der Himmel frei für die Flugzeuge. Die Quelle
@@ -282,6 +292,12 @@ Flugverkehr** vorbei – live, aber ruhig.
 - **WH-AK-25** (E2E) Nachts einen Raum antippen schaltet sein Licht an, noch einmal antippen aus;
   nach Neuladen ist es so geblieben; der Wichtel läuft durchs Treppenhaus in eine andere Etage;
   nachts sind Flugzeuge zu sehen und antippbar; keine Fehler.
+- **WH-AK-27** (Vitest) Treppenhaus-Licht: nachts im Treppenhaus geht es in 1 s an, bleibt nach
+  dem Verlassen 4 s an und geht dann in 1 s aus; tagsüber bleibt es aus; Werte zwischen 0 und 1.
+- **WH-AK-28** (Vitest) Flugzeugbuch: neue Sorte wird vermerkt (einmal, mit „neu“), bekannte nicht
+  noch einmal; unbekannte Sorte wird ignoriert; gespeichert und geladen, kaputte Daten → leer.
+  (E2E) Flugzeug antippen → Satz „Neu im Flugzeugbuch: …“; Flugzeugbuch zeigt „1 von 8 gesehen“
+  und die Sorte; nach Neuladen bleibt sie.
 - **WH-AK-10** Fokusverlust pausiert; Spiel erscheint im Portal mit Version 1.0.0.
 - **WH-AK-11** Ruhe-Regeln (Vitest + E2E): keine Zeitlimits, kein Verlieren, keine Punkte; alle
   Leerlauf-Animationen haben Zyklen ≥ 4 s (Atmen/Laterne 10 s); nichts blinkt schneller als 3 Hz;

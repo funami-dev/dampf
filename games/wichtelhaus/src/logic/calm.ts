@@ -38,3 +38,19 @@ export const breathPhase = (seconds: number) =>
 /** sanfte Schwingung 0..1 mit Zyklus `cycle` Sekunden */
 export const sway = (seconds: number, cycle: number, phase = 0) =>
   0.5 - 0.5 * Math.cos(((seconds / cycle + phase) % 1) * Math.PI * 2);
+
+/** Treppenhaus-Licht (WH-AK-27): weich an/aus in FADE s, bleibt HOLD s nach dem Verlassen an */
+export const STAIR_LIGHT = { fade: 1, hold: 4 };
+export interface StairLight {
+  level: number;
+  /** Sekunden seit er das Treppenhaus verlassen hat */
+  away: number;
+}
+export const newStairLight = (): StairLight => ({ level: 0, away: Infinity });
+export function stepStairLight(s: StairLight, inStair: boolean, night: boolean, dt: number) {
+  s.away = inStair ? 0 : s.away + dt;
+  const on = night && s.away <= STAIR_LIGHT.hold;
+  const d = dt / STAIR_LIGHT.fade;
+  s.level = Math.max(0, Math.min(1, s.level + (on ? d : -d)));
+  return s.level;
+}

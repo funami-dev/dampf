@@ -7,8 +7,18 @@
   "status": "published",
   "order": 100,
   "addedAt": "2026-11-10",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "changelog": [
+    {
+      "version": "1.8.0",
+      "date": "2026-11-22",
+      "time": "00:29",
+      "items": [
+        "Neues Flugzeugbuch ✈️: Jede Flugzeugsorte, die du antippst, kommt hinein",
+        "Nachts leuchten die Fenster warm, wenn drinnen Licht an ist",
+        "Im Treppenhaus geht nachts eine kleine Lampe an, wenn der Wichtel die Treppe nimmt"
+      ]
+    },
     {
       "version": "1.7.0",
       "date": "2026-11-21",
