@@ -44,6 +44,7 @@ interface WlState {
   size: number;
   trail: number;
   hutAngle: number | null;
+  wreckNeedle: number;
   smoke: number;
   ripples: number;
   hut: { x: number; y: number };
@@ -858,7 +859,7 @@ test("WL-AK-45: Kompass, Hütten-Nadel mit Funkgerät, Hütte auf der Karte", as
   const compass = page.getByRole("img", { name: "Kompass, Norden oben" });
   await expect(compass).toBeVisible();
   await expect(compass.getByText("N", { exact: true })).toBeVisible();
-  await expect(page.locator(".wl-needle")).toBeHidden();
+  await expect(page.locator(".wl-needle:not(.wl-wreck)")).toBeHidden();
   expect((await state(page)).hutAngle).toBeNull();
 
   // Funkgerät holen → Nadel zur Hütte
@@ -866,7 +867,7 @@ test("WL-AK-45: Kompass, Hütten-Nadel mit Funkgerät, Hütte auf der Karte", as
   const [cx, cy] = s1.plane.cells[0]!;
   await page.evaluate(([x, y]) => (window.__dampf as Hooks).teleport(x! - 1.5, y! + 0.5), [cx, cy]);
   await expect.poll(async () => (await state(page)).me.radio).toBe(true);
-  await expect(page.locator(".wl-needle")).toBeVisible();
+  await expect(page.locator(".wl-needle:not(.wl-wreck)")).toBeVisible();
   const s2 = await state(page);
   const want = bearing(s2.hut.x + 0.5 - s2.me.x, s2.hut.y + 0.5 - s2.me.y);
   const diff = Math.abs(((s2.hutAngle! - want + 540) % 360) - 180);
@@ -936,6 +937,18 @@ test("WL-AK-55: Angel bauen, angeln, Fisch essen", async ({ page }) => {
   await expect(page.locator('[data-h="fish"]')).toHaveText("🐟 1");
   await page.locator('[data-b="eat"]').click();
   await expect.poll(async () => (await state(page)).me.fish).toBe(0);
+  await expectNoErrors(errors);
+});
+
+test("WL-AK-59: Wrack-Nadel kurz nach der Landung", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await page.getByRole("button", { name: "Los geht's" }).click();
+  await landed(page);
+  await expect.poll(async () => (await state(page)).wreckNeedle).toBeGreaterThan(0);
+  await expect(page.locator(".wl-wreck")).toBeVisible();
+  await expect.poll(async () => (await state(page)).wreckNeedle, { timeout: 8_000 }).toBe(0);
+  await expect(page.locator(".wl-wreck")).toBeHidden();
   await expectNoErrors(errors);
 });
 

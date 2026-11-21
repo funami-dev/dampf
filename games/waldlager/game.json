@@ -10,8 +10,16 @@
   "status": "published",
   "order": 80,
   "addedAt": "2026-11-08",
-  "version": "1.12.0",
+  "version": "1.13.0",
   "changelog": [
+    {
+      "version": "1.13.0",
+      "date": "2026-11-21",
+      "time": "16:24",
+      "items": [
+        "Nach der Landung zeigt der Kompass kurz mit einem roten ✈️, wo das Flugzeugwrack liegt"
+      ]
+    },
     {
       "version": "1.12.0",
       "date": "2026-11-11",

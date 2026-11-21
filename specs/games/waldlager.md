@@ -116,6 +116,8 @@ gegen Tiere. Rehe und andere Waldtiere laufen nur herum. Man kann nicht sterben.
 - Ohne Funkgerät gibt es keine Koordinaten und keine Karte. Man muss sich am Gelände orientieren.
 - **Kompass** (Feedback `fb_nqi67r2h`): oben neben der Uhr, immer sichtbar, mit N/O/S/W (Norden =
   oben im Spielbild). **Mit Funkgerät** zeigt zusätzlich eine Nadel 🏠 die Richtung zur Hütte.
+  **Nach der Fallschirm-Landung** zeigt eine rote Nadel ✈️ 4 Sekunden lang die Richtung zum
+  Flugzeugwrack und blendet in der letzten Sekunde sanft aus (Feedback `fb_zdwfywwp`).
 
 ## Tiere entdecken (nie verletzbar)
 
@@ -522,6 +524,8 @@ Figur steht.
 - **WL-AK-44** Kompass und Karte: Die Richtung auf dem Bildschirm wird richtig berechnet (Norden
   0°, Osten 90°, Süden 180°, Westen 270°); Kartenpunkte liegen wie im Spielbild gedreht
   (Inselmitte in der Kartenmitte, Norden oben).
+- **WL-AK-59** Wrack-Nadel: 4 s nach der Landung sichtbar (letzte Sekunde ausblendend), danach
+  weg; zeigt die Richtung zum Wrack (Vitest + E2E).
 - **WL-AK-45** (E2E) Der Kompass ist sichtbar (N), ohne Funkgerät ohne Hütten-Nadel; mit
   Funkgerät zeigt die Nadel zur Hütte (Winkel passt), und die Funk-Karte zeigt die Hütte.
 - **WL-AK-46** Schneise: 30–40 Felder lang, beginnt am Wrack, zeigt (±30°) in die Richtung der

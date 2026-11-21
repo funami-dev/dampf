@@ -19,3 +19,10 @@ export function mapPoint(x: number, y: number, size: number, px: number): [numbe
   const v = (x - c + (y - c)) / Math.SQRT2;
   return [px / 2 + u * k, px / 2 + v * k];
 }
+
+/** Wrack-Nadel nach der Landung (WL-AK-59): Sichtbarkeit 0..1 nach `t` Sekunden */
+export const WRECK_HINT = { seconds: 4, fade: 1 };
+export function wreckHintOpacity(t: number): number {
+  if (t < 0 || t >= WRECK_HINT.seconds) return 0;
+  return Math.min(1, (WRECK_HINT.seconds - t) / WRECK_HINT.fade);
+}

@@ -48,7 +48,7 @@ import { applySnap, parseGuest, parseHost, toSnap, type GuestMsg } from "./logic
 import { HABITAT_TEXT, SPECIES, TIME_TEXT, UNICORN, speciesById } from "./logic/species.ts";
 import { discover, loadBook, saveBook } from "./logic/tierbuch.ts";
 import { T, generateWorld, idx, inside, isFreshWater, type World } from "./logic/world.ts";
-import { bearing, mapPoint } from "./logic/compass.ts";
+import { bearing, mapPoint, wreckHintOpacity } from "./logic/compass.ts";
 import { rockPeak, treeKind } from "./logic/looks.ts";
 import { HS, isoX, isoY, tileX, tileY } from "./render/iso.ts";
 import {
@@ -95,6 +95,7 @@ layer.innerHTML = `
       <div class="wl-compass" role="img" aria-label="Kompass, Norden oben">
         <b class="n">N</b><b class="o">O</b><b class="s">S</b><b class="w">W</b>
         <i class="wl-needle" hidden><span>🏠</span></i>
+        <i class="wl-needle wl-wreck" hidden><span>✈️</span></i>
       </div>
       <div class="wl-room" data-h="room" hidden></div>
       <button class="wl-btn" type="button" data-b="menu">Menü</button>
@@ -127,7 +128,10 @@ const toastEl = $(".wl-toast");
 const actBtn = $<HTMLButtonElement>('[data-b="act"]');
 const buildBar = $(".wl-buildbar");
 const night = $<HTMLCanvasElement>(".wl-night");
-const needle = $(".wl-needle");
+const needle = $(".wl-needle:not(.wl-wreck)");
+const wreckNeedle = $(".wl-wreck");
+/** Zeitpunkt der Landung (Sekunden, performance) für die Wrack-Nadel (WL-AK-59) */
+let landedAt = -Infinity;
 let hutAngle: number | null = null;
 const nightCtx = night.getContext("2d")!;
 
@@ -1469,6 +1473,7 @@ function tick(dt: number) {
   // Nach der Fallschirm-Landung
   if (screen === "play" && state.players[meId]) {
     const landing = me().landing > 0;
+    if (wasLanding && !landing) landedAt = now() / 1000;
     if (wasLanding && !landing)
       toast(
         "Gelandet! Irgendwo auf der Insel liegt ein abgestürztes Flugzeug – dort findest du ein Funkgerät.",
@@ -1524,6 +1529,14 @@ function updateHud() {
   hutAngle = p.radio ? bearing(world.hut.x + 0.5 - p.x, world.hut.y + 0.5 - p.y) : null;
   needle.hidden = hutAngle === null;
   if (hutAngle !== null) needle.style.transform = `rotate(${hutAngle.toFixed(1)}deg)`;
+  // Wrack-Nadel kurz nach der Landung
+  const wreckOp = wreckHintOpacity(now() / 1000 - landedAt);
+  wreckNeedle.hidden = wreckOp <= 0;
+  if (wreckOp > 0) {
+    const a = bearing(world.plane.x + 0.5 - p.x, world.plane.y + 0.5 - p.y);
+    wreckNeedle.style.transform = `rotate(${a.toFixed(1)}deg)`;
+    wreckNeedle.style.opacity = wreckOp.toFixed(2);
+  }
   const room = hud("room");
   room.hidden = mode === "solo" || (mode === "host" && !roomCode);
   room.textContent =
@@ -1600,6 +1613,7 @@ if (debugEnabled) {
         total: state.total,
         trail: Object.keys(state.trail).length,
         hutAngle,
+        wreckNeedle: wreckNeedle.hidden ? 0 : Number(wreckNeedle.style.opacity || 0),
         smoke: smokeShown,
         ripples: ripplesShown,
         hut: world.hut,

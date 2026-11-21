@@ -463,6 +463,13 @@
   transform: translateX(-50%);
   font-size: 13px;
 }
+/* Wrack-Nadel (WL-AK-59): rot, kurz nach der Landung */
+.wl-wreck::before {
+  background: #ff5a4f;
+}
+.wl-wreck {
+  transition: opacity 0.2s linear;
+}
 .wl-bar[data-n="warmth"] b {
   background: #ff9a52;
 }

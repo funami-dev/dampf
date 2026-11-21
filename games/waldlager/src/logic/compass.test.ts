@@ -32,3 +32,15 @@ describe("WL-AK-44: Kompass und Karte", () => {
     }
   });
 });
+
+describe("WL-AK-59: Wrack-Nadel nach der Landung", () => {
+  it("4 s sichtbar, letzte Sekunde ausblendend, danach weg", async () => {
+    const { wreckHintOpacity } = await import("./compass.ts");
+    expect(wreckHintOpacity(-1)).toBe(0);
+    expect(wreckHintOpacity(0)).toBe(1);
+    expect(wreckHintOpacity(2.9)).toBe(1);
+    expect(wreckHintOpacity(3.5)).toBeCloseTo(0.5);
+    expect(wreckHintOpacity(4)).toBe(0);
+    expect(wreckHintOpacity(60)).toBe(0);
+  });
+});
