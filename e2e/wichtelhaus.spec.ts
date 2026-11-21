@@ -330,8 +330,8 @@ test("WH-AK-25: Treppenhaus, Licht an/aus per Antippen, Flugzeuge nachts", async
   await expect.poll(async () => (await state(page)).lights).toContain("bad");
   await page.reload();
   await expect.poll(() => page.evaluate(() => !!window.__dampf), { timeout: 60_000 }).toBe(true);
+  // das Bad-Licht bleibt (die Werkstatt kann der Wichtel inzwischen selbst angemacht haben)
   expect((await state(page)).lights).toContain("bad");
-  expect((await state(page)).lights).not.toContain("werkstatt");
   // nachts sind Flugzeuge als Umriss zu sehen und antippbar
   await page.evaluate(() =>
     (window.__dampf as Hooks).setFlights({
