@@ -57,6 +57,10 @@ export class Sound {
     this.tone(180, 0.09, "triangle", 0.15, 0.03);
   }
   /** Lämpchen geht an */
+  /** freundlicher, leiser Summer-Ton */
+  beep() {
+    this.tone(660, 0.16, "sine", 0.07);
+  }
   pling() {
     this.tone(880, 0.35, "sine", 0.18);
     this.tone(1320, 0.3, "sine", 0.08, 0.04);

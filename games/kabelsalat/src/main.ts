@@ -24,6 +24,10 @@ import {
   TOGGLES,
   cycleValue,
   ohms,
+  press,
+  turnKnob,
+  knobOhms,
+  KNOB,
   type Circuit,
   type Kind,
   type Part,
@@ -88,6 +92,9 @@ const KIND_ICON: Record<Kind, string> = {
   led: "🔆",
   widerstand: "🟫",
   messgeraet: "📟",
+  taster: "🔴",
+  drehregler: "🎛️",
+  summer: "🔔",
 };
 /** Farbringe der Widerstände (KS-AK-13) */
 const RINGS: Record<number, number[]> = {
@@ -139,6 +146,21 @@ const BOOK: Record<Kind, { text: string; symbol: string; daily: string }> = {
     text: "Das Messgerät zeigt Volt (Spannung, daneben stecken) oder mA (Strom, in Reihe stecken). Auf mA ist es fast ein Kabel!",
     symbol: "ein Kreis mit V (Volt) oder A (Ampere)",
     daily: "Werkzeugkiste von Elektrikern",
+  },
+  taster: {
+    text: "Ein Taster verbindet nur, solange man ihn drückt. Lässt man los, springt er zurück und der Kreis ist offen.",
+    symbol: "ein Schalter mit einem kleinen Druckknopf obendrauf",
+    daily: "Türklingel, Tasten an der Fernbedienung",
+  },
+  drehregler: {
+    text: "Ein Drehregler ist ein verstellbarer Widerstand. Dreht man weiter, wird er größer – der Strom wird kleiner, das Licht dunkler.",
+    symbol: "ein Widerstand mit einem schrägen Pfeil",
+    daily: "Lautstärkeknopf, Dimmer für die Lampe",
+  },
+  summer: {
+    text: "Im Summer schwingt ein kleines Plättchen hin und her, wenn Strom fließt – das hört man als Brummen oder Piepen.",
+    symbol: "ein Halbkreis wie eine kleine Glocke",
+    daily: "Türklingel, Wecker, Rauchmelder",
   },
 };
 
@@ -371,6 +393,7 @@ function deleteSelected() {
 let lastLit = new Set<number>();
 let lastShort = false;
 let lastPuff = false;
+let nextBeep = 0;
 function changed(byToggle = false) {
   tried = byToggle ? true : false;
   result = solve(circuit);
@@ -404,7 +427,9 @@ function changed(byToggle = false) {
   if (mission) {
     data.builds[mission.id] = clone(circuit);
     const v = checkMission(mission, circuit);
-    const needsTry = circuit.parts.some((p) => p.kind === "schalter" || p.kind === "umschalter");
+    const needsTry = circuit.parts.some(
+      (p) => p.kind === "schalter" || p.kind === "umschalter" || p.kind === "taster",
+    );
     if (v.ok && needsTry && !tried && !solved) {
       toast("Richtig verkabelt! Jetzt probier die Schalter aus: ▶ Ausprobieren.", 4);
     } else if (v.ok && !solved) {
@@ -642,6 +667,9 @@ const PART_COLORS: Record<Kind, number> = {
   led: 0x3d4a5c,
   widerstand: 0x3a4a4a,
   messgeraet: 0x2f3e46,
+  taster: 0x34495e,
+  drehregler: 0x3a4a4a,
+  summer: 0x2c3e50,
 };
 
 /** Kabel als weicher Bogen: Punkte entlang der Kurve */
@@ -781,6 +809,8 @@ class Bench extends Phaser.Scene {
   drag: { part: number; dx: number; dy: number; moved: boolean } | null = null;
   wiring: { from: PinRef; x: number; y: number; moved: boolean } | null = null;
   phase = new Map<number, number>();
+  /** gerade gedrückter Taster */
+  held: number | null = null;
   constructor() {
     super("bench");
   }
@@ -805,6 +835,11 @@ class Bench extends Phaser.Scene {
     });
     window.addEventListener("pointercancel", () => {
       down = false;
+      if (this.held !== null) {
+        press(circuit, this.held, false);
+        this.held = null;
+        changed(true);
+      }
       this.drag = null;
       this.wiring = null;
     });
@@ -843,6 +878,16 @@ class Bench extends Phaser.Scene {
       if (hit.part && TOGGLES.includes(hit.part.kind)) {
         toggle(circuit, hit.part.id);
         sound.clack();
+        changed(true);
+      } else if (hit.part?.kind === "taster" && press(circuit, hit.part.id, true)) {
+        // Taster: gedrückt halten (KS-AK-17)
+        this.held = hit.part.id;
+        sound.click();
+        changed(true);
+      } else if (hit.part?.kind === "drehregler") {
+        const o = turnKnob(circuit, hit.part.id);
+        sound.click();
+        toast(`Drehregler: ${o} Ω`, 1.2);
         changed(true);
       }
       return;
@@ -893,6 +938,11 @@ class Bench extends Phaser.Scene {
     }
   }
   up(p: Ptr) {
+    if (this.held !== null) {
+      press(circuit, this.held, false);
+      this.held = null;
+      changed(true);
+    }
     if (this.drag) {
       if (this.drag.moved) changed();
       this.drag = null;
@@ -923,6 +973,11 @@ class Bench extends Phaser.Scene {
   override update(_t: number, delta: number) {
     const dt = Math.min(0.1, delta / 1000);
     clock += dt;
+    // Summer: höchstens zweimal pro Sekunde ein leiser Ton (KS-AK-17)
+    if (!paused && Object.values(result.buzzers).some((b) => b.on) && clock >= nextBeep) {
+      nextBeep = clock + 0.5;
+      sound.beep();
+    }
     const W = this.scale.width;
     const H = this.scale.height;
     const r = this.game.canvas.getBoundingClientRect();
@@ -1233,6 +1288,55 @@ class Bench extends Phaser.Scene {
         this.label(p.on ? "mA" : "V", X(p.x), Y(p.y + 4), Math.max(8, 11 * k), "#2c2c2c");
         break;
       }
+      case "taster": {
+        line([-30, 0], [-16, 0], 4, 0xbdc3c7);
+        line([16, 0], [30, 0], 4, 0xbdc3c7);
+        // Brücke: gedrückt liegt sie auf, sonst schwebt sie
+        line([-16, p.on ? 0 : -8], [16, p.on ? 0 : -8], 5, p.on ? 0x2ecc71 : 0x95a5a6);
+        const knob = rot(0, p.on ? -10 : -18);
+        g.fillStyle(0xe74c3c, 1).fillCircle(knob.x, knob.y, 9 * k);
+        g.fillStyle(0xffffff, 0.3).fillCircle(knob.x - 3 * k, knob.y - 3 * k, 3 * k);
+        break;
+      }
+      case "drehregler": {
+        const c = rot(0, -6);
+        g.fillStyle(0x7f8c8d, 1).fillCircle(c.x, c.y, 20 * k);
+        g.fillStyle(0x2c3e50, 1).fillCircle(c.x, c.y, 15 * k);
+        // Zeiger: Stufe 0 links unten, Stufe 4 rechts unten (270°)
+        const pos = p.val ?? 0;
+        const ang = (Math.PI * 3) / 4 + ((pos / (KNOB.length - 1)) * (Math.PI * 3)) / 2;
+        g.lineStyle(3 * k, 0xf1c40f, 1).lineBetween(
+          c.x,
+          c.y,
+          c.x + Math.cos(ang) * 13 * k,
+          c.y + Math.sin(ang) * 13 * k,
+        );
+        const t = rot(0, 26);
+        this.label(`${knobOhms(p)} Ω`, t.x, t.y, Math.max(8, 11 * k), "#cfd8dc");
+        break;
+      }
+      case "summer": {
+        const on = !!result.buzzers[p.id]?.on;
+        line([-30, 0], [-16, 0], 3, 0xbdc3c7);
+        line([16, 0], [30, 0], 3, 0xbdc3c7);
+        const c = rot(0, -2);
+        g.fillStyle(0x1b1b1b, 1).fillCircle(c.x, c.y, 17 * k);
+        g.fillStyle(0x3d3d3d, 1).fillCircle(c.x, c.y, 6 * k);
+        if (on) {
+          // ruhige Schallwellen (1 Hz)
+          const w = 0.5 + 0.5 * Math.sin(clock * Math.PI * 2);
+          g.lineStyle(2 * k, 0xf1c40f, 0.4 + 0.4 * w);
+          for (const r0 of [24, 31]) {
+            g.beginPath();
+            g.arc(c.x, c.y, r0 * k, -0.6, 0.6);
+            g.strokePath();
+            g.beginPath();
+            g.arc(c.x, c.y, r0 * k, Math.PI - 0.6, Math.PI + 0.6);
+            g.strokePath();
+          }
+        }
+        break;
+      }
     }
     // Anschlusspunkte
     PARTS[p.kind].pins.forEach((d, i) => {
@@ -1388,6 +1492,54 @@ class Bench extends Phaser.Scene {
           this.label(p.on ? "A" : "V", c.x, c.y, Math.max(11, 16 * k), "#2b2b2b");
           break;
         }
+        case "taster": {
+          line([-40, 0], [-16, 0]);
+          line([16, 0], [40, 0]);
+          const yb = p.on ? 0 : -10;
+          line([-16, yb], [16, yb], 3);
+          line([0, yb], [0, yb - 12]);
+          line([-6, yb - 12], [6, yb - 12], 3);
+          for (const dx of [-16, 16]) {
+            const c = rot(dx, 0);
+            g.fillStyle(0xf7f4ea, 1).fillCircle(c.x, c.y, 4 * k);
+            g.lineStyle(2 * k, ink, 1).strokeCircle(c.x, c.y, 4 * k);
+          }
+          break;
+        }
+        case "drehregler": {
+          const pa = pinPos(p, 0);
+          const pb = pinPos(p, 1);
+          const c = rot(0, 0);
+          const a = rot(-18, -8);
+          const e = rot(18, 8);
+          g.lineStyle(2 * k, ink, 1);
+          g.lineBetween(X(pa.x), Y(pa.y), Math.min(a.x, e.x), c.y);
+          g.lineBetween(X(pb.x), Y(pb.y), Math.max(a.x, e.x), c.y);
+          g.strokeRect(
+            Math.min(a.x, e.x),
+            Math.min(a.y, e.y),
+            Math.abs(e.x - a.x),
+            Math.abs(e.y - a.y),
+          );
+          const s0 = rot(-14, 14);
+          const s1 = rot(16, -16);
+          g.lineBetween(s0.x, s0.y, s1.x, s1.y);
+          g.fillTriangle(s1.x, s1.y, s1.x - 7 * k, s1.y + 2 * k, s1.x - 2 * k, s1.y + 7 * k);
+          break;
+        }
+        case "summer": {
+          const on = !!result.buzzers[p.id]?.on;
+          line([-40, 0], [-14, 0]);
+          line([14, 0], [40, 0]);
+          const c = rot(0, 0);
+          if (on) g.fillStyle(0xfff176, 1).fillCircle(c.x, c.y - 2 * k, 12 * k);
+          g.lineStyle(2 * k, ink, 1);
+          g.beginPath();
+          g.arc(c.x, c.y, 14 * k, Math.PI, 0);
+          g.strokePath();
+          g.lineBetween(c.x - 14 * k, c.y, c.x + 14 * k, c.y);
+          break;
+        }
       }
       // Verbindungspunkte an Abzweigungen
       PARTS[p.kind].pins.forEach((_, i) => {
@@ -1436,11 +1588,14 @@ if (debugEnabled) {
         y: p.y,
         rot: p.rot,
         on: p.on,
-        val: p.kind === "widerstand" ? ohms(p) : null,
+        val: p.kind === "widerstand" ? ohms(p) : p.kind === "drehregler" ? knobOhms(p) : null,
       })),
       leds: circuit.parts
         .filter((p) => p.kind === "led")
         .map((p) => result.leds[p.id]?.level ?? "aus"),
+      buzzers: circuit.parts
+        .filter((p) => p.kind === "summer")
+        .map((p) => !!result.buzzers[p.id]?.on),
       meters: circuit.parts
         .filter((p) => p.kind === "messgeraet")
         .map((p) => meterText(result.meters[p.id])),

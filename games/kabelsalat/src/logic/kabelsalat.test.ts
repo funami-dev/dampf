@@ -4,6 +4,8 @@ import {
   addPart,
   addWire,
   cycleValue,
+  press,
+  turnKnob,
   emptyCircuit,
   parseCircuit,
   movePart,
@@ -395,6 +397,32 @@ describe("KS-AK-11: Tipps Schritt für Schritt", () => {
       ],
     );
     solutions[11].parts[1]!.on = true;
+    solutions[12] = build(
+      ["batterie", "taster", "summer"],
+      [
+        [0, 0, 1, 0],
+        [1, 1, 2, 0],
+        [2, 1, 0, 1],
+      ],
+    );
+    solutions[13] = build(
+      ["batterie", "lampe", "drehregler"],
+      [
+        [0, 0, 1, 0],
+        [1, 1, 2, 0],
+        [2, 1, 0, 1],
+      ],
+    );
+    solutions[14] = build(
+      ["batterie", "taster", "summer", "lampe"],
+      [
+        [0, 0, 1, 0],
+        [1, 1, 2, 0],
+        [1, 1, 3, 0],
+        [2, 1, 0, 1],
+        [3, 1, 0, 1],
+      ],
+    );
     const fixed8 = m(8).preset!();
     fixed8.wires = fixed8.wires.filter((w) => w.a.part !== w.b.part);
     solutions[8] = fixed8;
@@ -570,5 +598,100 @@ describe("KS-AK-15: Missionen 9–11", () => {
       ],
     );
     expect(checkMission(m(11), seriesV).ok).toBe(false);
+  });
+});
+
+describe("KS-AK-17: Taster, Drehregler, Summer", () => {
+  it("Taster nur gedrückt; Summer ab 20 mA; nach Laden losgelassen", () => {
+    const c = build(
+      ["batterie", "taster", "summer"],
+      [
+        [0, 0, 1, 0],
+        [1, 1, 2, 0],
+        [2, 1, 0, 1],
+      ],
+    );
+    const t = c.parts[1]!;
+    const bz = c.parts[2]!;
+    expect(solve(c).buzzers[bz.id]!.on).toBe(false);
+    expect(press(c, t.id, true)).toBe(true);
+    expect(press(c, t.id, true)).toBe(false);
+    const r = solve(c);
+    expect(r.buzzers[bz.id]!.on).toBe(true);
+    const expected = ELEC.volt / (ELEC.buzzer + ELEC.inner);
+    expect(Math.abs(r.buzzers[bz.id]!.amps - expected) / expected).toBeLessThan(0.02);
+    expect(toggle(c, t.id)).toBe(false); // kein Umschalten wie ein Schalter
+    expect(parseCircuit(JSON.parse(JSON.stringify(c)))!.parts[1]!.on).toBe(false);
+    press(c, t.id, false);
+    expect(solve(c).buzzers[bz.id]!.on).toBe(false);
+  });
+  it("Drehregler: 5 Stufen reihum, mehr Ohm = weniger Strom, Stufe gespeichert", () => {
+    const c = build(
+      ["batterie", "lampe", "drehregler"],
+      [
+        [0, 0, 1, 0],
+        [1, 1, 2, 0],
+        [2, 1, 0, 1],
+      ],
+    );
+    const k = c.parts[2]!;
+    const lamp = c.parts[1]!;
+    expect(k.val).toBe(0);
+    let last = solve(c).lamps[lamp.id]!.amps;
+    expect(solve(c).lamps[lamp.id]!.level).toBe("hell");
+    for (const o of [10, 25, 60, 150]) {
+      expect(turnKnob(c, k.id)).toBe(o);
+      const a = solve(c).lamps[lamp.id]!.amps;
+      expect(a).toBeLessThan(last);
+      last = a;
+    }
+    expect(turnKnob(c, k.id)).toBe(0);
+    turnKnob(c, k.id);
+    expect(parseCircuit(JSON.parse(JSON.stringify(c)))!.parts[2]!.val).toBe(1);
+    const bad = JSON.parse(JSON.stringify(c));
+    bad.parts[2].val = 7;
+    expect(parseCircuit(bad)!.parts[2]!.val).toBe(0);
+    expect(turnKnob(c, lamp.id)).toBeNull();
+  });
+});
+
+describe("KS-AK-18: Missionen 12–14", () => {
+  const m = (id: number) => MISSIONS.find((x) => x.id === id)!;
+  it("falsche Lösungen bestehen nicht", () => {
+    // 12: Taster überbrückt → Summer immer an
+    const bridged = build(
+      ["batterie", "taster", "summer"],
+      [
+        [0, 0, 1, 0],
+        [1, 1, 2, 0],
+        [2, 1, 0, 1],
+        [1, 0, 1, 1],
+      ],
+    );
+    expect(checkMission(m(12), bridged).ok).toBe(false);
+    // 13: Drehregler parallel zum Lämpchen
+    const parallel = build(
+      ["batterie", "lampe", "drehregler"],
+      [
+        [0, 0, 1, 0],
+        [1, 1, 0, 1],
+        [2, 0, 1, 0],
+        [2, 1, 1, 1],
+      ],
+    );
+    parallel.parts[2]!.val = 3;
+    expect(checkMission(m(13), parallel).ok).toBe(false);
+    // 14: Lämpchen ohne Taster direkt an der Batterie
+    const lampAlways = build(
+      ["batterie", "taster", "summer", "lampe"],
+      [
+        [0, 0, 1, 0],
+        [1, 1, 2, 0],
+        [2, 1, 0, 1],
+        [0, 0, 3, 0],
+        [3, 1, 0, 1],
+      ],
+    );
+    expect(checkMission(m(14), lampAlways).ok).toBe(false);
   });
 });

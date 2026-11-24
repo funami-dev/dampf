@@ -10,8 +10,17 @@
   "status": "published",
   "order": 110,
   "addedAt": "2026-11-14",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "changelog": [
+    {
+      "version": "1.3.0",
+      "date": "2026-11-24",
+      "time": "20:10",
+      "items": [
+        "Neue Bauteile: Taster, Drehregler und Summer",
+        "Drei neue Missionen: Türklingel, Dimmer und Klingel mit Licht"
+      ]
+    },
     {
       "version": "1.2.0",
       "date": "2026-11-22",

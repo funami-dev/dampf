@@ -80,6 +80,9 @@ const LED_K: PinOf = { kind: "led", pin: 1 };
 const LED: PinOf = { kind: "led", pin: -1 };
 const M_PLUS: PinOf = { kind: "messgeraet", pin: 0 };
 const M_MINUS: PinOf = { kind: "messgeraet", pin: 1 };
+const TASTER: PinOf = { kind: "taster", pin: -1 };
+const SUMMER: PinOf = { kind: "summer", pin: -1 };
+const KNOBP: PinOf = { kind: "drehregler", pin: -1 };
 
 const parts = (kit: Partial<Record<Kind, number>>, text: string): Step => ({
   text,
@@ -353,6 +356,84 @@ export const STEPS: Record<number, Step[]> = {
       text: "Wechsle zu ▶ Ausprobieren und tippe auf das Messgerät, bis es mA zeigt.",
       focus: { kinds: ["messgeraet"] },
       done: (c, r) => c.parts.some((p) => p.kind === "messgeraet" && r.meters[p.id]?.mode === "mA"),
+    },
+  ],
+  12: [
+    parts(
+      { batterie: 1, taster: 1, summer: 1 },
+      "Leg Batterie, Taster und Summer auf die Werkbank.",
+    ),
+    {
+      text: "Kabel vom Pluspol (+) zum Taster.",
+      focus: { pins: [PLUS], kinds: ["taster"] },
+      done: (c) => linked(c, PLUS, TASTER),
+    },
+    {
+      text: "Kabel vom anderen Punkt des Tasters zum Summer.",
+      focus: { kinds: ["summer"] },
+      done: (c) => linked(c, TASTER, SUMMER),
+    },
+    {
+      text: "Kabel vom Summer zurück zum Minuspol (−).",
+      focus: { pins: [MINUS] },
+      done: (c) => linked(c, SUMMER, MINUS),
+    },
+    {
+      text: "Wechsle zu ▶ Ausprobieren und halte den Taster gedrückt – es summt! Loslassen: Ruhe.",
+      focus: { kinds: ["taster"] },
+      done: (_c, _r, solved) => solved,
+    },
+  ],
+  13: [
+    parts(
+      { batterie: 1, lampe: 1, drehregler: 1 },
+      "Leg Batterie, Lämpchen und Drehregler auf die Werkbank.",
+    ),
+    {
+      text: "Kabel vom Pluspol (+) zum Lämpchen.",
+      focus: { pins: [PLUS] },
+      done: (c) => linked(c, PLUS, LAMP),
+    },
+    {
+      text: "Kabel vom Lämpchen zum Drehregler – hintereinander, damit er den Strom bremsen kann.",
+      focus: { kinds: ["drehregler"] },
+      done: (c) => linked(c, LAMP, KNOBP),
+    },
+    {
+      text: "Kabel vom Drehregler zurück zum Minuspol (−).",
+      focus: { pins: [MINUS] },
+      done: (c) => linked(c, KNOBP, MINUS),
+    },
+    {
+      text: "Tipp im Modus ▶ Ausprobieren auf den Drehregler: mehr Ohm, weniger Licht.",
+      focus: { kinds: ["drehregler"] },
+      done: (_c, _r, solved) => solved,
+    },
+  ],
+  14: [
+    parts(
+      { batterie: 1, taster: 1, summer: 1, lampe: 1 },
+      "Leg Batterie, Taster, Summer und Lämpchen auf die Werkbank.",
+    ),
+    {
+      text: "Kabel vom Pluspol (+) zum Taster.",
+      focus: { pins: [PLUS], kinds: ["taster"] },
+      done: (c) => linked(c, PLUS, TASTER),
+    },
+    {
+      text: "Vom anderen Punkt des Tasters je ein Kabel zum Summer und zum Lämpchen – zwei Wege nebeneinander.",
+      focus: { kinds: ["summer", "lampe"] },
+      done: (c) => linked(c, TASTER, SUMMER) && linked(c, TASTER, LAMP),
+    },
+    {
+      text: "Von Summer und Lämpchen je ein Kabel zum Minuspol (−).",
+      focus: { pins: [MINUS] },
+      done: (c) => linked(c, SUMMER, MINUS) && linked(c, LAMP, MINUS),
+    },
+    {
+      text: "Halte den Taster gedrückt: Es summt und leuchtet gleichzeitig.",
+      focus: { kinds: ["taster"] },
+      done: (_c, _r, solved) => solved,
     },
   ],
 };
