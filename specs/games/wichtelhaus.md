@@ -167,6 +167,12 @@ Flugverkehr** vorbei – live, aber ruhig.
   Reise!“. Ist der Himmel leer: „Gerade ist der Himmel leer … vielleicht kommt gleich eins.“ –
   kommt dann eins, sagt er noch etwas. Nachts: „Nachts sehe ich nur die Umrisse und die Lichter – schön!“.
   Sehr müde (Energie unter 20 %) sagt er freundlich Nein. Macht etwas Spaß (+15 %).
+- **Teleskop** (Version 1.9, Vorschlag im Chat angenommen): Ist der Dachboden offen, beobachtet der
+  Wichtel die Flugzeuge durchs Teleskop. Dann erscheint oben ein runder **Teleskop-Blick** mit dem
+  ersten Flugzeug groß (nachts als Umriss mit Lichtern) und seinem Namen darunter; er schließt
+  sich, wenn er fertig ist. Nachts erkennt er durchs Teleskop trotzdem, was es ist: „Durchs
+  Teleskop: ein rotes und ein grünes Licht – das ist ein Airbus A320 von Pegasus!“. Tagsüber
+  beginnt sein Satz mit „Durchs Teleskop:“. Ohne Dachboden (Fenster) bleibt es wie bisher.
 - **Flugzeugbuch** (Version 1.8): Tippt man ein Flugzeug an, kommt seine Sorte ins Flugzeugbuch
   (Knopf ✈️, „Flugzeugbuch“). Ist sie neu, sagt der Wichtel „Neu im Flugzeugbuch: Jumbo!“. Das
   Buch zeigt alle 8 Sorten – Kurzstrecken-Jet, Langer Jet, Großraumjet, Jumbo, Regionaljet,
@@ -298,6 +304,10 @@ Flugverkehr** vorbei – live, aber ruhig.
   noch einmal; unbekannte Sorte wird ignoriert; gespeichert und geladen, kaputte Daten → leer.
   (E2E) Flugzeug antippen → Satz „Neu im Flugzeugbuch: …“; Flugzeugbuch zeigt „1 von 8 gesehen“
   und die Sorte; nach Neuladen bleibt sie.
+- **WH-AK-29** (Vitest) Teleskop-Sätze: nachts mit Teleskop Lichter plus Name und Gesellschaft,
+  tagsüber mit „Durchs Teleskop:“ davor; ohne Teleskop wie bisher; leerer Himmel wie bisher.
+  (E2E) Mit offenem Dachboden und einem Flugzeug am Himmel zeigt „✈️ Schau mal die Flugzeuge!“
+  den Teleskop-Blick mit dem Flugzeugnamen; danach schließt er sich.
 - **WH-AK-10** Fokusverlust pausiert; Spiel erscheint im Portal mit Version 1.0.0.
 - **WH-AK-11** Ruhe-Regeln (Vitest + E2E): keine Zeitlimits, kein Verlieren, keine Punkte; alle
   Leerlauf-Animationen haben Zyklen ≥ 4 s (Atmen/Laterne 10 s); nichts blinkt schneller als 3 Hz;

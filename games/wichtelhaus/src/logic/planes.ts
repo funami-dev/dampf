@@ -234,12 +234,14 @@ export function planePos(p: Plane): { x: number; y: number } {
  * Was sagt der Wichtel beim Flugzeuge-Beobachten? (WH-AK-23) – zum ersten Flugzeug am Himmel,
  * nachts nur Umrisse und Lichter, sonst „Himmel leer“.
  */
-export function watchRemark(planes: Plane[], night: boolean): string {
+export function watchRemark(planes: Plane[], night: boolean, scope = false): string {
   if (!planes.length) return "Gerade ist der Himmel leer … vielleicht kommt gleich eins.";
-  if (night) return "Nachts sehe ich nur die Umrisse und die Lichter – schön!";
+  if (night && !scope) return "Nachts sehe ich nur die Umrisse und die Lichter – schön!";
   const f = planes[0]!.flight;
   const name = NAMES[f.type] ? `ein ${NAMES[f.type]}` : nameOf(f);
   const who = f.airline ? `${name} von ${f.airline}` : name;
+  // Teleskop (WH-AK-29): nachts erkennt er es trotzdem an den Lichtern
+  if (night) return `Durchs Teleskop: ein rotes und ein grünes Licht – das ist ${who}!`;
   const at = (p: Place) => (p.country ? `${p.city} (${p.country})` : p.city);
   const tail =
     f.phase === "landung" && f.from
@@ -247,5 +249,6 @@ export function watchRemark(planes: Plane[], night: boolean): string {
       : f.phase === "start" && f.to
         ? ` – der fliegt nach ${at(f.to)}. Gute Reise!`
         : "!";
-  return `Da! ${who.charAt(0).toUpperCase()}${who.slice(1)}${tail}`;
+  const said = `${who.charAt(0).toUpperCase()}${who.slice(1)}${tail}`;
+  return scope ? `Durchs Teleskop: ${said}` : `Da! ${said}`;
 }

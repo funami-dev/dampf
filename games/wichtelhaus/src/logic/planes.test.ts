@@ -132,3 +132,23 @@ describe("WH-AK-23: Flugzeuge beobachten", () => {
     );
   });
 });
+
+describe("WH-AK-29: Teleskop", () => {
+  it("nachts Lichter mit Name, tagsüber mit „Durchs Teleskop:“", () => {
+    const s = newSky();
+    setReply(s, reply([fl({ airline: "Pegasus", phase: "ueberflug" })]));
+    updateSky(s, 1, fixed(0.5));
+    expect(watchRemark(s.planes, true, true)).toBe(
+      "Durchs Teleskop: ein rotes und ein grünes Licht – das ist ein Airbus A320 von Pegasus!",
+    );
+    expect(watchRemark(s.planes, false, true)).toBe(
+      "Durchs Teleskop: Ein Airbus A320 von Pegasus!",
+    );
+    expect(watchRemark(s.planes, true, false)).toBe(
+      "Nachts sehe ich nur die Umrisse und die Lichter – schön!",
+    );
+    expect(watchRemark([], true, true)).toBe(
+      "Gerade ist der Himmel leer … vielleicht kommt gleich eins.",
+    );
+  });
+});
