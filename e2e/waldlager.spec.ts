@@ -1000,3 +1000,12 @@ test("WL-AK-48: nachts erscheint die Wärme-Leiste", async ({ page }) => {
   await expect(bar).toContainText("Wärme");
   await expectNoErrors(errors);
 });
+
+test("WL-AK-62: heißt jetzt „Die Gestrandeten“", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await expect(page).toHaveTitle(/^Die Gestrandeten/);
+  await expect(page.getByRole("heading", { name: "Die Gestrandeten" }).first()).toBeVisible();
+  expect(page.url()).toContain("/games/waldlager/");
+  await expectNoErrors(errors);
+});

@@ -503,7 +503,7 @@ const escapeHtml = (t: string) => t.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt
 function openStart() {
   screen = "menu";
   const hasSave = !!saved;
-  const el = panel(`<h2>Waldlager</h2>
+  const el = panel(`<h2>Die Gestrandeten</h2>
     <p>Hack Holz, bau dein Zelt und ein Lagerfeuer, such Beeren – und entdecke alle Tiere des Waldes. Die Tiere tun dir nichts, und du ihnen auch nicht.</p>
     <label class="wl-field">Dein Name <input type="text" maxlength="12" value="${escapeHtml(profile.name)}" placeholder="Wanderer" autocomplete="off" /></label>
     ${RELAY_URL ? `<p class="wl-hint">Dein Name ist für alle sichtbar – nimm einen Spitznamen.</p>` : ""}

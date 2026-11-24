@@ -1,8 +1,10 @@
-# Spiel: Waldlager
+# Spiel: Die Gestrandeten (früher Waldlager)
 
 **Status:** Umgesetzt
 **Slug:** `waldlager`
-**Name:** „Waldlager“ (Arbeitstitel)
+**Name:** „Die Gestrandeten“ (Version 1.15, Feedback `fb_544ew28d`; vorher „Waldlager“). Die
+Adresse bleibt `/games/waldlager/` (Slug `waldlager`), damit Spielstände, Lesezeichen und offene
+Welten erhalten bleiben.
 
 ## Zweck
 
@@ -121,7 +123,7 @@ gegen Tiere. Rehe und andere Waldtiere laufen nur herum. Man kann nicht sterben.
 
 ## Tiere entdecken (nie verletzbar)
 
-Waldlager ist auch ein **Entdeckerspiel**: Auf der Insel leben **33 Tierarten**. Wer ein Tier zum ersten
+„Die Gestrandeten“ ist auch ein **Entdeckerspiel**: Auf der Insel leben **33 Tierarten**. Wer ein Tier zum ersten
 Mal sieht, trägt es ins **Tierbuch** ein.
 
 - Es gibt keine Aktion, die ein Tier verletzt, fängt, füttert oder tötet. Tiere blockieren den Weg
@@ -663,6 +665,10 @@ Figur steht.
 - **WL-AK-61** (E2E) Gastgeber mit Mitspieler: „Hauptmenü“ fragt erst nach; „Hierbleiben“ führt
   zurück ins Menü, „Ja, verlassen“ beendet die Welt und der Gast sieht sofort „Der Gastgeber hat
   die Welt verlassen“.
+
+- **WL-AK-62** (E2E) Umbenennung (Feedback `fb_544ew28d`): Startbildschirm und Tab-Titel heißen
+  „Die Gestrandeten“, die Adresse bleibt `/games/waldlager/`; der Speicher-Schlüssel ändert sich
+  nicht (alte Spielstände bleiben).
 
 ## Nicht-Ziele (MVP)
 
