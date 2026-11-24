@@ -569,7 +569,7 @@ function tick(dt: number) {
   if (remark && clock > bubbleUntil && w.activity.kind !== "schlafen") say(remark, 4);
   // Flugzeuge beobachten (WH-AK-23): angekommen → zum echten Flugzeug etwas sagen; war der
   // Himmel leer und kommt dann eins, noch einmal
-  if (w.activity.kind === "flugzeuge" && !walker.moving) {
+  if (w.activity.kind === "flugzeuge" && arrivedFor === w.activity) {
     const n = traffic.planes.length;
     if (watch.activity !== w.activity || (watch.empty && n > 0)) {
       watch.activity = w.activity;
@@ -654,7 +654,10 @@ function updateScope(w: World) {
   const el = $(".wh-scope");
   const pl = traffic.planes[0];
   const show =
-    w.activity.kind === "flugzeuge" && w.activity.room === "dachboden" && !walker.moving && !!pl;
+    w.activity.kind === "flugzeuge" &&
+    w.activity.room === "dachboden" &&
+    arrivedFor === w.activity &&
+    !!pl;
   if (!show || !pl) {
     el.hidden = true;
     scopeKey = "";
