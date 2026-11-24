@@ -7,8 +7,17 @@
   "status": "published",
   "order": 100,
   "addedAt": "2026-11-10",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "changelog": [
+    {
+      "version": "1.9.0",
+      "date": "2026-11-24",
+      "time": "20:42",
+      "items": [
+        "Vom Dachboden schaut der Wichtel durchs Teleskop – du siehst das Flugzeug groß im runden Teleskop-Blick",
+        "Nachts erkennt er durchs Teleskop an den Lichtern, welches Flugzeug es ist"
+      ]
+    },
     {
       "version": "1.8.0",
       "date": "2026-11-22",

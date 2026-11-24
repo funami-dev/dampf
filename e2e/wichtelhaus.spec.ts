@@ -25,6 +25,7 @@ interface WhState {
   lights: string[];
   night: boolean;
   stairSteps: number;
+  scope: string;
 }
 interface Hooks {
   state(): WhState;
@@ -33,6 +34,7 @@ interface Hooks {
   setFlights(r: unknown): void;
   planePoint(i: number): { x: number; y: number } | null;
   roomPoint(r: string): { x: number; y: number } | null;
+  setFriendship(n: number): void;
 }
 declare global {
   interface Window {
@@ -423,5 +425,42 @@ test("WH-AK-28: Flugzeug antippen kommt ins Flugzeugbuch", async ({ page }) => {
   await expect(
     page.getByRole("dialog", { name: "Flugzeugbuch" }).getByText("1 von 8 gesehen"),
   ).toBeVisible();
+  await expectNoErrors(errors);
+});
+
+test("WH-AK-29: Teleskop-Blick vom Dachboden", async ({ page }) => {
+  test.setTimeout(90_000);
+  const errors = trackErrors(page);
+  await open(page);
+  await moveIn(page);
+  await page.evaluate(() => {
+    const h = window.__dampf as Hooks;
+    h.setFriendship(20);
+    h.setNeeds({ hunger: 90, energy: 90, fun: 50, clean: 90 });
+    h.setFlights({
+      live: true,
+      runway: "west",
+      source: "adsb.lol (ODbL)",
+      flights: Array.from({ length: 5 }, () => ({
+        type: "A320",
+        cat: "kurz",
+        phase: "ueberflug",
+        track: 90,
+        alt: 900,
+        airline: "Pegasus",
+      })),
+    });
+  });
+  await expect.poll(async () => (await state(page)).planes).toBe(1);
+  await press(page, "Anklopfen");
+  await press(page, "✈️ Schau mal die Flugzeuge!");
+  await expect
+    .poll(async () => (await state(page)).scope, { timeout: 40_000 })
+    .toBe("Airbus A320 · Pegasus");
+  await expect(page.getByRole("img", { name: "Teleskop-Blick" })).toBeVisible();
+  await expect.poll(async () => (await state(page)).bubble).toMatch(/^Durchs Teleskop:/);
+  // fertig beobachtet → Blick schließt sich
+  await page.evaluate(() => (window.__dampf as Hooks).advance(30));
+  await expect.poll(async () => (await state(page)).scope).toBe("");
   await expectNoErrors(errors);
 });

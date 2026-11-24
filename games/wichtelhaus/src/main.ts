@@ -70,6 +70,7 @@ import {
   setReply,
   updateSky,
   watchRemark,
+  nameOf,
   CATEGORIES,
   CATEGORY_NAMES,
   type Category,
@@ -154,6 +155,7 @@ layer.className = "wh-layer";
 layer.innerHTML = `
   <div class="wh-credit" hidden>Flugdaten: adsb.lol (ODbL) · Strecken: adsbdb.com</div>
   <div class="wh-planetip" role="status" hidden></div>
+  <figure class="wh-scope" role="img" aria-label="Teleskop-Blick" hidden><img alt=""><figcaption></figcaption></figure>
   <div class="wh-top" hidden>
     <div class="wh-needs" role="status" aria-label="So geht es dem Wichtel">
       <span data-n="hunger" title="Hunger">🍲<i><b></b></i></span>
@@ -567,14 +569,15 @@ function tick(dt: number) {
   if (remark && clock > bubbleUntil && w.activity.kind !== "schlafen") say(remark, 4);
   // Flugzeuge beobachten (WH-AK-23): angekommen → zum echten Flugzeug etwas sagen; war der
   // Himmel leer und kommt dann eins, noch einmal
-  if (w.activity.kind === "flugzeuge" && !walker.moving) {
+  if (w.activity.kind === "flugzeuge" && arrivedFor === w.activity) {
     const n = traffic.planes.length;
     if (watch.activity !== w.activity || (watch.empty && n > 0)) {
       watch.activity = w.activity;
       watch.empty = n === 0;
-      say(watchRemark(traffic.planes, isNight(w.t)), 6);
+      say(watchRemark(traffic.planes, isNight(w.t), w.activity.room === "dachboden"), 6);
     }
   }
+  updateScope(w);
   // Ruhe-Tätigkeit durch Halten (3 s)
   if (task && !task.done) {
     const p = Math.min(1, (clock - task.started) / 3);
@@ -642,6 +645,40 @@ function updateHud() {
       `scale(${0.85 + 0.25 * lvl})`;
     overlay.querySelector<HTMLElement>(".wh-breath")!.textContent = breathPhase(s / slow);
   }
+}
+
+/** Teleskop-Blick (WH-AK-29): beim Beobachten vom Dachboden das erste Flugzeug groß */
+const scopePics = new Map<string, string>();
+let scopeKey = "";
+function updateScope(w: World) {
+  const el = $(".wh-scope");
+  const pl = traffic.planes[0];
+  const show =
+    w.activity.kind === "flugzeuge" &&
+    w.activity.room === "dachboden" &&
+    arrivedFor === w.activity &&
+    !!pl;
+  if (!show || !pl) {
+    el.hidden = true;
+    scopeKey = "";
+    return;
+  }
+  const night = isNight(w.t);
+  const key = `${pl.id}-${night}`;
+  el.hidden = false;
+  if (key === scopeKey) return;
+  scopeKey = key;
+  const pic = `${pl.flight.cat}-${night}`;
+  if (!scopePics.has(pic)) scopePics.set(pic, planeCanvas(pl.flight.cat, night).toDataURL());
+  const img = el.querySelector("img")!;
+  img.src = scopePics.get(pic)!;
+  img.style.transform = pl.dir < 0 ? "scaleX(-1)" : "";
+  el.classList.toggle("night", night);
+  const n = nameOf(pl.flight);
+  const name = `${n.charAt(0).toUpperCase()}${n.slice(1)}`;
+  el.querySelector("figcaption")!.textContent = pl.flight.airline
+    ? `${name} · ${pl.flight.airline}`
+    : name;
 }
 
 // --- Grafik ---------------------------------------------------------------------
@@ -1379,6 +1416,7 @@ if (debugEnabled) {
       night: world ? isNight(world.t) : false,
       planesSeen: world ? [...world.planesSeen] : [],
       stairLight: stairLight.level,
+      scope: $(".wh-scope").hidden ? "" : ($(".wh-scope figcaption").textContent ?? ""),
       stairSteps,
       walkerY: walker.y,
     }),
@@ -1406,6 +1444,9 @@ if (debugEnabled) {
     },
     setNeeds: (n: Partial<World["needs"]>) => {
       if (world) Object.assign(world.needs, n);
+    },
+    setFriendship: (n: number) => {
+      if (world) world.friendship = n;
     },
   };
 }
