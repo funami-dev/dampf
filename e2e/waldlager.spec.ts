@@ -146,14 +146,24 @@ test("WL-AK-13: Desktop – hacken, Feuer und Zelt bauen, Beeren essen, Nacht", 
 
   // Laufen mit der Tastatur (der Landeplatz ist zufällig: steht in einer Richtung ein Baum,
   // die nächste Richtung probieren)
+  // Richtungen und Diagonalen nacheinander; zählt der weiteste Versuch
   let moved = 0;
-  for (const key of ["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"]) {
+  for (const keys of [
+    ["ArrowDown"],
+    ["ArrowUp"],
+    ["ArrowLeft"],
+    ["ArrowRight"],
+    ["ArrowDown", "ArrowLeft"],
+    ["ArrowDown", "ArrowRight"],
+    ["ArrowUp", "ArrowLeft"],
+    ["ArrowUp", "ArrowRight"],
+  ]) {
     const a = (await state(page)).me;
-    await page.keyboard.down(key);
-    await page.waitForTimeout(600);
-    await page.keyboard.up(key);
+    for (const k of keys) await page.keyboard.down(k);
+    await page.waitForTimeout(900);
+    for (const k of keys) await page.keyboard.up(k);
     const b = (await state(page)).me;
-    moved = Math.hypot(b.x - a.x, b.y - a.y);
+    moved = Math.max(moved, Math.hypot(b.x - a.x, b.y - a.y));
     if (moved > 0.3) break;
   }
   expect(moved).toBeGreaterThan(0.3);
