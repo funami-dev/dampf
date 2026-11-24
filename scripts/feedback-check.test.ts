@@ -59,7 +59,7 @@ describe("Hook-Skript scripts/feedback-check.sh", () => {
     const r = await run(api, TOKEN);
     expect(r.code).toBe(0);
     expect(r.out.trim()).toBe(
-      "Feedback-Check: Es gibt 6 neue Feedbacks: 2× Waldlager, 1× Kassen-Held, 1× Spielidee, 1× Startseite, 1× unbekannt-x – ansehen?",
+      "Feedback-Check: Es gibt 6 neue Feedbacks: 2× Die Gestrandeten, 1× Kassen-Held, 1× Spielidee, 1× Startseite, 1× unbekannt-x – ansehen?",
     );
     expect(seen).toEqual([`/feedback/stats Bearer ${TOKEN}`]);
     expect(r.out).not.toContain(TOKEN);

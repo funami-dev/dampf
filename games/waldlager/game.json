@@ -1,7 +1,7 @@
 {
   "slug": "waldlager",
-  "title": "Waldlager",
-  "description": "Im isometrischen Pixel-Wald Holz hacken, Zelt und Lagerfeuer bauen, Beeren suchen – bis es dämmert. Tiere laufen frei herum.",
+  "title": "Die Gestrandeten",
+  "description": "Nach dem Absturz auf einer einsamen Insel: Holz hacken, Feuer machen, Tiere entdecken und das Funkgerät im Wrack finden – allein oder zusammen.",
   "thumbnail": "thumbnail.png",
   "controls": {
     "keyboard": true,
@@ -10,8 +10,14 @@
   "status": "published",
   "order": 80,
   "addedAt": "2026-11-08",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "changelog": [
+    {
+      "version": "1.15.0",
+      "date": "2026-11-24",
+      "time": "18:55",
+      "items": ["Das Waldlager heißt jetzt „Die Gestrandeten“ – dein Spielstand bleibt erhalten"]
+    },
     {
       "version": "1.14.0",
       "date": "2026-11-21",
