@@ -340,3 +340,39 @@ describe("PL-AK-16: eigener Planet", () => {
     expect(loadProgress(s).best["eigen-2"]).toBe(2);
   });
 });
+
+describe("PL-AK-18: Ruhiger Modus", () => {
+  it("halbe Schwerkraft, mehr Treibstoff, großzügigere Grenzen", async () => {
+    const { CALM, flyBody, fuelFor, safeFor, sinkLevel } = await import("./physics.ts");
+    const mond = bodyById("mond")!;
+    const fall = (calm: boolean) => {
+      const b = flyBody(mond, calm);
+      const l = at({ y: 300 });
+      let t = 0;
+      while (l.y > 0 && t < 120) {
+        step(l, none, b, STEP, WIDTH);
+        t += STEP;
+      }
+      return t;
+    };
+    expect(flyBody(mond, true).g).toBeCloseTo(mond.g * CALM.gravity);
+    expect(flyBody(mond, false)).toBe(mond);
+    expect(fall(true) / fall(false)).toBeCloseTo(Math.SQRT2, 1);
+    expect(fuelFor(true)).toBe(900);
+    expect(fuelFor(false)).toBe(LANDER.fuel);
+    const t = makeTerrain("mond", true);
+    expect(startLander(t, fuelFor(true)).fuel).toBe(900);
+    const onPad = (o: Partial<Lander>) => at({ x: t.pad.center, y: t.pad.y, ...o });
+    expect(judge(onPad({ vy: -2.5 }), t, safeFor(true)).landed).toBe(true);
+    expect(judge(onPad({ vy: -2.5 }), t, safeFor(false)).landed).toBe(false);
+    expect(judge(onPad({ vy: -4 }), t, safeFor(true)).landed).toBe(false);
+    expect(judge(onPad({ vx: 1.4, angle: (14 * Math.PI) / 180 }), t, safeFor(true)).landed).toBe(
+      true,
+    );
+    expect(sinkLevel(3, safeFor(true))).toBe("ok");
+    expect(sinkLevel(3, safeFor(false))).toBe("warn");
+    const ok = judge(onPad({ vy: -0.5 }), t, safeFor(true));
+    expect(stars(ok, 300, fuelFor(true))).toBe(stars(ok, 200, fuelFor(false)));
+    expect(stars(ok, 250, fuelFor(true))).toBe(2);
+  });
+});

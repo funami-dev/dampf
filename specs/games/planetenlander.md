@@ -109,6 +109,15 @@ er ganz auf der Plattform liegt, sonst rot. Die Punkte der Flugbahn haben die **
 Sinkgeschwindigkeit** an dieser Stelle – wie die Anzeige „Sinken“: grün bis 2 m/s, gelb bis 4 m/s,
 darüber rot (Feedback `fb_7ay9gsus`). Die Landehilfe ändert nichts an Sternen oder Bestwerten.
 
+**Ruhiger Modus** (Version 1.5, Vorschlag im Chat angenommen, für jüngere Kinder): Auf der
+Lern-Karte schaltet „🐢 Ruhiger Modus“ ihn an und aus (wird gemerkt). Dann gilt im Flug:
+**halbe Schwerkraft** (Luft wie gehabt), **anderthalbmal so viel Treibstoff** (900 kg) und
+großzügigere Grenzen beim Aufsetzen: höchstens **3 m/s** sinken, **1,5 m/s** seitlich und **15°**
+schief. Anzeigen, Ampelfarben, Landehilfe und Ergebnis nutzen diese Grenzen. Die Lern-Karte zeigt
+den echten g-Wert und darunter „🐢 Im ruhigen Modus fällt alles halb so schnell.“; im Flug steht
+klein „🐢 Ruhig“ in der Anzeige. Sterne gibt es wie sonst (der Treibstoff zählt im Verhältnis zur
+vollen Menge).
+
 ## Steuerung
 
 | Eingabe                        | Aktion                |
@@ -168,6 +177,10 @@ ohne Luft, Dunst-Schichten auf Titan/Venus. Kein Ton im MVP.
 - **PL-AK-15** Bahnfarbe (Vitest + E2E): Sinken ≤ 2 m/s grün, ≤ 4 m/s gelb, darüber rot – für die
   Anzeige „Sinken“ und die Bahnpunkte gleich; im freien Fall aus großer Höhe beginnt die Bahn grün
   und endet rot.
+- **PL-AK-18** (Vitest) Ruhiger Modus: halbe Schwerkraft (Fallzeit aus 300 m ohne Luft und Schub
+  ist √2-mal länger), 900 kg Treibstoff; 2,5 m/s Sinken ist ruhig eine Landung, normal nicht; 4 m/s
+  in beiden Modi nicht; Ampel grün bis 3 m/s; Sterne mit 300 von 900 kg wie mit 200 von 600 kg.
+  (E2E) Schalter auf der Lern-Karte, Wahl bleibt nach Neuladen, im Flug steht „🐢 Ruhig“.
 - **PL-AK-14** Landehilfe (Vitest + E2E): Die Vorausberechnung trifft beim freien Fall ohne Luft
   die Fallzeit √(2h/g) und die Stelle x + vₓ·t (±2 %); der Streifen wird mit der Zeit breiter
   (höchstens 40 m) und ist nur ganz auf der Plattform grün; die echte Fähre ändert sich dabei

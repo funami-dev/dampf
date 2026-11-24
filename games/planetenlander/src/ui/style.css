@@ -337,3 +337,16 @@
   border-radius: 10px;
   align-self: center;
 }
+
+/* Ruhiger Modus (PL-AK-18) */
+.pl-calm-tag[hidden],
+.pl-calm-note[hidden] {
+  display: none;
+}
+.pl-calm[aria-pressed="true"] {
+  background: #b9e4a8;
+}
+.pl-calm-note {
+  margin: 4px 0 0;
+  font-size: 14px;
+}

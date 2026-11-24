@@ -14,8 +14,9 @@ import {
   type Body,
 } from "./logic/bodies.ts";
 import {
-  LANDER,
-  SAFE,
+  flyBody,
+  fuelFor,
+  safeFor,
   STEP,
   judge,
   stars as starsFor,
@@ -101,6 +102,7 @@ layer.innerHTML = `
     <div><span>Neigung</span><b data-h="tilt">0°</b></div>
     <div><span>Treibstoff</span><b data-h="fuel">100 %</b></div>
     <div><span>g</span><b data-h="g">1,62</b></div>
+    <div class="pl-calm-tag" data-h="calm" hidden><b>🐢 Ruhig</b></div>
   </div>
   <button class="pl-btn pl-pause" type="button" data-b="pause" hidden>Pause</button>
   <button class="pl-btn pl-help" type="button" data-b="help" aria-pressed="false" hidden>🎯 Landehilfe</button>
@@ -138,6 +140,26 @@ function setHelper(on: boolean) {
 }
 setHelper(helper);
 helpBtn.addEventListener("click", () => setHelper(!helper));
+// Ruhiger Modus (PL-AK-18): halbe Schwerkraft, mehr Treibstoff, großzügigere Grenzen
+const CALM_KEY = "dampf.planetenlander.ruhig";
+let calm = (() => {
+  try {
+    return localStorage.getItem(CALM_KEY) === "1";
+  } catch {
+    return false;
+  }
+})();
+function setCalm(on: boolean) {
+  calm = on;
+  try {
+    localStorage.setItem(CALM_KEY, on ? "1" : "0");
+  } catch {
+    /* gesperrt */
+  }
+}
+/** im Flug gültig: Grenzen und Körper (im ruhigen Modus angepasst) */
+let safe = safeFor(calm);
+let flying: Body = flyBody(PLAYABLE[0]!, calm);
 const hud = (k: string) => $(`[data-h="${k}"]`);
 
 // --- Zustand -------------------------------------------------------------------
@@ -435,7 +457,9 @@ function openLearn(b: Body) {
     <p>${fallText(b.g)}</p>
     <p>${airText(b)}</p>
     <p class="pl-fact">${escapeHtml(b.fact)}</p>
-    <p class="pl-hint">Lande auf der gelben Plattform: langsamer als ${SAFE.down} m/s nach unten, höchstens ${SAFE.side} m/s zur Seite, fast gerade.<br>
+    <button class="pl-btn pl-calm" type="button" data-a="calm" aria-pressed="${calm}">🐢 Ruhiger Modus</button>
+    <p class="pl-calm-note" ${calm ? "" : "hidden"}>🐢 Im ruhigen Modus fällt alles halb so schnell.</p>
+    <p class="pl-hint" data-h="limits">${limitsText()}<br>
     <small>Schub: ↑ / W / Leertaste · Drehen: ← → / A D · Pause: P</small></p>
     <div class="pl-row">
       <button class="pl-btn" type="button" data-a="back">Zurück</button>
@@ -443,13 +467,27 @@ function openLearn(b: Body) {
     </div>`);
   el.querySelector('[data-a="back"]')!.addEventListener("click", openSelect);
   el.querySelector('[data-a="go"]')!.addEventListener("click", () => startFlight(b));
+  const calmBtn = el.querySelector<HTMLButtonElement>('[data-a="calm"]')!;
+  calmBtn.addEventListener("click", () => {
+    setCalm(!calm);
+    calmBtn.setAttribute("aria-pressed", String(calm));
+    el.querySelector<HTMLElement>(".pl-calm-note")!.hidden = !calm;
+    el.querySelector<HTMLElement>('[data-h="limits"]')!.firstChild!.textContent = limitsText();
+  });
+}
+function limitsText() {
+  const s = safeFor(calm);
+  return `Lande auf der gelben Plattform: langsamer als ${de(s.down)} m/s nach unten, höchstens ${de(s.side)} m/s zur Seite, fast gerade.`;
 }
 
 // --- Flug ----------------------------------------------------------------------------
 function startFlight(b: Body) {
   body = b;
   terrain = makeTerrain(b.id, b.rho === 0);
-  lander = startLander(terrain);
+  safe = safeFor(calm);
+  flying = flyBody(b, calm);
+  lander = startLander(terrain, fuelFor(calm));
+  hud("calm").hidden = !calm;
   result = null;
   pieces = [];
   acc = 0;
@@ -460,7 +498,7 @@ function startFlight(b: Body) {
   screen = "fly";
   paused = false;
   flyUi(true);
-  hud("g").textContent = `${de(b.g, 2)} m/s²`;
+  hud("g").textContent = `${de(flying.g, 2)} m/s²`;
 }
 
 function setPaused(v: boolean) {
@@ -489,8 +527,8 @@ const REASON: Record<Verdict["reason"], string> = {
 };
 
 function finish() {
-  const v = judge(lander, terrain);
-  const s = starsFor(v, lander.fuel);
+  const v = judge(lander, terrain, safe);
+  const s = starsFor(v, lander.fuel, fuelFor(calm));
   result = { v, stars: s };
   screen = "result";
   flyUi(false);
@@ -509,7 +547,7 @@ function finish() {
   const el = panel(`<h2>${v.landed ? "Gelandet! 🎉" : "Rumms! 💥"}</h2>
     ${v.landed ? `<p class="pl-big-stars" aria-label="${s} von 3 Sternen">${starText(s)}</p>` : `<p>${REASON[v.reason]}</p>`}
     <dl class="pl-values">
-      ${margins(v)
+      ${margins(v, safe)
         .map((m) => {
           const n = (x: number) => (m.key === "tilt" ? `${Math.round(x)}` : de(x));
           const sep = m.key === "tilt" ? "" : " ";
@@ -523,7 +561,7 @@ function finish() {
           return `<dt>${m.label}</dt><dd>${val} <small>· erlaubt ${n(m.limit)}${sep}${m.unit}</small> · ${verdict}</dd>`;
         })
         .join("")}
-      <dt>Treibstoff</dt><dd>${Math.round((lander.fuel / LANDER.fuel) * 100)} %</dd>
+      <dt>Treibstoff</dt><dd>${Math.round((lander.fuel / fuelFor(calm)) * 100)} %</dd>
     </dl>
     <div class="pl-row">
       <button class="pl-btn" type="button" data-a="again">Nochmal</button>
@@ -570,7 +608,7 @@ function tick(dt: number) {
     const c = controls();
     while (acc >= STEP) {
       acc -= STEP;
-      step(lander, c, body, STEP, WIDTH);
+      step(lander, c, flying, STEP, WIDTH);
       if (touching(lander, terrain)) {
         finish();
         break;
@@ -608,12 +646,18 @@ function updateHud() {
   set(
     "down",
     `${down >= 0 ? "↓" : "↑"} ${de(Math.abs(down))} m/s`,
-    sinkLevel(down) === "ok",
-    sinkLevel(down) === "warn",
+    sinkLevel(down, safe) === "ok",
+    sinkLevel(down, safe) === "warn",
   );
-  set("side", `${lander.vx >= 0 ? "→" : "←"} ${de(side)} m/s`, side <= SAFE.side, side <= 2);
-  set("tilt", `${Math.round(tilt)}°`, tilt <= 10, tilt <= 20);
-  const f = Math.round((lander.fuel / LANDER.fuel) * 100);
+  set(
+    "side",
+    `${lander.vx >= 0 ? "→" : "←"} ${de(side)} m/s`,
+    side <= safe.side,
+    side <= safe.side * 2,
+  );
+  const tiltMax = (safe.tilt * 180) / Math.PI;
+  set("tilt", `${Math.round(tilt)}°`, tilt <= tiltMax, tilt <= tiltMax * 2);
+  const f = Math.round((lander.fuel / fuelFor(calm)) * 100);
   set("fuel", `${f} %`, f > 20, f > 0);
 }
 
@@ -764,13 +808,14 @@ class FlightScene extends Phaser.Scene {
     }
 
     // Landehilfe: Flugbahn ohne Schub und Schatten-Streifen am Boden (PL-AK-14)
-    corridor = helper && screen === "fly" && !result ? predict(lander, body, terrain, WIDTH) : null;
+    corridor =
+      helper && screen === "fly" && !result ? predict(lander, flying, terrain, WIDTH) : null;
     if (corridor) {
       const col = corridor.onPad ? 0x7bd35a : 0xff5a4f;
       // Punkte in der Ampelfarbe der Sinkgeschwindigkeit an dieser Stelle (PL-AK-15)
       corridor.path.forEach((q, i) => {
         if (i % 2 !== 0) return;
-        g.fillStyle(LEVEL_COLOR[sinkLevel(q.down)], 0.85);
+        g.fillStyle(LEVEL_COLOR[sinkLevel(q.down, safe)], 0.85);
         g.fillCircle(sx(q.x), sy(q.y), Math.max(1.8, S * 0.3));
       });
       g.fillStyle(col, 0.35);
@@ -918,12 +963,14 @@ if (debugEnabled) {
         : null,
       best: { ...progress.best },
       helper,
+      calm,
+      fuelFull: fuelFor(calm),
       corridor: corridor
         ? {
             x: corridor.x,
             half: corridor.half,
             onPad: corridor.onPad,
-            levels: corridor.path.map((q) => sinkLevel(q.down)),
+            levels: corridor.path.map((q) => sinkLevel(q.down, safe)),
           }
         : null,
     }),
