@@ -16,6 +16,8 @@ interface PlState {
   result: { landed: boolean; reason: string; stars: number } | null;
   best: Record<string, number>;
   helper: boolean;
+  calm: boolean;
+  fuelFull: number;
   corridor: { x: number; half: number; onPad: boolean; levels: string[] } | null;
 }
 interface Hooks {
@@ -252,5 +254,38 @@ test("PL-AK-12: Fokusverlust pausiert", async ({ page }) => {
   await tap(page, "Weiterspielen");
   await expect.poll(async () => (await state(page)).paused).toBe(false);
   await expect.poll(async () => (await state(page)).alt).toBeLessThan(alt);
+  await expectNoErrors(errors);
+});
+
+test("PL-AK-18: Ruhiger Modus – Schalter, sanftere Landung, bleibt nach Neuladen", async ({
+  page,
+}) => {
+  const errors = trackErrors(page);
+  await open(page);
+  const mond = () =>
+    isMobile(page)
+      ? page.getByRole("button", { name: "Mond", exact: true }).tap()
+      : page.getByRole("button", { name: "Mond", exact: true }).click();
+  await mond();
+  const calmBtn = page.getByRole("button", { name: "🐢 Ruhiger Modus" });
+  await expect(calmBtn).toHaveAttribute("aria-pressed", "false");
+  await tap(page, "🐢 Ruhiger Modus");
+  await expect(calmBtn).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText("Im ruhigen Modus fällt alles halb so schnell")).toBeVisible();
+  await expect(page.getByText("langsamer als 3,0 m/s")).toBeVisible();
+  await tap(page, "Los!");
+  await expect.poll(async () => (await state(page)).screen).toBe("fly");
+  expect(await state(page)).toMatchObject({ calm: true, fuelFull: 900, fuel: 900 });
+  await expect(page.getByText("🐢 Ruhig")).toBeVisible();
+  // 2,5 m/s wäre normal zu hart, ruhig ist es eine Landung
+  await place(page, 0.3, -2.5);
+  await expect.poll(async () => (await state(page)).result?.landed).toBe(true);
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => !!window.__dampf)).toBe(true);
+  await mond();
+  await expect(page.getByRole("button", { name: "🐢 Ruhiger Modus" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   await expectNoErrors(errors);
 });

@@ -17,6 +17,18 @@ export const LANDER = {
   halfWidth: 2.5, // m (Beine)
 };
 export const SAFE = { down: 2, side: 1, tilt: (10 * Math.PI) / 180 };
+export type Safe = typeof SAFE;
+/** Ruhiger Modus (PL-AK-18): halbe Schwerkraft, mehr Treibstoff, großzügigere Grenzen */
+export const CALM = {
+  gravity: 0.5,
+  fuel: 1.5,
+  safe: { down: 3, side: 1.5, tilt: (15 * Math.PI) / 180 } as Safe,
+};
+export const safeFor = (calm: boolean): Safe => (calm ? CALM.safe : SAFE);
+export const fuelFor = (calm: boolean) => LANDER.fuel * (calm ? CALM.fuel : 1);
+/** Himmelskörper, wie er im Flug wirkt (im ruhigen Modus mit halber Schwerkraft) */
+export const flyBody = <B extends { g: number }>(b: B, calm: boolean): B =>
+  calm ? { ...b, g: b.g * CALM.gravity } : b;
 export const START = { height: 300, offset: 150 };
 export const STEP = 1 / 120;
 
@@ -42,7 +54,7 @@ export interface Controls {
 
 export const mass = (l: Lander) => LANDER.dry + l.fuel;
 
-export function startLander(t: Terrain): Lander {
+export function startLander(t: Terrain, fuel: number = LANDER.fuel): Lander {
   const x = t.pad.center - START.offset;
   return {
     x,
@@ -51,7 +63,7 @@ export function startLander(t: Terrain): Lander {
     vy: 0,
     angle: 0,
     omega: 0,
-    fuel: LANDER.fuel,
+    fuel,
     t: 0,
   };
 }
@@ -121,24 +133,24 @@ export interface Verdict {
 }
 
 /** Urteil beim Aufsetzen (PL-AK-05) */
-export function judge(l: Lander, t: Terrain): Verdict {
+export function judge(l: Lander, t: Terrain, safe: Safe = SAFE): Verdict {
   const onPad = l.x - LANDER.halfWidth >= t.pad.x0 && l.x + LANDER.halfWidth <= t.pad.x1;
   const down = Math.max(0, -l.vy);
   const side = Math.abs(l.vx);
   const tilt = Math.abs(l.angle);
   let reason: Verdict["reason"] = "ok";
   if (!onPad) reason = "neben";
-  else if (down > SAFE.down) reason = "hart";
-  else if (side > SAFE.side) reason = "seitlich";
-  else if (tilt > SAFE.tilt) reason = "schief";
+  else if (down > safe.down) reason = "hart";
+  else if (side > safe.side) reason = "seitlich";
+  else if (tilt > safe.tilt) reason = "schief";
   return { landed: reason === "ok", onPad, down, side, tilt, reason };
 }
 
 /** Sterne (Spec: Sterne) */
-export function stars(v: Verdict, fuel: number): 0 | 1 | 2 | 3 {
+export function stars(v: Verdict, fuel: number, full: number = LANDER.fuel): 0 | 1 | 2 | 3 {
   if (!v.landed) return 0;
   if (v.down > 1) return 1;
-  return fuel >= LANDER.fuel * 0.3 ? 3 : 2;
+  return fuel >= full * 0.3 ? 3 : 2;
 }
 
 /** Endgeschwindigkeit im freien Fall (PL-AK-04) */
@@ -156,7 +168,10 @@ export interface Margin {
   over: number;
   word: string;
 }
-export function margins(v: { down: number; side: number; tilt: number }): Margin[] {
+export function margins(
+  v: { down: number; side: number; tilt: number },
+  safe: Safe = SAFE,
+): Margin[] {
   const deg = (r: number) => (r * 180) / Math.PI;
   const rows: Omit<Margin, "over">[] = [
     {
@@ -164,7 +179,7 @@ export function margins(v: { down: number; side: number; tilt: number }): Margin
       label: "Sinken",
       unit: "m/s",
       value: v.down,
-      limit: SAFE.down,
+      limit: safe.down,
       word: "zu schnell",
     },
     {
@@ -172,7 +187,7 @@ export function margins(v: { down: number; side: number; tilt: number }): Margin
       label: "Seitlich",
       unit: "m/s",
       value: v.side,
-      limit: SAFE.side,
+      limit: safe.side,
       word: "zu schnell",
     },
     {
@@ -180,7 +195,7 @@ export function margins(v: { down: number; side: number; tilt: number }): Margin
       label: "Neigung",
       unit: "°",
       value: deg(v.tilt),
-      limit: deg(SAFE.tilt),
+      limit: deg(safe.tilt),
       word: "zu schief",
     },
   ];
@@ -221,7 +236,7 @@ export function predict(l: Lander, b: Body, t: Terrain, width: number): Predicti
 }
 
 /** Ampel für die Sinkgeschwindigkeit (Anzeige „Sinken“ und Landehilfe-Bahn, PL-AK-15) */
-export function sinkLevel(down: number): "ok" | "warn" | "bad" {
-  return down <= SAFE.down ? "ok" : down <= SAFE.down * 2 ? "warn" : "bad";
+export function sinkLevel(down: number, safe: Safe = SAFE): "ok" | "warn" | "bad" {
+  return down <= safe.down ? "ok" : down <= safe.down * 2 ? "warn" : "bad";
 }
 export const LEVEL_COLOR = { ok: 0x7bd35a, warn: 0xf6c344, bad: 0xff6b5b } as const;
