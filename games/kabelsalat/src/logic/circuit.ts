@@ -4,7 +4,19 @@
  */
 
 export type Kind =
-  "batterie" | "lampe" | "schalter" | "umschalter" | "led" | "widerstand" | "messgeraet";
+  | "batterie"
+  | "lampe"
+  | "schalter"
+  | "umschalter"
+  | "led"
+  | "widerstand"
+  | "messgeraet"
+  | "taster"
+  | "drehregler"
+  | "summer";
+
+/** Drehregler: Stufen in Ω (KS-AK-17) */
+export const KNOB = [0, 10, 25, 60, 150];
 
 /** Widerstandswerte (Ω) zum Durchschalten; Start 220 Ω (KS-AK-13) */
 export const RESISTORS = [100, 220, 470, 1000];
@@ -73,6 +85,27 @@ export const PARTS: Record<Kind, PartInfo> = {
       { x: H, y: H / 2, label: "−" },
     ],
   },
+  taster: {
+    name: "Taster",
+    pins: [
+      { x: -H, y: 0, label: "" },
+      { x: H, y: 0, label: "" },
+    ],
+  },
+  drehregler: {
+    name: "Drehregler",
+    pins: [
+      { x: -H, y: H / 2, label: "" },
+      { x: H, y: H / 2, label: "" },
+    ],
+  },
+  summer: {
+    name: "Summer",
+    pins: [
+      { x: -H, y: 0, label: "" },
+      { x: H, y: 0, label: "" },
+    ],
+  },
 };
 export const KINDS = Object.keys(PARTS) as Kind[];
 
@@ -87,7 +120,7 @@ export interface Part {
   /** Schalter: zu (true) / offen; Umschalter: Mitte mit B (true) oder A (false);
    * Messgerät: mA (true) oder V (false) */
   on: boolean;
-  /** Widerstand: Index in RESISTORS */
+  /** Widerstand: Index in RESISTORS; Drehregler: Stufe in KNOB */
   val?: number;
 }
 
@@ -124,6 +157,7 @@ export function addPart(c: Circuit, kind: Kind, x: number, y: number): Part | nu
   if (c.parts.length >= LIMITS.parts) return null;
   const p: Part = { id: c.next++, kind, x: snap(x), y: snap(y), rot: 0, on: false };
   if (kind === "widerstand") p.val = DEFAULT_RESISTOR;
+  if (kind === "drehregler") p.val = 0;
   c.parts.push(p);
   return p;
 }
@@ -178,6 +212,22 @@ export function toggle(c: Circuit, id: number): boolean {
 /** Teile, die man im Modus Ausprobieren antippen kann */
 export const TOGGLES: Kind[] = ["schalter", "umschalter", "messgeraet"];
 
+/** Taster drücken (true) oder loslassen (false) */
+export function press(c: Circuit, id: number, down: boolean): boolean {
+  const p = c.parts.find((q) => q.id === id);
+  if (!p || p.kind !== "taster" || p.on === down) return false;
+  p.on = down;
+  return true;
+}
+/** Drehregler eine Stufe weiter drehen; gibt den neuen Wert (Ω) zurück */
+export function turnKnob(c: Circuit, id: number): number | null {
+  const p = c.parts.find((q) => q.id === id);
+  if (!p || p.kind !== "drehregler") return null;
+  p.val = ((p.val ?? 0) + 1) % KNOB.length;
+  return KNOB[p.val]!;
+}
+export const knobOhms = (p: Part) => KNOB[p.val ?? 0] ?? 0;
+
 /** Ohm-Wert eines Widerstands */
 export const ohms = (p: Part) => RESISTORS[p.val ?? DEFAULT_RESISTOR] ?? 220;
 /** Widerstandswert reihum wechseln; gibt den neuen Wert (Ω) zurück */
@@ -206,8 +256,18 @@ export function parseCircuit(d: unknown): Circuit | null {
   if (parts.length !== o.parts.length || parts.length > LIMITS.parts) return null;
   const c: Circuit = {
     parts: parts.map((p) => {
-      const q: Part = { ...p, rot: ((p.rot % 4) + 4) % 4, on: p.on === true };
+      // Taster sind nach dem Laden immer losgelassen
+      const q: Part = {
+        ...p,
+        rot: ((p.rot % 4) + 4) % 4,
+        on: p.kind !== "taster" && p.on === true,
+      };
       delete q.val;
+      if (p.kind === "drehregler")
+        q.val =
+          typeof p.val === "number" && Number.isInteger(p.val) && p.val >= 0 && p.val < KNOB.length
+            ? p.val
+            : 0;
       if (p.kind === "widerstand")
         q.val =
           typeof p.val === "number" &&

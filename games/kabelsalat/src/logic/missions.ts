@@ -1,7 +1,7 @@
 /**
  * Missionen (KS-AK-04): Ziel prüfen, indem alle Schalterstellungen durchprobiert werden.
  */
-import { addPart, addWire, clone, type Circuit, type Kind } from "./circuit.ts";
+import { KNOB, addPart, addWire, clone, type Circuit, type Kind } from "./circuit.ts";
 import { solve, type Level, type Result } from "./solve.ts";
 
 export interface Mission {
@@ -23,6 +23,12 @@ export interface Mission {
 }
 
 const lit = (l: Level) => l !== "aus";
+/** Summer brummt genau dann, wenn alle Taster gedrückt sind */
+const buzzWhenPressed = (c: Circuit, r: Result) => {
+  const pressed = c.parts.filter((p) => p.kind === "taster").every((p) => p.on);
+  const buzz = c.parts.some((p) => p.kind === "summer" && r.buzzers[p.id]?.on);
+  return buzz === pressed;
+};
 const allLit = (ls: Level[]) => ls.length > 0 && ls.every(lit);
 const allOff = (ls: Level[]) => ls.every((l) => !lit(l));
 
@@ -162,6 +168,50 @@ export const MISSIONS: Mission[] = [
           Math.abs(r.meters[p.id]!.value) >= 200,
       ),
   },
+  {
+    id: 12,
+    title: "Türklingel",
+    text: "Ein Taster verbindet nur, solange man ihn drückt – lässt man los, ist der Kreis wieder offen. So funktioniert eine Klingel.",
+    goal: "Der Summer brummt nur, solange der Taster gedrückt ist.",
+    kit: { batterie: 1, taster: 1, summer: 1 },
+    minWires: 3,
+    check: () => true,
+    checkResult: buzzWhenPressed,
+  },
+  {
+    id: 13,
+    title: "Dimmer",
+    text: "Ein Drehregler ist ein Widerstand, den man verstellen kann. Mehr Ohm heißt weniger Strom – das Lämpchen wird schwächer.",
+    goal: "Mit dem Drehregler lässt sich das Lämpchen hell und schwach stellen.",
+    kit: { batterie: 1, lampe: 1, drehregler: 1 },
+    minWires: 3,
+    check: () => true,
+    checkResult: (c0) => {
+      // alle Stufen durchdrehen und schauen, ob es hell und schwach gibt
+      const c = clone(c0);
+      const knobs = c.parts.filter((p) => p.kind === "drehregler");
+      const lamps = c.parts.filter((p) => p.kind === "lampe");
+      if (!knobs.length || !lamps.length) return false;
+      const seen = new Set<Level>();
+      for (let i = 0; i < KNOB.length; i++) {
+        for (const k of knobs) k.val = i;
+        const r = solve(c);
+        if (r.short) continue;
+        for (const l of lamps) seen.add(r.lamps[l.id]!.level);
+      }
+      return seen.has("hell") && seen.has("schwach");
+    },
+  },
+  {
+    id: 14,
+    title: "Klingel mit Licht",
+    text: "Hinter dem Taster teilt sich der Weg: ein Weg durch den Summer, einer durchs Lämpchen. Beide bekommen Strom, wenn man drückt.",
+    goal: "Auf Knopfdruck brummt der Summer und das Lämpchen leuchtet; losgelassen ist beides aus.",
+    kit: { batterie: 1, taster: 1, summer: 1, lampe: 1 },
+    minWires: 5,
+    check: (l, s) => (s.every(Boolean) ? allLit(l) : allOff(l)),
+    checkResult: buzzWhenPressed,
+  },
 ];
 
 export interface Verdict {
@@ -175,7 +225,9 @@ export interface Verdict {
 export function checkMission(m: Mission, c0: Circuit): Verdict {
   const c = clone(c0);
   const lamps = c.parts.filter((p) => p.kind === "lampe");
-  const sw = c.parts.filter((p) => p.kind === "schalter" || p.kind === "umschalter");
+  const sw = c.parts.filter(
+    (p) => p.kind === "schalter" || p.kind === "umschalter" || p.kind === "taster",
+  );
   const need = m.kit.lampe ?? (m.preset ? 1 : 0);
   if (lamps.length < need) return { ok: false, short: false, hint: "Es fehlt noch ein Lämpchen." };
   const kinds = Object.entries(m.kit) as [Kind, number][];

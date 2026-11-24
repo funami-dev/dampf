@@ -4,7 +4,7 @@
  * Widerstände, damit man auch ihren Strom (für die Lichtpunkte) kennt. Jeder Knoten hängt mit
  * einem winzigen Leitwert an Masse, so bleibt die Rechnung auch bei offenen Teilen lösbar.
  */
-import { PARTS, ohms, type Circuit } from "./circuit.ts";
+import { PARTS, knobOhms, ohms, type Circuit } from "./circuit.ts";
 
 export const ELEC = {
   volt: 4.5,
@@ -30,6 +30,9 @@ export const ELEC = {
   /** Messgerät: als Voltmeter (Ω) und als Strommesser (Ω) */
   meterV: 1e7,
   meterA: 0.1,
+  /** Summer (Ω) und ab welchem Strom er brummt (A) */
+  buzzer: 60,
+  buzzOn: 0.02,
 };
 
 export type LedLevel = Level | "puff";
@@ -57,6 +60,8 @@ export interface Result {
   leds: Record<number, { amps: number; level: LedLevel }>;
   /** Messgeräte: Modus und Anzeige (V bzw. mA) */
   meters: Record<number, { mode: "V" | "mA"; value: number }>;
+  /** Summer: Strom (A) und ob er brummt */
+  buzzers: Record<number, { amps: number; on: boolean }>;
   short: boolean;
 }
 
@@ -156,6 +161,15 @@ function solveWith(c: Circuit, ledsOn: Set<number>): Result {
       case "messgeraet":
         G(a(), pinNode(p.id, 1), 1 / (p.on ? ELEC.meterA : ELEC.meterV));
         break;
+      case "taster":
+        if (p.on) G(a(), pinNode(p.id, 1), 1 / ELEC.wire);
+        break;
+      case "drehregler":
+        G(a(), pinNode(p.id, 1), 1 / Math.max(ELEC.wire, knobOhms(p)));
+        break;
+      case "summer":
+        G(a(), pinNode(p.id, 1), 1 / ELEC.buzzer);
+        break;
       case "led":
         if (ledsOn.has(p.id)) {
           // leitend: I = (U_AK − U_F) / R  →  Leitwert plus Stromquelle
@@ -189,6 +203,7 @@ function solveWith(c: Circuit, ledsOn: Set<number>): Result {
     volts: {},
     leds: {},
     meters: {},
+    buzzers: {},
     short: false,
   };
   for (const p of c.parts)
@@ -209,6 +224,9 @@ function solveWith(c: Circuit, ledsOn: Set<number>): Result {
       const vak = v(p.id, 0) - v(p.id, 1);
       const amps = ledsOn.has(p.id) ? Math.max(0, (vak - ELEC.ledVf) / ELEC.ledR) : 0;
       res.leds[p.id] = { amps, level: ledLevelOf(amps, res.short) };
+    } else if (p.kind === "summer") {
+      const amps = Math.abs(v(p.id, 0) - v(p.id, 1)) / ELEC.buzzer;
+      res.buzzers[p.id] = { amps, on: !res.short && amps >= ELEC.buzzOn };
     } else if (p.kind === "messgeraet") {
       const du = v(p.id, 0) - v(p.id, 1);
       res.meters[p.id] = p.on

@@ -18,6 +18,7 @@ interface KsState {
     val: number | null;
   }[];
   leds: string[];
+  buzzers: boolean[];
   meters: string[];
   wires: number;
   lamps: string[];
@@ -303,5 +304,67 @@ test("KS-AK-16: LED mit Widerstand – Puff ohne, Leuchten mit, Wert wechseln", 
   await expect.poll(async () => (await state(page)).solved).toBe(true);
   await expect(page.getByRole("dialog", { name: "Geschafft" })).toBeVisible();
   if (!isMobile(page)) expect((await state(page)).schematic).toBe(3);
+  await expectNoErrors(errors);
+});
+
+test("KS-AK-19: Türklingel mit Taster, Dimmer mit Drehregler", async ({ page }) => {
+  const errors = trackErrors(page);
+  await page.addInitScript(() => {
+    if (localStorage.getItem("dampf.kabelsalat.v1")) return;
+    const stars: Record<number, number> = {};
+    for (let i = 1; i <= 11; i++) stars[i] = 2;
+    localStorage.setItem(
+      "dampf.kabelsalat.v1",
+      JSON.stringify({
+        v: 1,
+        stars,
+        builds: {},
+        free: { parts: [], wires: [], next: 1 },
+        seen: [],
+      }),
+    );
+  });
+  await open(page);
+  const tap = (n: string | RegExp) =>
+    isMobile(page)
+      ? page.getByRole("button", { name: n }).first().tap()
+      : page.getByRole("button", { name: n }).first().click();
+  await expect(page.getByRole("dialog", { name: "Menü" })).toBeVisible();
+  await tap(/12\. Türklingel/);
+  await tap("Los!");
+  const bat = await place(page, /^Batterie/, 120, 300);
+  const t = await place(page, /^Taster/, 240, 140);
+  const bz = await place(page, /^Summer/, 340, 300);
+  await tapWire(page, [bat.id, 0], [t.id, 0]);
+  await tapWire(page, [t.id, 1], [bz.id, 0]);
+  await tapWire(page, [bz.id, 1], [bat.id, 1]);
+  expect((await state(page)).buzzers).toEqual([false]);
+  await tap("▶ Ausprobieren");
+  const tp = await at(page, t.x, t.y);
+  if (isMobile(page)) await page.touchscreen.tap(tp.x, tp.y);
+  else {
+    await page.mouse.move(tp.x, tp.y);
+    await page.mouse.down();
+    await expect.poll(async () => (await state(page)).buzzers).toEqual([true]);
+    await page.mouse.up();
+  }
+  await expect.poll(async () => (await state(page)).buzzers).toEqual([false]);
+  await expect.poll(async () => (await state(page)).solved).toBe(true);
+  await tap("Nächste Mission");
+  await tap("Los!");
+  expect((await state(page)).mission).toBe(13);
+  const b2 = await place(page, /^Batterie/, 120, 300);
+  const lamp = await place(page, /^Lämpchen/, 240, 140);
+  const knob = await place(page, /^Drehregler/, 340, 300);
+  await tapWire(page, [b2.id, 0], [lamp.id, 0]);
+  await tapWire(page, [lamp.id, 1], [knob.id, 0]);
+  await tapWire(page, [knob.id, 1], [b2.id, 1]);
+  await expect.poll(async () => (await state(page)).lamps).toEqual(["hell"]);
+  await expect.poll(async () => (await state(page)).solved).toBe(true);
+  await tap("Weiterbauen");
+  await tap("▶ Ausprobieren");
+  const kp = await at(page, knob.x, knob.y);
+  for (let i = 0; i < 3; i++) await tapAt(page, kp);
+  await expect.poll(async () => (await state(page)).lamps).toEqual(["schwach"]);
   await expectNoErrors(errors);
 });

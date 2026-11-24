@@ -173,9 +173,40 @@ Menü; startet leise (30 %).
 Jede neue Mission hat 3–6 Tipp-Schritte wie die anderen. Nach Mission 9 sind LED und Widerstand,
 nach Mission 10 das Messgerät im Freibau verfügbar.
 
+## Version 1.3: Taster, Drehregler und Summer (Vorschlag im Chat angenommen)
+
+### Neue Bauteile
+
+| Bauteil    | Anschlusspunkte | Verhalten                                                                           |
+| ---------- | --------------- | ----------------------------------------------------------------------------------- |
+| Taster     | 2               | verbindet nur, **solange man ihn drückt** (im Modus ▶ Ausprobieren gedrückt halten) |
+| Drehregler | 2               | regelbarer Widerstand mit 5 Stufen: 0, 10, 25, 60, 150 Ω                            |
+| Summer     | 2               | brummt, wenn genug Strom fließt (ab 20 mA); 60 Ω                                    |
+
+- **Taster:** Loslassen öffnet ihn wieder; beim Speichern ist er immer offen. Im Schaltplan wie ein
+  Schalter mit kleinem Druckknopf.
+- **Drehregler:** Im Modus ▶ Ausprobieren dreht jedes Antippen eine Stufe weiter (nach der
+  letzten wieder auf 0). Der Zeiger am Knopf zeigt die Stufe, darunter steht der Wert. Im
+  Schaltplan: Widerstand mit schrägem Pfeil.
+- **Summer:** Wenn er an ist, wackeln kleine Schallwellen neben ihm (ruhig, 1 Hz) und es klingt
+  ein leiser, freundlicher Piepton (folgt der Lautstärke, stumm = stumm; höchstens zweimal pro
+  Sekunde). Im Schaltplan: Halbkreis mit zwei Anschlüssen.
+- **Bauteile-Buch:** Steckbriefe für Taster, Drehregler und Summer.
+
+### Neue Missionen
+
+12. **Türklingel:** Batterie, Taster, Summer. Der Summer brummt nur, solange der Taster gedrückt
+    ist.
+13. **Dimmer:** Batterie, Lämpchen, Drehregler. Mit dem Drehregler lässt sich das Lämpchen hell
+    und schwach stellen (die Prüfung dreht alle Stufen durch).
+14. **Klingel mit Licht:** Batterie, Taster, Summer, Lämpchen. Auf Knopfdruck brummt der Summer
+    **und** das Lämpchen leuchtet; losgelassen ist beides aus.
+
+Jede Mission hat 3–6 Tipp-Schritte. Nach Mission 12 sind Taster und Summer, nach Mission 13 der
+Drehregler im Freibau verfügbar.
+
 ## Später
 
-- Version 1.3: Taster, Drehregler (Potentiometer), Summer.
 - Version 1.4: Kondensator (lädt und entlädt sich, Lämpchen glimmt nach), einfaches „Oszilloskop“.
 - Version 1.5: Wechselstromquelle, Diode, Gleichrichter.
 - Danach: Transistor (3 Punkte: Basis, Kollektor, Emitter) als Schalter, Lichtsensor, Motor.
@@ -226,5 +257,13 @@ nach Mission 10 das Messgerät im Freibau verfügbar.
 - **KS-AK-16** (E2E) Mission 9 bauen: LED ohne Widerstand → Puff-Hinweis; mit Widerstand leuchtet
   sie und die Mission ist geschafft; Widerstandswert über „🎨 Wert“ wechseln; Schaltplan zeigt die
   neuen Symbole; keine Fehler.
+- **KS-AK-17** (Vitest) Taster verbindet nur, wenn gedrückt; nach dem Laden immer offen.
+  Drehregler: 5 Stufen, reihum, mehr Ohm = weniger Strom; Stufe bleibt beim Speichern, unbekannte
+  Stufe → 0. Summer: an ab 20 mA, mit 4,5 V allein ≈ 74 mA.
+- **KS-AK-18** (Vitest) Missionen 12–14: richtige Lösungen bestehen, falsche nicht (12: Taster
+  überbrückt, Summer dauerhaft an; 13: Drehregler parallel statt in
+  Reihe; 14: Lämpchen nur ohne Taster); Tipp-Schritte wie KS-AK-11.
+- **KS-AK-19** (E2E) Mission 12: Taster gedrückt halten → Summer an, loslassen → aus; geschafft;
+  Mission 13: Antippen des Drehreglers macht das Lämpchen schwächer; keine Fehler.
 - **KS-AK-10** Ruhig und sicher: nichts blinkt schneller als 2 Hz, Klänge starten leise,
   Fokusverlust pausiert die Lichtpunkte (die Schaltung bleibt).
