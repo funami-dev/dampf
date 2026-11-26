@@ -24,7 +24,10 @@ Die Startseite (`/`) zeigt alle veröffentlichten Spiele als Karten. Ein Klick a
   - Je Eintrag: Datum mit Uhrzeit (z. B. „10. November 2026, 12:52 Uhr“; ohne Uhrzeit nur das
     Datum), Spieltitel als Link zum Spiel, Version und die Punkte als Liste.
   - Ohne Einträge entfällt der Bereich.
-- Sortierung: `order` aufsteigend, danach `title` alphabetisch.
+- Sortierung (Feedback `fb_oh8ca2xi`): **das neueste Spiel zuerst** – nach `addedAt` absteigend
+  (das zuletzt hinzugekommene Spiel steht oben links), bei gleichem Datum nach `order`
+  aufsteigend, danach `title` alphabetisch. Die 3 neuesten Spiele tragen zusätzlich ein kleines
+  Schild „✨ Neu“, solange sie höchstens 30 Tage alt sind (gerechnet vom Build-Tag).
 - Leerer Zustand: Gibt es keine veröffentlichten Spiele, wird ein Hinweistext angezeigt.
 - Fußbereich: Link zum GitHub-Repo.
 - Kopfbereich: Knopf „💬 Feedback“ (nur mit JavaScript), siehe [004-feedback](004-feedback.md).
@@ -46,7 +49,9 @@ Die Startseite (`/`) zeigt alle veröffentlichten Spiele als Karten. Ein Klick a
   `game.json`.
 - **PORTAL-AK-03** Jede Karte verlinkt auf `/games/<slug>/`; der Link lädt das Spiel
   (Canvas sichtbar) ohne Konsolenfehler.
-- **PORTAL-AK-04** Sortierung nach `order`, dann `title`.
+- **PORTAL-AK-04** Sortierung: `addedAt` absteigend, dann `order`, dann `title` (Feedback
+  `fb_oh8ca2xi`); „✨ Neu“ nur bei den 3 neuesten Spielen, die höchstens 30 Tage alt sind
+  (Vitest mit festem Datum; E2E: das erste Spiel der Liste ist das mit dem jüngsten `addedAt`).
 - **PORTAL-AK-05** Ohne veröffentlichte Spiele erscheint der Leer-Hinweis.
 - **PORTAL-AK-06** Bei 375×667 (Mobile) gibt es kein horizontales Scrollen und die Karten
   stehen einspaltig.

@@ -12,7 +12,7 @@ import {
   frogTarget,
   type Pad,
 } from "../logic/frogs.ts";
-import { starsOf, type Chapter, type Kit, type Pt } from "./kit.ts";
+import { pickNearest, starsOf, type Chapter, type Kit, type Pt } from "./kit.ts";
 
 const BROWN = { g: "#8a5a2b", G: "#b07a40" };
 
@@ -193,15 +193,11 @@ export function frogsChapter(kit: Kit): Chapter {
     },
     down(p) {
       if (S.done || S.jump) return;
-      let best = -1;
-      let bd = Infinity;
-      L.padX.forEach((x, i) => {
-        const d = Math.abs(p.x - x);
-        if (d < bd && Math.abs(p.y - (L.y - 4)) < 16) {
-          bd = d;
-          best = i;
-        }
-      });
+      const best = pickNearest(
+        L.padX.map((x) => ({ x, y: L.y - 6, r: 16 })),
+        p,
+        kit.hitR(),
+      );
       if (best >= 0 && S.s[best] !== ".") hop(best);
     },
     key(e) {

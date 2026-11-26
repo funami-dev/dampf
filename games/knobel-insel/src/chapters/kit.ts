@@ -26,6 +26,8 @@ export interface Pt {
 }
 export interface Kit {
   clock(): number;
+  /** Mindest-Trefferradius in Bildflächen-Punkten (44 × 44 Bildschirmpunkte) */
+  hitR(): number;
   speed(): number;
   sound: Sound;
   toast(text: string, secs?: number): void;
@@ -80,3 +82,22 @@ export interface Chapter {
 }
 export const starsOf = (value: number, min: number) =>
   value <= min ? 3 : value <= min * 1.5 ? 2 : 1;
+
+/** Mindest-Tippfläche in Bildschirmpunkten (halbe Kantenlänge von 44 × 44, KI-AK-18) */
+export const TAP_CSS = 22;
+/**
+ * Nächstgelegenes Ziel zu p (Index) oder −1. Jedes Ziel trifft mindestens im Umkreis `minR`
+ * (z. B. TAP_CSS / Maßstab), größere Ziele mit ihrem eigenen Radius `r`.
+ */
+export function pickNearest(items: { x: number; y: number; r?: number }[], p: Pt, minR: number) {
+  let best = -1;
+  let bd = Infinity;
+  items.forEach((it, i) => {
+    const d = Math.hypot(p.x - it.x, p.y - it.y);
+    if (d <= Math.max(it.r ?? 0, minR) && d < bd) {
+      bd = d;
+      best = i;
+    }
+  });
+  return best;
+}

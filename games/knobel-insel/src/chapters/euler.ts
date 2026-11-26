@@ -13,7 +13,7 @@ import {
   type EulerLevel,
   type Walk,
 } from "../logic/euler.ts";
-import { type Chapter, type Kit, type Pt, type Tool } from "./kit.ts";
+import { pickNearest, type Chapter, type Kit, type Pt, type Tool } from "./kit.ts";
 
 export function eulerChapter(kit: Kit): Chapter {
   const S = {
@@ -246,17 +246,12 @@ export function eulerChapter(kit: Kit): Chapter {
       if (wp) drawSprite(g, SPRITES.hase!, Math.round(wp.x - 5), Math.round(wp.y - 14));
     },
     down(p) {
-      let best: string | null = null;
-      let bd = Infinity;
-      for (const isl of S.level.islands) {
-        const q = pos(isl.id);
-        const d = Math.hypot(p.x - q.x, (p.y - q.y) * 1.5);
-        if (d < 22 && d < bd) {
-          bd = d;
-          best = isl.id;
-        }
-      }
-      if (best) hop(best);
+      const i = pickNearest(
+        S.level.islands.map((isl) => ({ ...pos(isl.id), r: 20 })),
+        p,
+        kit.hitR(),
+      );
+      if (i >= 0) hop(S.level.islands[i]!.id);
     },
     debug: () => ({
       level: S.level.id,

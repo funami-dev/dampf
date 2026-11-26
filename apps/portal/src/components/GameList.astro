@@ -1,11 +1,13 @@
 ---
-import type { GameManifest } from "@dampf/game-kit";
+import { newGames, type GameManifest } from "@dampf/game-kit";
 import GameCard from "./GameCard.astro";
 
 interface Props {
   games: GameManifest[];
 }
 const { games } = Astro.props;
+// „✨ Neu“ für die 3 neuesten Spiele, gerechnet vom Build-Tag (PORTAL-AK-04)
+const fresh = newGames(games, new Date().toISOString().slice(0, 10));
 ---
 
 {games.length === 0 ? (
@@ -15,7 +17,7 @@ const { games } = Astro.props;
 ) : (
   <ul class="grid" data-testid="games">
     {games.map((game) => (
-      <GameCard game={game} />
+      <GameCard game={game} isNew={fresh.has(game.slug)} />
     ))}
   </ul>
 )}

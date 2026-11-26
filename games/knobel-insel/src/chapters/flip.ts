@@ -2,7 +2,7 @@
 import { SPRITES } from "../art/sprites.ts";
 import { discWidth, drawBear, drawKitchen, drawPancake, kitchenLayout } from "../art/scenes.ts";
 import { FLIP_LEVELS, flip, hintFlip, minFlips, sorted, type FlipLevel } from "../logic/flip.ts";
-import { starsOf, type Chapter, type Kit, type Pt } from "./kit.ts";
+import { pickNearest, starsOf, type Chapter, type Kit, type Pt } from "./kit.ts";
 
 export function flipChapter(kit: Kit): Chapter {
   const S = {
@@ -146,9 +146,15 @@ export function flipChapter(kit: Kit): Chapter {
     },
     down(p) {
       if (S.anim || S.done) return;
-      const i = Math.floor((K.tableY - p.y) / K.discH);
-      if (i < 0 || i >= S.stack.length) return;
-      if (Math.abs(p.x - K.pegX[1]) > discWidth(K, S.stack.length, S.stack.length) / 2 + 10) return;
+      // Pfannkuchen sind flach: über die ganze Breite treffen, sonst der nächstgelegene
+      const n = S.stack.length;
+      const half = discWidth(K, n, n) / 2;
+      const items = S.stack.map((_, j) => ({
+        x: Math.max(K.pegX[1] - half, Math.min(K.pegX[1] + half, p.x)),
+        y: yOf(j) + K.discH / 2,
+      }));
+      const i = pickNearest(items, p, kit.hitR());
+      if (i < 0) return;
       if (i === S.stack.length - 1) {
         kit.toast("Den obersten allein umzudrehen ändert nichts – tipp weiter unten.", 3);
         return;

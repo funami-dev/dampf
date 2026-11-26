@@ -11,7 +11,7 @@ import {
   type Outcome,
   type WaageLevel,
 } from "../logic/waage.ts";
-import type { Chapter, Kit, Pt } from "./kit.ts";
+import { pickNearest, type Chapter, type Kit, type Pt } from "./kit.ts";
 
 type Place = "tisch" | "links" | "rechts";
 
@@ -264,29 +264,33 @@ export function waageChapter(kit: Kit): Chapter {
     },
     down(p) {
       if (S.done) return;
-      // Keks getroffen?
-      let hit = -1;
-      for (let k = 0; k < S.level.n; k++) {
-        const c = cookiePos(k);
-        if (Math.abs(c.x - p.x) <= 6 && Math.abs(c.y - p.y) <= 7) hit = k;
-      }
+      // eng liegende Kekse: der nächste gewinnt
+      const cookies = Array.from({ length: S.level.n }, (_, k) => cookiePos(k));
+      const hit = pickNearest(cookies, p, kit.hitR());
       if (S.guessing) {
         if (hit >= 0) guess(hit);
         return;
       }
-      if (hit >= 0 && S.sel < 0) {
+      if (hit >= 0 && (S.sel < 0 || (hit !== S.sel && S.place[hit] === S.place[S.sel]))) {
+        // Keks nehmen (oder einen anderen vom selben Platz)
         S.sel = hit;
         kit.sound.pick();
         return;
       }
       if (S.sel < 0) return;
-      // Ziel: linke/rechte Schale oder Tisch
+      // Ziel: linke/rechte Schale, sonst Tisch
       const lp = panPos(-1);
       const rp = panPos(1);
-      let to: Place = "tisch";
-      if (Math.abs(p.x - lp.x) < 26 && p.y < L.tableY - 6) to = "links";
-      else if (Math.abs(p.x - rp.x) < 26 && p.y < L.tableY - 6) to = "rechts";
-      if (hit === S.sel) to = "tisch";
+      const pan = pickNearest(
+        [
+          { x: lp.x, y: lp.y - 6, r: 26 },
+          { x: rp.x, y: rp.y - 6, r: 26 },
+        ],
+        p,
+        kit.hitR(),
+      );
+      const to: Place =
+        hit === S.sel ? "tisch" : pan === 0 ? "links" : pan === 1 ? "rechts" : "tisch";
       S.place[S.sel] = to;
       S.sel = -1;
       S.target = 0;
@@ -295,6 +299,7 @@ export function waageChapter(kit: Kit): Chapter {
     debug: () => ({
       level: S.level.id,
       weighings: S.weighings,
+      sel: S.sel,
       left: side("links"),
       right: side("rechts"),
       cands: S.cands.length,

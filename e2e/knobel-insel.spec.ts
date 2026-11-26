@@ -539,3 +539,48 @@ test("KI-AK-17: Murmelbahn-Netz – Zeig's mir, dann selbst bauen", async ({ pag
   expect((await state(page)).stars.m1).toBe(3);
   await expectNoErrors(errors);
 });
+
+// --- Version 1.4.1: Tippen auf dem Handy (KI-AK-18, Feedback fb_rdbvwezt) ---
+test("KI-AK-18: große Tippflächen, kein Browser-Scrollen, Weg malen mit dem Finger", async ({
+  page,
+}) => {
+  test.skip(!isMobile(page), "nur Mobile");
+  const errors = trackErrors(page);
+  await open(page);
+  expect(
+    await page.evaluate(() => getComputedStyle(document.querySelector("canvas")!).touchAction),
+  ).toBe("none");
+  await press(page, "Keks-Waage Level 1: 3 🍪");
+  await press(page, "Los!", true);
+  // 18 Bildschirmpunkte über dem Keks antippen: trifft trotzdem, genau einmal
+  const k = await cp(page, "keks:2");
+  await page.touchscreen.tap(k.x, k.y - 18);
+  expect((await chap(page)).sel).toBe(2);
+  await page.touchscreen.tap((await cp(page, "links")).x + 10, (await cp(page, "links")).y);
+  expect((await chap(page)).left).toEqual([2]);
+  expect((await chap(page)).sel).toBe(-1);
+  // Labyrinth: Weg mit Touch-Zeigerereignissen malen
+  await press(page, "🏝️ Insel");
+  await press(page, "Käse-Labyrinth Level 1: klein");
+  await press(page, "Los!", true);
+  const best = (await chap(page)).best as [number, number][];
+  const pts: Pt[] = [];
+  for (const [x, y] of best.slice(0, 5)) pts.push(await cp(page, `${x},${y}`));
+  await page.evaluate((ps) => {
+    const cv = document.querySelector("canvas")!;
+    const ev = (type: string, p: { x: number; y: number }) =>
+      new PointerEvent(type, {
+        clientX: p.x,
+        clientY: p.y,
+        isPrimary: true,
+        pointerType: "touch",
+        pointerId: 7,
+        bubbles: true,
+      });
+    cv.dispatchEvent(ev("pointerdown", ps[0]!));
+    for (const p of ps.slice(1)) cv.dispatchEvent(ev("pointermove", p));
+    cv.dispatchEvent(ev("pointerup", ps.at(-1)!));
+  }, pts);
+  expect((await chap(page)).path).toBe(4);
+  await expectNoErrors(errors);
+});

@@ -8,7 +8,7 @@ import {
   mergeFrames,
   swapAt,
 } from "../logic/penguins.ts";
-import { starsOf, type Chapter, type Kit, type Pt } from "./kit.ts";
+import { pickNearest, starsOf, type Chapter, type Kit, type Pt } from "./kit.ts";
 
 /** kleiner Pinguin, Größe v (1..20), x = Mitte, y = Fußpunkt */
 function penguin(g: CanvasRenderingContext2D, x: number, y: number, v: number, small = false) {
@@ -207,10 +207,11 @@ export function penguinsChapter(kit: Kit): Chapter {
     },
     down(p) {
       if (S.done || S.anim || S.race) return;
-      let hit = -1;
-      L.xs.forEach((x, i) => {
-        if (Math.abs(p.x - x) <= 7 && p.y <= L.y + 4 && p.y >= L.y - 12 - S.s[i]! * 3) hit = i;
-      });
+      const hit = pickNearest(
+        L.xs.map((x, i) => ({ x, y: L.y - 4 - S.s[i]! * 1.5, r: 6 + S.s[i]! * 1.5 })),
+        p,
+        kit.hitR(),
+      );
       if (hit < 0) return;
       if (S.sel < 0) {
         S.sel = hit;

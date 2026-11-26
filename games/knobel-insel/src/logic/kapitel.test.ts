@@ -480,3 +480,25 @@ describe("KI-AK-16: Brücken-Spaziergang, Bienen, Murmelbahn", () => {
     }
   });
 });
+
+describe("KI-AK-18: Tippflächen", () => {
+  it("nächstgelegenes Ziel, mindestens 22 Bildschirmpunkte bei jedem Maßstab", async () => {
+    const { pickNearest, TAP_CSS } = await import("../chapters/kit.ts");
+    for (const scale of [1, 2, 3, 4]) {
+      const r = TAP_CSS / scale;
+      const items = [{ x: 100, y: 100 }];
+      expect(pickNearest(items, { x: 100 + 21 / scale, y: 100 }, r)).toBe(0);
+      expect(pickNearest(items, { x: 100, y: 100 + 21.9 / scale }, r)).toBe(0);
+      expect(pickNearest(items, { x: 100 + 23 / scale, y: 100 }, r)).toBe(-1);
+    }
+    // zwei nahe Ziele: das nähere gewinnt
+    const two = [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+    ];
+    expect(pickNearest(two, { x: 6, y: 0 }, 22)).toBe(1);
+    expect(pickNearest(two, { x: 4, y: 0 }, 22)).toBe(0);
+    // großes Ziel trifft auch weiter weg
+    expect(pickNearest([{ x: 0, y: 0, r: 40 }], { x: 35, y: 0 }, 10)).toBe(0);
+  });
+});
