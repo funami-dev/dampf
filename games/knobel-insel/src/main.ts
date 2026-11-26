@@ -42,6 +42,11 @@ import {
   type State,
 } from "./logic/river.ts";
 import { load, record, save, unlocked, type Saved, type Store } from "./logic/save.ts";
+import { REGIONS, type Chapter, type Kit, type Region } from "./chapters/kit.ts";
+import { waageChapter } from "./chapters/waage.ts";
+import { mazeChapter } from "./chapters/maze.ts";
+import { flipChapter } from "./chapters/flip.ts";
+import { bridgeChapter } from "./chapters/bridge.ts";
 import { SPRITES, drawSprite, spriteSize } from "./art/sprites.ts";
 import {
   RIVER_HALF,
@@ -86,7 +91,7 @@ const data: Saved = load(store);
 const sound = new Sound();
 sound.setVolume(data.volume, data.muted);
 
-type View = "map" | "hanoi" | "river";
+type View = "map" | "hanoi" | "river" | "chapter";
 let view: View = "map";
 let paused = false;
 let clock = 0;
@@ -139,9 +144,55 @@ function persist() {
   save(store, data);
 }
 
-// --- Insel-Karte ----------------------------------------------------------------------
+// --- Insel-Karte mit Gegenden (KI-AK-09) ----------------------------------------------------
+interface Entry {
+  id: string;
+  icon: string;
+  title: string;
+  region: Region;
+  levels: { id: string; label: string; aria: string }[];
+  open: (i: number) => void;
+}
+function entries(): Entry[] {
+  const own: Entry[] = [
+    {
+      id: "hanoi",
+      icon: "🥞",
+      title: "Pfannkuchen-Turm",
+      region: "logik",
+      levels: LEVELS.map((n, i) => ({
+        id: `h${n}`,
+        label: `${n} 🥞`,
+        aria: `Pfannkuchen-Turm Level ${i + 1}: ${n} Pfannkuchen`,
+      })),
+      open: (i) => startHanoi(LEVELS[i]!),
+    },
+    {
+      id: "river",
+      icon: "⛵",
+      title: "Über den Fluss",
+      region: "logik",
+      levels: RIVER_LEVELS.map((l, i) => ({
+        id: l.id,
+        label: l.title,
+        aria: `Über den Fluss Level ${i + 1}: ${l.title}`,
+      })),
+      open: (i) => startRiver(RIVER_LEVELS[i]!),
+    },
+  ];
+  const more: Entry[] = CHAPTERS.map((c) => ({
+    id: c.id,
+    icon: c.icon,
+    title: c.title,
+    region: c.region,
+    levels: c.levels.map((l, i) => ({ ...l, aria: `${c.title} Level ${i + 1}: ${l.label}` })),
+    open: (i) => startChapter(c, i),
+  }));
+  return [...own, ...more];
+}
 function showMap() {
   view = "map";
+  cur = null;
   stopZeitlupe();
   closePanel();
   $(".ki-top").hidden = true;
@@ -153,29 +204,40 @@ function showMap() {
     const st = data.stars[id] ?? 0;
     return `<button class="ki-btn ki-level" type="button" data-l="${id}" aria-label="${aria}" ${open ? "" : "disabled"}>${open ? "" : "🔒 "}${label}<small>${stars(st)}</small></button>`;
   };
-  ch.innerHTML = `
-    <section class="ki-chapter"><h2>🥞 Pfannkuchen-Turm</h2>
-      <div class="ki-levels">${LEVELS.map((n, i) => lvl(`h${n}`, `${n} 🥞`, `Pfannkuchen-Turm Level ${i + 1}: ${n} Pfannkuchen`)).join("")}</div>
-      ${data.cards.includes("hanoi") ? btn("🤖 So denkt ein Computer", 'data-card="hanoi"', "ki-small") : ""}
-    </section>
-    <section class="ki-chapter"><h2>⛵ Über den Fluss</h2>
-      <div class="ki-levels">${RIVER_LEVELS.map((l, i) => lvl(l.id, l.title, `Über den Fluss Level ${i + 1}: ${l.title}`)).join("")}</div>
-      ${data.cards.includes("river") ? btn("🤖 So denkt ein Computer", 'data-card="river"', "ki-small") : ""}
-    </section>`;
+  const list = entries();
+  ch.innerHTML = (Object.keys(REGIONS) as Region[])
+    .map((r) => {
+      const es = list.filter((e) => e.region === r);
+      return `<section class="ki-region" style="--rc:${REGIONS[r].color}"><h2>${REGIONS[r].title}</h2>
+        ${
+          es.length
+            ? es
+                .map(
+                  (e) => `<div class="ki-chapter"><h3>${e.icon} ${e.title}</h3>
+                  <div class="ki-levels">${e.levels.map((l) => lvl(l.id, l.label, l.aria)).join("")}</div>
+                  ${data.cards.includes(e.id) ? btn("🤖 So denkt ein Computer", `data-card="${e.id}"`, "ki-small") : ""}</div>`,
+                )
+                .join("")
+            : `<p class="ki-soon">Bald: Orakel-Uhu, Zaubertrick, Geheimschrift und Schildkröten-Programm.</p>`
+        }</section>`;
+    })
+    .join("");
   ch.querySelectorAll<HTMLButtonElement>("[data-l]").forEach((b) =>
     b.addEventListener("click", () => {
       sound.start();
       const id = b.dataset.l!;
-      if (id.startsWith("h")) startHanoi(Number(id.slice(1)));
-      else startRiver(RIVER_LEVELS.find((l) => l.id === id)!);
+      for (const e of list) {
+        const i = e.levels.findIndex((l) => l.id === id);
+        if (i >= 0) e.open(i);
+      }
     }),
   );
   ch.querySelectorAll<HTMLButtonElement>("[data-card]").forEach((b) =>
-    b.addEventListener("click", () => showCard(b.dataset.card as "hanoi" | "river", showMap)),
+    b.addEventListener("click", () => showCard(b.dataset.card!, showMap)),
   );
 }
 
-const CARDS = {
+const CARDS: Record<string, string> = {
   hanoi: `<h2>🤖 So denkt ein Computer</h2>
     <p><b>Der Trick heißt Rekursion:</b> Um einen Turm aus 5 Pfannkuchen umzustapeln, trägst du
     zuerst den Turm aus 4 weg, legst den größten an sein Ziel und stapelst die 4 wieder darauf. Und
@@ -193,8 +255,9 @@ const CARDS = {
     <p>Das nennt man <b>Breitensuche</b>. Auf der Rätsel-Landkarte siehst du alle erlaubten Lagen
     als Punkte – und deinen Weg dazwischen.</p>`,
 };
-function showCard(c: "hanoi" | "river", back: () => void) {
-  const el = panel(`${CARDS[c]}${btn("Weiter", "data-x", "ki-primary")}`, "So denkt ein Computer");
+function showCard(c: string, back: () => void) {
+  const html = CARDS[c] ?? CHAPTERS.find((x) => x.id === c)?.card ?? "";
+  const el = panel(`${html}${btn("Weiter", "data-x", "ki-primary")}`, "So denkt ein Computer");
   if (!data.cards.includes(c)) {
     data.cards.push(c);
     persist();
@@ -210,6 +273,78 @@ function setTop(title: string, tools: string) {
   $(".ki-top").hidden = false;
   h("title").textContent = title;
   h("tools").innerHTML = tools;
+}
+
+// --- weitere Kapitel (Module mit gemeinsamem Kit) ----------------------------------------------
+const kit: Kit = {
+  clock: () => clock,
+  speed: () => speed,
+  sound,
+  toast,
+  intro(title, html) {
+    const el = panel(`<h2>${title}</h2>${html}${btn("Los!", "data-x", "ki-primary")}`, "Level");
+    el.querySelector("[data-x]")!.addEventListener("click", closePanel);
+  },
+  setTop(title, tools, on) {
+    setTop(
+      title,
+      tools
+        .map((t) =>
+          btn(
+            t.label,
+            `data-b="${t.id}"${t.pressed === undefined ? "" : ` aria-pressed="${t.pressed}"`}`,
+            t.primary ? "ki-primary" : "",
+          ),
+        )
+        .join(""),
+    );
+    h("tools")
+      .querySelectorAll<HTMLButtonElement>("[data-b]")
+      .forEach((b) =>
+        b.addEventListener("click", () => {
+          sound.start();
+          on(b.dataset.b!);
+        }),
+      );
+  },
+  setCount: (t) => (h("count").textContent = t),
+  finish(o) {
+    record(data, o.level, o.stars);
+    persist();
+    const result = () => {
+      if (!cur || cur.id !== o.chapter) return;
+      const el = panel(
+        `<h2>Geschafft! ${stars(o.stars)}</h2><p>${o.text}</p>
+         <div class="ki-row">
+           ${o.next ? btn("Nächstes Level", "data-next", "ki-primary") : ""}
+           ${btn("Nochmal", "data-again")}
+           ${btn("🏝️ Insel", "data-map")}
+         </div>`,
+        "Geschafft",
+      );
+      el.querySelector("[data-next]")?.addEventListener("click", () => o.next!());
+      el.querySelector("[data-again]")!.addEventListener("click", o.again);
+      el.querySelector("[data-map]")!.addEventListener("click", showMap);
+    };
+    window.setTimeout(() => {
+      if (!data.cards.includes(o.chapter)) showCard(o.chapter, result);
+      else result();
+    }, 900 / speed);
+  },
+  map: () => showMap(),
+};
+const CHAPTERS: Chapter[] = [
+  waageChapter(kit),
+  mazeChapter(kit),
+  flipChapter(kit),
+  bridgeChapter(kit),
+];
+let cur: Chapter | null = null;
+function startChapter(c: Chapter, i: number) {
+  view = "chapter";
+  cur = c;
+  stopZeitlupe();
+  c.start(i);
 }
 
 // --- Pfannkuchen-Turm -------------------------------------------------------------------
@@ -1067,6 +1202,7 @@ let scale = 2;
 let vw = 320;
 let vh = 200;
 let keyboardUsed = false;
+let pointerIsDown = false;
 const screen = document.createElement("canvas");
 const ctx = screen.getContext("2d")!;
 function fitSize(W: number, H2: number) {
@@ -1102,15 +1238,23 @@ class Board extends Phaser.Scene {
       sound.start();
       if (overlay || paused) return;
       const p = toV(e);
+      pointerIsDown = true;
       if (view === "hanoi") hanoiDown(p.x);
       else if (view === "river") {
         const id = riverActorAt(p.x, p.y);
         if (id) riverTap(id);
-      }
+      } else if (view === "chapter") cur?.down(p);
+    });
+    window.addEventListener("pointermove", (e) => {
+      if (!pointerIsDown || overlay || paused || view !== "chapter") return;
+      cur?.move?.(toV(e));
     });
     window.addEventListener("pointerup", (e) => {
-      if (overlay || paused || view !== "hanoi") return;
-      hanoiUp(toV(e).x);
+      const was = pointerIsDown;
+      pointerIsDown = false;
+      if (overlay || paused || !was) return;
+      if (view === "hanoi") hanoiUp(toV(e).x);
+      else if (view === "chapter") cur?.up?.(toV(e));
     });
   }
   makeTexture() {
@@ -1126,10 +1270,12 @@ class Board extends Phaser.Scene {
       clock += dt;
       if (view === "hanoi") hanoiTick(dt);
       else if (view === "river") riverTick(dt);
+      else if (view === "chapter") cur?.tick(dt);
     }
     ctx.imageSmoothingEnabled = false;
     if (view === "hanoi") drawHanoi(ctx, vw, vh);
     else if (view === "river") drawRiver(ctx, vw, vh);
+    else if (view === "chapter" && cur) cur.draw(ctx, vw, vh);
     else drawIsland(ctx, vw, vh, clock);
     this.tex.refresh();
     this.img.setScale(scale);
@@ -1217,7 +1363,7 @@ window.addEventListener("keydown", (e) => {
     if (e.key === "z" || e.key === "Z") riverUndo();
     else if (e.key === "h" || e.key === "H") riverHint();
     else if (e.key === "Enter") riverGo();
-  }
+  } else if (view === "chapter" && cur?.key?.(e)) e.preventDefault();
 });
 
 showMap();
@@ -1253,6 +1399,7 @@ if (debugEnabled) {
         hint: [...F.hint],
       },
       volume: data.volume,
+      chapter: cur ? { id: cur.id, ...cur.debug() } : null,
       scale,
     }),
     /** Bildschirmpunkt über einem Teller */
@@ -1270,5 +1417,12 @@ if (debugEnabled) {
     },
     speed: (k: number) => (speed = k),
     pegNames: PEG_NAMES,
+    /** Bildschirmpunkt im aktuellen Kapitel (z. B. „keks:3“, „links“, „1,1“, „hase“) */
+    chapterPoint: (what: string) => {
+      const p = cur?.point?.(what);
+      if (!p) return null;
+      const r = cv();
+      return { x: r.left + p.x * scale, y: r.top + p.y * scale };
+    },
   };
 }

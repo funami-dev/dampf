@@ -1,6 +1,6 @@
 # Spiel: Knobel-Insel
 
-**Status:** Abgenommen (1.0); Kapitel 3–17 im Entwurf
+**Status:** Abgenommen
 **Slug:** `knobel-insel`
 
 ## Zweck

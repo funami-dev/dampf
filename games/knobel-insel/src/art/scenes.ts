@@ -168,6 +168,34 @@ export function drawIsland(g: G, vw: number, vh: number, t: number) {
     ellipse(g, hx + 9 + Math.sin(p * 6) * 2, hy - 26 - p * 18, 2 + p * 3, 2 + p * 2, "#ffffff");
     g.globalAlpha = 1;
   }
+  // Markt-Stand (Keks-Waage) neben der Hütte
+  const mx = cx - rx * 0.22;
+  const my = cy + ry * 0.28;
+  R(g, mx - 10, my - 6, 20, 8, "#c88a52");
+  for (let i = 0; i < 5; i++) R(g, mx - 12 + i * 5, my - 12, 5, 6, i % 2 ? "#f7f7f2" : "#e74c3c");
+  R(g, mx - 3, my - 8, 6, 2, "#d9a35b");
+  // Heckenlabyrinth oben
+  const hx2 = cx + rx * 0.05;
+  const hy2 = cy - ry * 0.55;
+  for (let y = 0; y < 5; y++)
+    for (let x = 0; x < 7; x++)
+      if (x === 0 || y === 0 || x === 6 || y === 4 || (x % 2 === 0 && y % 2 === 0))
+        R(g, hx2 + x * 3, hy2 + y * 3, 3, 3, "#3e7a34");
+  R(g, hx2 + 15, hy2 + 9, 2, 2, "#f6d55c");
+  // Hängebrücke über eine kleine Schlucht unten links
+  const bx2 = cx - rx * 0.62;
+  const by2 = cy + ry * 0.45;
+  R(g, bx2 - 2, by2 - 2, 26, 8, "#4a4458");
+  for (let x = 0; x < 22; x += 3)
+    R(g, bx2 + x, by2 + Math.round(Math.sin((x / 22) * Math.PI) * 2), 2, 2, "#a8703f");
+  // Leuchtturm am Rand (Codes & Muster)
+  const lx = cx + rx * 0.82;
+  const ly = cy - ry * 0.35;
+  for (let i = 0; i < 6; i++) R(g, lx - 3, ly - 18 + i * 3, 6, 3, i % 2 ? "#e74c3c" : "#f7f7f2");
+  R(g, lx - 4, ly - 22, 8, 4, "#2b2233");
+  g.globalAlpha = 0.35 + 0.25 * Math.sin(t * (Math.PI / 2));
+  R(g, lx - 2, ly - 21, 4, 2, "#f6e58d");
+  g.globalAlpha = 1;
   // Fluss rechts mit Boot
   const fx = cx + rx * 0.45;
   g.fillStyle = "#4a90d9";
@@ -282,4 +310,68 @@ export function drawBoat(g: G, x: number, y: number) {
   R(g, x - 13, y - 5, 26, 1, "#a87040");
   R(g, x - 4, y - 4, 2, 4, "#6b4226");
   R(g, x + 4, y - 4, 2, 4, "#6b4226");
+}
+
+// --- gemeinsame Kleinigkeiten ----------------------------------------------------------------
+/** Koch-Bär in der Durchreiche (x = linke Kante, doppelt so groß) */
+export function drawBear(
+  g: G,
+  bx: number,
+  by: number,
+  sprite: { rows: string[]; pal: Record<string, string> },
+  mood: "" | "happy" | "surprised",
+) {
+  R(g, bx - 8, 2, 48, 46, "#8a5a33");
+  R(g, bx - 5, 5, 42, 40, "#5a3a22");
+  sprite.rows.forEach((row, ry) => {
+    for (let rx = 0; rx < row.length; rx++) {
+      const ch = row[rx]!;
+      if (ch === ".") continue;
+      R(g, bx + rx * 2, by + ry * 2, 2, 2, sprite.pal[ch] ?? "#f0f");
+    }
+  });
+  if (mood === "happy") {
+    R(g, bx + 8, by + 14, 2, 2, "#9a6233");
+    R(g, bx + 22, by + 14, 2, 2, "#9a6233");
+    for (const x of [6, 10, 20, 24]) R(g, bx + x, by + 15, 2, 1, "#2b2233");
+  }
+  if (mood === "surprised") R(g, bx + 14, by + 20, 4, 4, "#2b2233");
+  R(g, bx - 10, 44, 52, 5, "#c88a52");
+}
+
+/** winzige Pixel-Ziffern (3 × 5) */
+const DIGITS = [
+  "111101101101111",
+  "010110010010111",
+  "111001111100111",
+  "111001111001111",
+  "101101111001001",
+  "111100111001111",
+  "111100111101111",
+  "111001001001001",
+  "111101111101111",
+  "111101111001111",
+];
+export function drawNumber(g: G, n: number, cx: number, cy: number, color: string) {
+  const s = String(n);
+  const w = s.length * 4 - 1;
+  let x = Math.round(cx - w / 2);
+  const y = Math.round(cy - 2);
+  g.fillStyle = color;
+  for (const ch of s) {
+    const bits = DIGITS[Number(ch)]!;
+    for (let i = 0; i < 15; i++)
+      if (bits[i] === "1") g.fillRect(x + (i % 3), y + Math.floor(i / 3), 1, 1);
+    x += 4;
+  }
+}
+
+/** Raute beliebiger Größe (Iso-Kachel), Mitte cx/cy, Breite w (gerade) */
+export function rhombus(g: G, cx: number, cy: number, w: number, color: string) {
+  const h = w / 2;
+  g.fillStyle = color;
+  for (let r = 0; r < h; r++) {
+    const hw = Math.max(1, Math.round((w / 2) * (1 - Math.abs(r + 0.5 - h / 2) / (h / 2))));
+    g.fillRect(Math.round(cx - hw), Math.round(cy - h / 2 + r), hw * 2, 1);
+  }
 }
