@@ -32,4 +32,4 @@ Dieses Repo wird **spec-driven** entwickelt:
 | [games/planetenlander.md](games/planetenlander.md) | Spiel 9: Planetenlander (Landen mit echter Schwerkraft) | Abgenommen |
 | [games/wichtelhaus.md](games/wichtelhaus.md)       | Spiel 10: Wichtelhaus (ruhiges Puppenhaus-Spiel)        | Abgenommen |
 | [games/kabelsalat.md](games/kabelsalat.md)         | Spiel 11: Kabelsalat (Elektronik-Baukasten)             | Umgesetzt  |
-| [games/knobel-insel.md](games/knobel-insel.md)     | Spiel 12: Knobel-Insel (Algorithmus-Rätsel)             | Entwurf    |
+| [games/knobel-insel.md](games/knobel-insel.md)     | Spiel 12: Knobel-Insel (Algorithmus-Rätsel)             | Abgenommen |

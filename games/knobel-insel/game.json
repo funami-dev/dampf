@@ -1,0 +1,26 @@
+{
+  "slug": "knobel-insel",
+  "title": "Knobel-Insel",
+  "description": "Denk-Rätsel zum Anfassen: Stapel den Pfannkuchen-Turm um, bring Fuchs, Gans und Korn heil über den Fluss – und sieh, wie ein Computer denkt.",
+  "thumbnail": "thumbnail.png",
+  "controls": {
+    "keyboard": true,
+    "touch": true
+  },
+  "status": "published",
+  "order": 120,
+  "addedAt": "2026-11-26",
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-26",
+      "time": "12:42",
+      "items": [
+        "Neues Spiel: Knobel-Insel mit zwei Rätsel-Kapiteln",
+        "Pfannkuchen-Turm mit Muster-Tipp, Helfer-Maus und Zeitlupe",
+        "Über den Fluss: Fuchs, Gans und Korn, Hasen und Füchse, Biber-Familie – mit Rätsel-Landkarte"
+      ]
+    }
+  ]
+}

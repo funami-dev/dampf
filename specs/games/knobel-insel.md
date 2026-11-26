@@ -1,6 +1,6 @@
 # Spiel: Knobel-Insel
 
-**Status:** Entwurf
+**Status:** Abgenommen
 **Slug:** `knobel-insel`
 
 ## Zweck
