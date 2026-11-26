@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { expectNoErrors, isMobile, trackErrors } from "./helpers.ts";
+import { hintFlip } from "../games/knobel-insel/src/logic/flip.ts";
 
 /** Spec: specs/games/knobel-insel.md (KI-AK-05..08) */
 interface KiState {
@@ -30,6 +31,7 @@ interface KiState {
     hint: string[];
   };
   volume: number;
+  chapter: Record<string, unknown> | null;
 }
 type Pt = { x: number; y: number };
 interface Hooks {
@@ -37,6 +39,7 @@ interface Hooks {
   pegPoint(i: number): Pt;
   actorPoint(id: string): Pt | null;
   speed(k: number): void;
+  chapterPoint(what: string): Pt | null;
 }
 declare global {
   interface Window {
@@ -205,5 +208,110 @@ test("KI-AK-07: Helfer-Maus bis zum Ziel, Tipp bei Hasen und Füchsen", async ({
   await press(page, "💡 Tipp");
   await expect.poll(async () => (await state(page)).river.hint.length).toBeGreaterThan(0);
   await expect(page.getByRole("alert")).toContainText("Tipp");
+  await expectNoErrors(errors);
+});
+
+// --- Version 1.1: Keks-Waage, Käse-Labyrinth, Pfannkuchen wenden, Brücke bei Nacht (KI-AK-17) ---
+const chap = async (page: Page) => (await state(page)).chapter!;
+const cp = async (page: Page, what: string) =>
+  (await page.evaluate((w) => (window.__dampf as Hooks).chapterPoint(w), what))!;
+/** beim ersten Mal kommt die Computer-Karte, danach das Ergebnis */
+async function finishCard(page: Page, text: RegExp) {
+  await expect(page.getByRole("dialog", { name: "So denkt ein Computer" })).toContainText(text, {
+    timeout: 10_000,
+  });
+  await press(page, "Weiter", true);
+  await expect(page.getByRole("dialog", { name: "Geschafft" })).toBeVisible();
+}
+
+test("KI-AK-17: Keks-Waage – wiegen und den Keks finden", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await press(page, "Keks-Waage Level 1: 3 🍪");
+  await press(page, "Los!", true);
+  await tapAt(page, await cp(page, "keks:0"));
+  await tapAt(page, await cp(page, "links"));
+  await tapAt(page, await cp(page, "keks:1"));
+  await tapAt(page, await cp(page, "rechts"));
+  expect(await chap(page)).toMatchObject({ left: [0], right: [1] });
+  await press(page, "⚖️ Wiegen");
+  expect((await chap(page)).weighings).toBe(1);
+  const k = (await chap(page)).found as number;
+  expect(k).not.toBeNull();
+  await press(page, "🤔 Das ist er!");
+  await tapAt(page, await cp(page, `keks:${k}`));
+  await finishCard(page, /Teile und herrsche/);
+  expect((await state(page)).stars.w1).toBe(3);
+  await expectNoErrors(errors);
+});
+
+test("KI-AK-17: Käse-Labyrinth – Weg malen, Welle zeigen, Maus läuft zum Käse", async ({
+  page,
+}) => {
+  test.skip(isMobile(page), "nur Desktop");
+  const errors = trackErrors(page);
+  await open(page);
+  await press(page, "Käse-Labyrinth Level 1: klein");
+  await press(page, "Los!", true);
+  await press(page, "🌊 Zeig, wie der Computer sucht");
+  await expect.poll(async () => (await chap(page)).wave as number).toBeGreaterThan(3);
+  const best = (await chap(page)).best as [number, number][];
+  const pts = [];
+  for (const [x, y] of best) pts.push(await cp(page, `${x},${y}`));
+  await page.mouse.move(pts[0]!.x, pts[0]!.y);
+  await page.mouse.down();
+  for (const q of pts.slice(1)) await page.mouse.move(q.x, q.y, { steps: 3 });
+  await page.mouse.up();
+  expect((await chap(page)).path).toBe((await chap(page)).min);
+  await press(page, "🐭 Los!");
+  await finishCard(page, /Breitensuche/);
+  expect((await state(page)).stars.l1).toBe(3);
+  await expectNoErrors(errors);
+});
+
+test("KI-AK-17: Pfannkuchen wenden – Stapel sortieren", async ({ page }) => {
+  test.skip(isMobile(page), "nur Desktop");
+  const errors = trackErrors(page);
+  await open(page);
+  await press(page, "Pfannkuchen wenden Level 1: 4 🥞");
+  await press(page, "Los!", true);
+  for (let k = 0; k < 10 && !(await chap(page)).done; k++) {
+    const stack = (await chap(page)).stack as number[];
+    const i = hintFlip(stack);
+    if (i === null) break;
+    await tapAt(page, await cp(page, String(i)));
+    await expect.poll(async () => (await chap(page)).busy).toBe(false);
+  }
+  await expect.poll(async () => (await chap(page)).done).toBe(true);
+  await finishCard(page, /2 Wendungen je Pfannkuchen/);
+  expect((await state(page)).stars.p1).toBeGreaterThan(0);
+  await expectNoErrors(errors);
+});
+
+test("KI-AK-17: Brücke bei Nacht – alle in 8 Minuten hinüber", async ({ page }) => {
+  test.setTimeout(90_000);
+  const errors = trackErrors(page);
+  await open(page);
+  await press(page, "Brücke bei Nacht Level 1: 3 Tiere");
+  await press(page, "Los!", true);
+  await page.waitForTimeout(400);
+  for (const group of [["hase", "igel"], ["hase"], ["hase", "kroete"]]) {
+    await expect.poll(async () => (await chap(page)).busy).toBe(false);
+    await page.waitForTimeout(300);
+    for (const id of group)
+      await expect
+        .poll(async () => {
+          if (!((await chap(page)).sel as string[]).includes(id))
+            await tapAt(page, await cp(page, id));
+          return ((await chap(page)).sel as string[]).includes(id);
+        })
+        .toBe(true);
+    await press(page, "🔦 Los!");
+    await expect.poll(async () => (await chap(page)).busy).toBe(true);
+  }
+  await expect.poll(async () => (await chap(page)).done, { timeout: 20_000 }).toBe(true);
+  expect((await chap(page)).minutes).toBe(8);
+  await finishCard(page, /19 Minuten/);
+  expect((await state(page)).stars.b1).toBe(3);
   await expectNoErrors(errors);
 });

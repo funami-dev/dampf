@@ -1,6 +1,10 @@
 /** Speichern (KI-AK-04): Sterne je Level, Klang, schon gesehene Erklärkarten */
 import { LEVELS } from "./hanoi.ts";
 import { RIVER_LEVELS } from "./river.ts";
+import { WAAGE_LEVELS } from "./waage.ts";
+import { MAZE_LEVELS } from "./maze.ts";
+import { FLIP_LEVELS } from "./flip.ts";
+import { BRIDGE_LEVELS } from "./bridge.ts";
 
 export const KEY = "dampf.knobel-insel.v1";
 export interface Store {
@@ -9,7 +13,7 @@ export interface Store {
 }
 export interface Saved {
   v: 1;
-  /** Sterne je Level: "h3".."h7" (Pfannkuchen), "f1".."f3" (Fluss) */
+  /** Sterne je Level: "h3".."h7" (Pfannkuchen), "f1".."f3" (Fluss), "w1".. (Waage) usw. */
   stars: Record<string, number>;
   /** Erklärkarten schon gezeigt */
   cards: string[];
@@ -18,13 +22,22 @@ export interface Saved {
 }
 export const HANOI_IDS = LEVELS.map((n) => `h${n}`);
 export const RIVER_IDS = RIVER_LEVELS.map((l) => l.id);
-const ALL = [...HANOI_IDS, ...RIVER_IDS];
+/** Level-Kennungen je Kapitel (der Reihe nach freigeschaltet) */
+export const CHAPTER_IDS: string[][] = [
+  HANOI_IDS,
+  RIVER_IDS,
+  WAAGE_LEVELS.map((l) => l.id),
+  MAZE_LEVELS.map((l) => l.id),
+  FLIP_LEVELS.map((l) => l.id),
+  BRIDGE_LEVELS.map((l) => l.id),
+];
+const ALL = CHAPTER_IDS.flat();
 
 export const fresh = (): Saved => ({ v: 1, stars: {}, cards: [], volume: 0.3, muted: false });
 
 /** Level werden je Kapitel der Reihe nach frei */
 export function unlocked(s: Saved, id: string): boolean {
-  for (const list of [HANOI_IDS, RIVER_IDS]) {
+  for (const list of CHAPTER_IDS) {
     const i = list.indexOf(id);
     if (i === 0) return true;
     if (i > 0) return (s.stars[list[i - 1]!] ?? 0) > 0;

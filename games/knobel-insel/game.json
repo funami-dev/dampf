@@ -10,8 +10,19 @@
   "status": "published",
   "order": 120,
   "addedAt": "2026-11-26",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-11-26",
+      "time": "14:49",
+      "items": [
+        "Die Insel hat jetzt vier Gegenden mit neuen Orten",
+        "Neu: Keks-Waage – finde den schweren Keks mit möglichst wenigen Wiegungen",
+        "Neu: Käse-Labyrinth – mal den Weg und sieh die Such-Welle des Computers",
+        "Neu: Pfannkuchen wenden und Brücke bei Nacht"
+      ]
+    },
     {
       "version": "1.0.0",
       "date": "2026-11-26",

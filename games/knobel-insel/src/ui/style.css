@@ -230,3 +230,39 @@
     animation: none;
   }
 }
+
+/* Gegenden auf der Insel-Karte (KI-AK-09) */
+.ki-chapters {
+  max-height: 62%;
+  overflow-y: auto;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+.ki-region {
+  background: rgba(255, 248, 238, 0.95);
+  border-radius: 16px;
+  border-top: 6px solid var(--rc, #f6d55c);
+  padding: 8px 12px;
+  box-shadow: 0 4px 14px rgba(43, 34, 51, 0.25);
+}
+.ki-region h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+.ki-region .ki-chapter {
+  background: none;
+  box-shadow: none;
+  padding: 4px 0;
+  border-radius: 0;
+}
+.ki-region .ki-chapter + .ki-chapter {
+  border-top: 1px dashed rgba(43, 34, 51, 0.2);
+}
+.ki-region h3 {
+  margin: 2px 0 6px;
+  font-size: 14px;
+}
+.ki-soon {
+  margin: 4px 0;
+  font-size: 13px;
+  opacity: 0.75;
+}

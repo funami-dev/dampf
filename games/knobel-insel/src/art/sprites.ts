@@ -176,6 +176,61 @@ export const SPRITES: Record<string, Sprite> = {
     rows: ["..gg..", ".gkgo.", "yyyyy.", "yyyyyy", ".yyyy."],
     pal: { g: "#3e8e5a", k: DARK, o: "#f39c12", y: "#f2e3b3" },
   },
+  igel: {
+    rows: [
+      "...b.b.b....",
+      "..bbbbbbb...",
+      ".bbdbdbdbbs.",
+      "bbbbbbbbbsks",
+      "bdbdbdbdbssn",
+      ".bbbbbbbbss.",
+      "..ss...ss...",
+    ],
+    pal: { b: "#7a5a3c", d: "#4e3826", s: "#e8c9a0", k: "#2b2233", n: "#2b2233" },
+  },
+  kroete: {
+    rows: ["....gggg....", "..gGgGgGg...", ".gGgGgGgGg.ss", ".gggggggggsks", "..ss....ss.ss"].map(
+      (r) => r.padEnd(13, ".").slice(0, 13),
+    ),
+    pal: { g: "#4f8a43", G: "#7cb342", s: "#a8c66c", k: "#2b2233" },
+  },
+  schnecke: {
+    rows: [
+      "....ooo......",
+      "..oOooOo..k.k",
+      ".oOoOOoOo..y.y",
+      ".oOoooOoo.yy.",
+      "yyyyyyyyyyyy.",
+    ].map((r) => r.padEnd(13, ".").slice(0, 13)),
+    pal: { o: "#c0783c", O: "#8a4b2a", y: "#e8d27a", k: "#2b2233" },
+  },
+  eule: {
+    rows: [
+      ".b......b.",
+      ".bbbbbbbb.",
+      "bwwbbbbwwb",
+      "bwkwbbwkwb",
+      "bbwwyywwbb",
+      "bbbbyybbbb",
+      "blblbblblb",
+      ".bllllllb.",
+      "..bbbbbb..",
+      "..y....y..",
+    ],
+    pal: { b: "#8a6a4a", w: "#f7f7f2", k: "#2b2233", y: "#f39c12", l: "#c9a77c" },
+  },
+  keks: {
+    rows: ["..bbb..", ".bbcbb.", "bcbbbcb", "bbbcbbb", "bcbbbbb", ".bbbcb.", "..bbb.."],
+    pal: { b: "#d9a35b", c: "#5a3a22" },
+  },
+  kaese: {
+    rows: ["......y", "....yyy", "..yyoyy", "yyyyyyy", "yoyyyoy", "yyyyyyy"],
+    pal: { y: "#f6d55c", o: "#e0b83a" },
+  },
+  laterne: {
+    rows: [".kkk.", "..k..", "kkkkk", "kyyyk", "kyYyk", "kyyyk", "kkkkk"],
+    pal: { k: "#3a3a3a", y: "#ffd27a", Y: "#fff6c8" },
+  },
 };
 
 /** Figur zeichnen (x/y = linke obere Ecke), optional gespiegelt */
