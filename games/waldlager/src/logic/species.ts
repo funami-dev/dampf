@@ -588,10 +588,31 @@ export const SPECIES: readonly Species[] = [
       "...g.g....g.g.....",
     ],
   },
+  {
+    // Schafherden (Feedback fb_8p7mu8rb, WL-AK-63): kommen nur in Herden vor
+    id: "schaf",
+    name: "Hausschaf",
+    habitat: "wiese",
+    time: "tag",
+    rarity: "haeufig",
+    fact: "Schafe bleiben gern in der Herde – zusammen fühlen sie sich sicher.",
+    palette: { w: "#f4f1ea", s: "#d9d3c7", k: "#3a3330", e: "#ffffff" },
+    pixels: [
+      "...sww.ww.....",
+      "..wwwwwwwwwkk.",
+      ".swwwwwwwwwkek",
+      "swwwwwwwwwwkkk",
+      "swwwwwwwwwwwk.",
+      ".swwwwwwwwws..",
+      "..k.k....k.k..",
+      "..k.k....k.k..",
+    ],
+  },
 ];
 
 export type SpeciesId = string;
 export const UNICORN = "einhorn";
+export const SHEEP = "schaf";
 export const speciesById = (id: string) => SPECIES.find((s) => s.id === id);
 
 export const HABITAT_TEXT: Record<Habitat, string> = {

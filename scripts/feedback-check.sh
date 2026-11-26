@@ -39,8 +39,12 @@ const s = JSON.parse(fs.readFileSync(0, "utf8"));
 const total = s?.neu?.gesamt;
 const per = s?.neu?.jeSpiel ?? {};
 if (!Number.isInteger(total) || total < 0 || typeof per !== "object") process.exit(2);
+const sus = s?.verdacht?.gesamt;
+const hidden = Number.isInteger(sus) && sus > 0
+  ? ` (dazu ${sus} ${sus === 1 ? "verdächtiges" : "verdächtige"}, ausgeblendet)`
+  : "";
 if (total === 0) {
-  console.log("Feedback-Check: Kein neues Feedback.");
+  console.log(hidden ? `Feedback-Check: Kein neues Feedback${hidden}.` : "Feedback-Check: Kein neues Feedback.");
   process.exit(0);
 }
 const title = (slug) => {
@@ -59,7 +63,7 @@ const parts = Object.entries(per)
   .map(([slug, n]) => `${n}× ${title(slug)}`);
 const word = total === 1 ? "neues Feedback" : "neue Feedbacks";
 const verb = total === 1 ? "Es gibt 1" : `Es gibt ${total}`;
-console.log(`Feedback-Check: ${verb} ${word}: ${parts.join(", ")} – ansehen?`);
+console.log(`Feedback-Check: ${verb} ${word}: ${parts.join(", ")}${hidden} – ansehen?`);
 '
 node -e "$FORMAT" "$ROOT" <<<"$body" 2>/dev/null || fail "unerwartete Antwort"
 exit 0

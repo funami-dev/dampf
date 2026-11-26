@@ -1,5 +1,6 @@
 import { DAY, START_TIME, isNight, phaseOf } from "./daytime.ts";
-import { SPECIES, UNICORN, speciesById } from "./species.ts";
+import { SHEEP, SPECIES, UNICORN, speciesById } from "./species.ts";
+import { rng } from "./rng.ts";
 import {
   FULL,
   RATES,
@@ -12,6 +13,7 @@ import {
   type Needs,
 } from "./needs.ts";
 import {
+  BURROW,
   HUT,
   T,
   isFreshWater,
@@ -86,6 +88,8 @@ export interface Player {
   rod: boolean;
   /** Hütte schon gesehen (Meldung nur einmal) */
   hutSeen: boolean;
+  /** versteckte Hügelhöhle schon gefunden (WL-AK-64) */
+  burrowSeen: boolean;
   tent: { x: number; y: number } | null;
   sleeping: boolean;
   exhausted: boolean;
@@ -114,6 +118,8 @@ export interface Animal {
   tx: number;
   ty: number;
   fleeing: boolean;
+  /** Nummer der Herde (nur Schafe, WL-AK-63) */
+  herd?: number;
 }
 
 export interface State {
@@ -148,6 +154,8 @@ export interface State {
   tentChests: Record<string, Chest>;
   /** ruhende Fischstellen: Index in world.fish → wieder da ab (WL-AK-54) */
   fishRest: Record<number, number>;
+  /** Mitte je Schafherde (WL-AK-63); wird nicht gespeichert, nur beim Gastgeber gebraucht */
+  herds: { x: number; y: number }[];
 }
 
 export interface Input {
@@ -266,11 +274,12 @@ export function createState(w: World): State {
     hutRefill: null,
     tentChests: {},
     fishRest: {},
+    herds: [],
   };
   const awayFromStart = (x: number, y: number) => Math.hypot(x - w.start.x, y - w.start.y) >= 6;
   const scale = Math.max(1, Math.min(4, Math.round(w.size / 128)));
   for (const sp of SPECIES) {
-    if (sp.id === UNICORN) continue;
+    if (sp.id === UNICORN || sp.id === SHEEP) continue;
     const n =
       sp.id === "hai"
         ? SHARK.max
@@ -286,7 +295,74 @@ export function createState(w: World): State {
   // Pilze erst danach, damit Tiere und Einhorn gleich bleiben wie vorher (WL-AK-41)
   const shrooms = Math.max(4, Math.round(MUSHROOMS.per256 * (w.size / 256) ** 2));
   for (let k = 0; k < shrooms; k++) growMushroom(w, s);
+  spawnHerds(w, s);
   return s;
+}
+
+export const HERDS = {
+  per256: 2,
+  min: 7,
+  max: 13,
+  spread: 3,
+  startDist: 15,
+  gap: 30,
+  step: 2,
+  wait: 4,
+};
+
+/** Schafherden mit eigenem Zufall, damit alles andere bleibt, wie es war (WL-AK-63) */
+function spawnHerds(w: World, s: State) {
+  const rand = rng(w.seed ^ 0x53686565);
+  const want = Math.max(1, Math.round(HERDS.per256 * (w.size / 256) ** 2));
+  const grassFree = (x: number, y: number) =>
+    inside(w, x, y) && w.terrain[idx(w, x, y)] === T.GRASS && free(w, s, x, y);
+  for (let tries = 0; tries < 4000 && s.herds.length < want; tries++) {
+    const cx = Math.floor(rand() * w.size);
+    const cy = Math.floor(rand() * w.size);
+    if (!grassFree(cx, cy)) continue;
+    if (Math.hypot(cx - w.start.x, cy - w.start.y) < HERDS.startDist) continue;
+    if (s.herds.some((h) => Math.hypot(h.x - cx - 0.5, h.y - cy - 0.5) < HERDS.gap)) continue;
+    const cells: [number, number][] = [];
+    for (let dy = -HERDS.spread; dy <= HERDS.spread; dy++)
+      for (let dx = -HERDS.spread; dx <= HERDS.spread; dx++)
+        if (Math.hypot(dx, dy) <= HERDS.spread && grassFree(cx + dx, cy + dy))
+          cells.push([cx + dx, cy + dy]);
+    if (cells.length < HERDS.max) continue;
+    const n = HERDS.min + Math.floor(rand() * (HERDS.max - HERDS.min + 1));
+    const herd = s.herds.length;
+    s.herds.push({ x: cx + 0.5, y: cy + 0.5 });
+    for (let k = 0; k < n; k++) {
+      const [x, y] = cells.splice(Math.floor(rand() * cells.length), 1)[0]!;
+      s.animals.push({
+        kind: SHEEP,
+        x: x + 0.5,
+        y: y + 0.5,
+        tx: x + 0.5,
+        ty: y + 0.5,
+        fleeing: false,
+        herd,
+      });
+    }
+  }
+}
+
+/** Herdenmitte zieht weiter, aber nur über Wiese und erst, wenn die Herde beisammen ist */
+function stepHerds(w: World, s: State, dt: number, night: boolean) {
+  if (night) return;
+  s.herds.forEach((h, k) => {
+    if (nextRand(s) >= dt * 0.03) return;
+    const members = s.animals.filter((a) => a.herd === k);
+    if (members.some((a) => Math.hypot(a.x - h.x, a.y - h.y) > HERDS.wait)) return;
+    const ang = nextRand(s) * Math.PI * 2;
+    const nx = h.x + Math.cos(ang) * HERDS.step;
+    const ny = h.y + Math.sin(ang) * HERDS.step;
+    const fx = Math.floor(nx);
+    const fy = Math.floor(ny);
+    if (inside(w, fx, fy) && w.terrain[idx(w, fx, fy)] === T.GRASS && free(w, s, fx, fy)) {
+      h.x = nx;
+      h.y = ny;
+    }
+  });
 }
 
 /** Neuer Spieltag: altes Einhorn geht, mit 15 % Chance kommt ein neues (WL-AK-20) */
@@ -357,6 +433,7 @@ export function addPlayer(
     fish: 0,
     rod: false,
     hutSeen: false,
+    burrowSeen: false,
     tent: null,
     sleeping: false,
     exhausted: false,
@@ -377,7 +454,8 @@ export const hasApples = (w: World, s: State, tree: number) =>
   !!w.trees[tree]?.apple &&
   !isStump(s, tree) &&
   (s.appleEmpty[tree] === undefined || s.appleEmpty[tree]! <= s.total);
-const isHut = (w: World, x: number, y: number) => w.hut.x === x && w.hut.y === y;
+const isHut = (w: World, x: number, y: number) =>
+  (w.hut.x === x && w.hut.y === y) || (w.burrow?.x === x && w.burrow?.y === y);
 
 /** Pilz auf einem zufälligen freien Waldfeld wachsen lassen (WL-AK-41) */
 export function growMushroom(w: World, s: State): boolean {
@@ -529,6 +607,16 @@ export function stepWorld(w: World, s: State, dt: number): GameEvent[] {
         text: "Eine verlassene Hütte! In der Kiste ist vielleicht etwas zu essen.",
       });
     }
+    // versteckte Hügelhöhle (WL-AK-64): kein Hinweis vorher, Meldung genau einmal
+    if (
+      !p.burrowSeen &&
+      w.burrow &&
+      w.burrow.x >= 0 &&
+      Math.hypot(w.burrow.x + 0.5 - p.x, w.burrow.y + 0.5 - p.y) <= BURROW.see
+    ) {
+      p.burrowSeen = true;
+      events.push({ player: p.id, text: "🍵 Du hast die versteckte Hügelhöhle gefunden!" });
+    }
     if (!p.radio && nearPlane(w, p)) {
       p.radio = true;
       events.push({ player: p.id, text: "📻 Du hast im Flugzeug ein Funkgerät gefunden!" });
@@ -599,8 +687,15 @@ export function markTrail(w: World, s: State, x: number, y: number) {
 
 function stepAnimals(w: World, s: State, dt: number, night: boolean) {
   const players = Object.values(s.players);
+  stepHerds(w, s, dt, night);
   for (const a of s.animals) {
     if (hiddenAt(a.kind, s.total)) continue;
+    const h = a.herd !== undefined ? s.herds[a.herd] : undefined;
+    // Schafe: Ziel zu weit von der Herdenmitte → neues Ziel bei der Herde
+    if (h && !a.fleeing && Math.hypot(a.tx - h.x, a.ty - h.y) > HERDS.spread) {
+      a.tx = h.x + (nextRand(s) - 0.5) * 2 * HERDS.spread * 0.7;
+      a.ty = h.y + (nextRand(s) - 0.5) * 2 * HERDS.spread * 0.7;
+    }
     const sp = speciesById(a.kind);
     const ok = (x: number, y: number) => habitatOk(w, a.kind, x, y, false);
     const sea = sp?.habitat === "meer";
@@ -612,7 +707,10 @@ function stepAnimals(w: World, s: State, dt: number, night: boolean) {
       a.fleeing = true;
     } else if (a.fleeing || Math.hypot(a.tx - a.x, a.ty - a.y) < 0.2 || nextRand(s) < dt * 0.05) {
       a.fleeing = false;
-      if (nextRand(s) < 0.6) {
+      if (h) {
+        a.tx = h.x + (nextRand(s) - 0.5) * 2 * HERDS.spread * 0.7;
+        a.ty = h.y + (nextRand(s) - 0.5) * 2 * HERDS.spread * 0.7;
+      } else if (nextRand(s) < 0.6) {
         a.tx = a.x + (nextRand(s) - 0.5) * 10;
         a.ty = a.y + (nextRand(s) - 0.5) * 10;
       } else {

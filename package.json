@@ -22,6 +22,7 @@
     "test:prod": "DAMPF_URL=https://dampf.vercel.app playwright test",
     "test:e2e:changed": "tsx scripts/e2e-changed.ts",
     "test:prod:changed": "tsx scripts/e2e-changed.ts --prod",
+    "feedback:zeigen": "tsx scripts/feedback-show.ts",
     "lint": "eslint . && prettier --check . && npm run typecheck --workspaces --if-present",
     "format": "prettier --write ."
   },

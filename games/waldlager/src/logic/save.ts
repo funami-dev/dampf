@@ -159,6 +159,7 @@ export function load(store: Store): { world: World; state: State; me: string } |
       fish: food(me.fish),
       rod: me.rod === true,
       hutSeen: me.hutSeen === true,
+      burrowSeen: me.burrowSeen === true,
       landing: 0,
     });
     // ältere Spielstände: Wer jetzt in einem neuen See steht, kommt ans Ufer (WL-AK-52)

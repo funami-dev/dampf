@@ -47,7 +47,7 @@ import { browserStore, load, save } from "./logic/save.ts";
 import { applySnap, parseGuest, parseHost, toSnap, type GuestMsg } from "./logic/protocol.ts";
 import { HABITAT_TEXT, SPECIES, TIME_TEXT, UNICORN, speciesById } from "./logic/species.ts";
 import { discover, loadBook, saveBook } from "./logic/tierbuch.ts";
-import { T, generateWorld, idx, inside, isFreshWater, type World } from "./logic/world.ts";
+import { BURROW, T, generateWorld, idx, inside, isFreshWater, type World } from "./logic/world.ts";
 import { bearing, mapPoint, wreckHintOpacity } from "./logic/compass.ts";
 import { rockPeak, treeKind } from "./logic/looks.ts";
 import { HS, isoX, isoY, tileX, tileY } from "./render/iso.ts";
@@ -134,6 +134,8 @@ const wreckNeedle = $(".wl-wreck");
 /** Zeitpunkt der Landung (Sekunden, performance) für die Wrack-Nadel (WL-AK-59) */
 let landedAt = -Infinity;
 let hutAngle: number | null = null;
+/** Sprechblase des Hügel-Wichtels sichtbar (WL-AK-64) */
+let burrowTalk = false;
 const nightCtx = night.getContext("2d")!;
 
 // --- Spielzustand -------------------------------------------------------
@@ -1238,6 +1240,7 @@ class WorldScene extends Phaser.Scene {
   objects: Phaser.GameObjects.Image[] = [];
   dyn = new Map<string, Phaser.GameObjects.Image>();
   labels = new Map<string, Phaser.GameObjects.Text>();
+  burrowBubble: Phaser.GameObjects.Text | null = null;
   ghost!: Phaser.GameObjects.Image;
   prevX = new WeakMap<object, number>();
 
@@ -1368,6 +1371,13 @@ class WorldScene extends Phaser.Scene {
             .setOrigin(0.5, 0.82)
             .setPosition(cx, cy)
             .setDepth((x + y + 1) * 10);
+        // versteckte Hügelhöhle mit Wichtel (WL-AK-64)
+        if (x === world.burrow.x && y === world.burrow.y)
+          this.pool(this.objects, oi++)
+            .setTexture("burrow")
+            .setOrigin(0.5, 0.8)
+            .setPosition(cx, cy)
+            .setDepth((x + y + 1) * 10);
         if (shrooms.has(i))
           this.pool(this.objects, oi++)
             .setTexture("mushroom")
@@ -1473,6 +1483,31 @@ class WorldScene extends Phaser.Scene {
           .setVisible(true);
       }
     }
+    // Hügel-Wichtel grüßt, wenn man nah genug ist (WL-AK-64)
+    burrowTalk =
+      world.burrow.x >= 0 &&
+      Math.hypot(world.burrow.x + 0.5 - p.x, world.burrow.y + 0.5 - p.y) <= BURROW.see;
+    if (burrowTalk) {
+      if (!this.burrowBubble)
+        this.burrowBubble = this.add
+          .text(0, 0, "Guten Tag!", {
+            fontFamily: "system-ui",
+            fontSize: "8px",
+            color: "#2b2233",
+            backgroundColor: "#fffdf5",
+            padding: { x: 3, y: 2 },
+          })
+          .setOrigin(0.5, 1)
+          .setResolution(4);
+      const [bx, by] = [world.burrow.x + 0.5, world.burrow.y + 0.5];
+      this.burrowBubble
+        .setPosition(
+          Math.round(isoX(bx, by)) - 6,
+          Math.round(isoY(bx, by, hAt(bx, by))) - 28 - (Math.floor(time / 400) % 2),
+        )
+        .setDepth(1e6)
+        .setVisible(true);
+    } else this.burrowBubble?.setVisible(false);
     // Regenbogenspur des Einhorns (WL-AK-37), nur in der Nähe der Figur
     for (const [k, until] of Object.entries(state.trail)) {
       const left = until - state.total;
@@ -1766,6 +1801,13 @@ if (debugEnabled) {
         smoke: smokeShown,
         ripples: ripplesShown,
         hut: world.hut,
+        burrow: world.burrow,
+        burrowTalk,
+        herds: state.herds.map((h, k) => ({
+          x: h.x,
+          y: h.y,
+          sheep: state.animals.filter((a) => a.herd === k).length,
+        })),
         clock: clockOf(state.total),
         phase: phaseOf(state.total),
         dark: lastDark,
@@ -1789,6 +1831,7 @@ if (debugEnabled) {
           radio: p.radio,
           landing: p.landing,
           home: p.home,
+          burrowSeen: p.burrowSeen,
         },
         action: actionFor(world, state, p)?.kind ?? null,
         fires: state.fires.map((f) => ({
@@ -1982,6 +2025,17 @@ if (debugEnabled) {
       return t ? [t.x, t.y] : null;
     },
     hutSpot: () => standFor(world.hut.x, world.hut.y, ["hutsleep"]),
+    burrowSpot: () => {
+      const { x, y } = world.burrow;
+      for (const [dx, dy] of [
+        [1, 0],
+        [0, 1],
+        [-1, 0],
+        [0, -1],
+      ] as const)
+        if (free(world, state, x + dx, y + dy)) return [x, y, x + dx, y + dy];
+      return null;
+    },
     appleSpot: () => {
       const p = me();
       const trees = world.trees

@@ -4,6 +4,8 @@
  * Arbeitsspeicher) und in Cloudflare (Durable Object `FeedbackStore` mit SQLite).
  */
 
+import { suspicion } from "./feedback-filter.ts";
+
 const MIN = 60_000;
 const DAY = 24 * 60 * MIN;
 
@@ -15,6 +17,7 @@ export const FB_LIMITS = {
   windowMs: 10 * MIN,
   perDay: 20,
   globalPerDay: 500,
+  perGameDay: 100,
   maxEntries: 10_000,
   note: 300,
   listDefault: 50,
@@ -25,6 +28,7 @@ export const FB_LIMITS = {
 };
 
 export const STATUSES = [
+  "verdacht",
   "neu",
   "entwurf",
   "freigegeben",
@@ -37,6 +41,7 @@ const DONE: Status[] = ["umgesetzt", "abgelehnt", "archiviert"];
 
 /** Erlaubte Übergänge (Spec 004, Status-Lebenszyklus) */
 export const TRANSITIONS: Record<Status, Status[]> = {
+  verdacht: ["neu", "archiviert"],
   neu: ["entwurf", "abgelehnt", "archiviert"],
   entwurf: ["freigegeben", "abgelehnt"],
   freigegeben: ["umgesetzt", "abgelehnt"],
@@ -68,10 +73,12 @@ export interface Feedback {
   approvedBy?: string;
   approvedAt?: string;
   note?: string;
-  history: { at: string; from: Status; to: Status }[];
+  /** `reason` nur beim Eingang als `verdacht` (Name der Filter-Regel) */
+  history: { at: string; from: Status; to: Status; reason?: string }[];
 }
 
 export interface ListFilter {
+  /** ohne Status: alles außer `verdacht` (Spec 004, FEEDBACK-AK-33) */
   status?: Status;
   game?: string;
   /** ISO-Zeitpunkt, einschließlich */
@@ -99,7 +106,7 @@ export interface FeedbackRepo {
 
 export function matches(e: Feedback, f: Omit<ListFilter, "limit">): boolean {
   return (
-    (!f.status || e.status === f.status) &&
+    (f.status ? e.status === f.status : e.status !== "verdacht") &&
     (!f.game || e.game === f.game) &&
     (!f.from || e.createdAt >= f.from) &&
     (!f.to || e.createdAt < f.to)
@@ -310,6 +317,7 @@ export class FeedbackService {
   private senders = new Map<string, Sender>();
   private recent = new Map<string, { id: string; at: number }>();
   private globalCount = 0;
+  private gameCount = new Map<string, number>();
   private lastCleanup = 0;
 
   constructor(
@@ -364,17 +372,16 @@ export class FeedbackService {
   // --- POST /feedback ---
 
   private submit(req: FbRequest): FbResponse {
+    // Origin ist Pflicht (FEEDBACK-AK-30): hält einfache Skripte und Bots ab
     const origin = req.header("Origin");
-    if (origin && !originAllowed(origin)) return this.json(403, { error: "origin" });
-    const cors: Record<string, string> = origin
-      ? {
-          "Access-Control-Allow-Origin": origin,
-          "Access-Control-Allow-Methods": "POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type",
-          "Access-Control-Max-Age": "86400",
-          Vary: "Origin",
-        }
-      : {};
+    if (!origin || !originAllowed(origin)) return this.json(403, { error: "origin" });
+    const cors: Record<string, string> = {
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Max-Age": "86400",
+      Vary: "Origin",
+    };
     if (req.method === "OPTIONS") return { status: 204, headers: cors, body: "" };
     const len = Number(req.header("Content-Length") ?? 0);
     if (len > FB_LIMITS.bytes || new TextEncoder().encode(req.body).length > FB_LIMITS.bytes)
@@ -414,6 +421,7 @@ export class FeedbackService {
       s.times.length >= FB_LIMITS.perWindow ||
       s.dayCount >= FB_LIMITS.perDay ||
       this.globalCount >= FB_LIMITS.globalPerDay ||
+      (this.gameCount.get(data.game) ?? 0) >= FB_LIMITS.perGameDay ||
       this.repo.count() >= FB_LIMITS.maxEntries
     ) {
       this.senders.set(sender, s);
@@ -422,11 +430,21 @@ export class FeedbackService {
     let id = this.randomId();
     while (this.repo.get(id)) id = this.randomId();
     const at = new Date(t).toISOString();
-    this.repo.insert({ id, createdAt: at, updatedAt: at, status: "neu", history: [], ...data });
+    // Verdachtsfilter (FEEDBACK-AK-32): der Absender merkt nichts davon
+    const rule = suspicion(data.text);
+    this.repo.insert({
+      id,
+      createdAt: at,
+      updatedAt: at,
+      status: rule ? "verdacht" : "neu",
+      history: rule ? [{ at, from: "neu", to: "verdacht", reason: rule }] : [],
+      ...data,
+    });
     s.times.push(t);
     s.dayCount += 1;
     this.senders.set(sender, s);
     this.globalCount += 1;
+    this.gameCount.set(data.game, (this.gameCount.get(data.game) ?? 0) + 1);
     for (const [k, v] of this.recent) if (t - v.at >= FB_LIMITS.windowMs) this.recent.delete(k);
     this.recent.set(dupKey, { id, at: t });
     return this.json(201, { id }, cors);
@@ -443,6 +461,7 @@ export class FeedbackService {
     this.senders.clear();
     this.recent.clear();
     this.globalCount = 0;
+    this.gameCount.clear();
   }
 
   // --- Admin ---
@@ -485,7 +504,11 @@ export class FeedbackService {
       jeStatus[r.status] += r.n;
       if (r.status === "neu") jeSpiel[r.game] = (jeSpiel[r.game] ?? 0) + r.n;
     }
-    return this.json(200, { neu: { gesamt: jeStatus.neu, jeSpiel }, jeStatus });
+    return this.json(200, {
+      neu: { gesamt: jeStatus.neu, jeSpiel },
+      verdacht: { gesamt: jeStatus.verdacht },
+      jeStatus,
+    });
   }
 
   private patch(id: string, body: string): FbResponse {

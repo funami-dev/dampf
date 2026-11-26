@@ -123,7 +123,7 @@ gegen Tiere. Rehe und andere Waldtiere laufen nur herum. Man kann nicht sterben.
 
 ## Tiere entdecken (nie verletzbar)
 
-„Die Gestrandeten“ ist auch ein **Entdeckerspiel**: Auf der Insel leben **33 Tierarten**. Wer ein Tier zum ersten
+„Die Gestrandeten“ ist auch ein **Entdeckerspiel**: Auf der Insel leben **34 Tierarten**. Wer ein Tier zum ersten
 Mal sieht, trägt es ins **Tierbuch** ein.
 
 - Es gibt keine Aktion, die ein Tier verletzt, fängt, füttert oder tötet. Tiere blockieren den Weg
@@ -192,6 +192,24 @@ Mal sieht, trägt es ins **Tierbuch** ein.
 | Zitronenfalter  | Wiese      | Tag   | häufig      |
 | Hai             | Meer       | Tag   | sehr selten |
 | Einhorn         | Wiese      | Tag   | sehr selten |
+| Hausschaf       | Wiese      | Tag   | in Herden   |
+
+### Schafherden (Feedback `fb_8p7mu8rb`)
+
+- Auf jeder Insel leben **Schafherden**: auf einer 256er-Insel **2 Herden** (kleinere Inseln
+  mindestens 1), jede mit **7 bis 13 Schafen** (zufällig, immer gleich je Seed).
+- Eine Herde entsteht auf einer **Wiese** (mindestens 15 Felder von der Inselmitte entfernt), die
+  Schafe stehen dicht beieinander (höchstens 3 Felder von der Herdenmitte).
+- **Die Herde zieht zusammen:** Die Herdenmitte wandert ab und zu ein paar Felder weiter, aber nur
+  über Wiese. Jedes Schaf sucht sich sein nächstes Ziel höchstens 3 Felder um die Herdenmitte;
+  so bleibt die Herde zusammen (kein Schaf mehr als **6 Felder** von der Mitte entfernt, außer
+  kurz beim Weglaufen).
+- Kommt man zu nah, laufen einzelne Schafe wie andere Tiere ein Stück weg und kehren danach zur
+  Herde zurück. Nachts ruhen sie (tagaktiv).
+- Im Tierbuch ist das **Hausschaf** eine eigene Art („Schafe bleiben gern in der Herde – zusammen
+  fühlen sie sich sicher.“); entdeckt wird es wie jedes Tier.
+- Andere Tiere, Spielstände und Inseln bleiben, wie sie waren (die Herden kommen mit eigenem
+  Zufall dazu).
 
 Zu jeder Art gibt es im Tierbuch einen kurzen, kindgerechten Satz (z. B. „Der Igel rollt sich
 bei Gefahr zu einer stacheligen Kugel zusammen.“).
@@ -204,7 +222,7 @@ bei Gefahr zu einer stacheligen Kugel zusammen.“).
 - **Beim ersten Mal** je Art erscheint die Meldung „Neu entdeckt: Igel!“, beim Einhorn
   „✨ Ein Einhorn! ✨“. Danach kommt für diese Art keine Meldung mehr.
 - **Tierbuch** (Menüpunkt „Tierbuch“, Taste T):
-  - Liste aller 33 Arten mit Zähler, z. B. „12 / 33 entdeckt“.
+  - Liste aller 34 Arten mit Zähler, z. B. „12 / 34 entdeckt“.
   - **Entdeckte Arten:** Bild, Name, Lebensraum, Tageszeit und der kurze Satz.
   - **Unentdeckte Arten:** dunkle Silhouette und „???“, dazu nur ein Hinweis auf Lebensraum und
     Tageszeit (z. B. „Nachts im Wald“). Beim Einhorn steht nur „Sehr selten …“.
@@ -219,7 +237,7 @@ bei Gefahr zu einer stacheligen Kugel zusammen.“).
     Liste nur noch entdeckte Arten, deren Name den Text enthält (Groß-/Kleinschreibung egal,
     z. B. „hase“ → Hase). Unentdeckte Arten werden beim Suchen ausgeblendet, damit die Suche
     nichts verrät. Passt nichts: „Kein entdecktes Tier heißt so.“ Leeres Feld zeigt wieder alle.
-    Der Zähler „12 / 33 entdeckt“ bleibt unverändert.
+    Der Zähler „12 / 34 entdeckt“ bleibt unverändert.
 - **Das Tierbuch gehört der Spielerin bzw. dem Spieler, nicht der Welt.** Es bleibt bei „Neue Welt“
   erhalten und wird auch als Gast in fremden Welten weitergeführt. Im Mehrspieler entdeckt jeder
   für sich.
@@ -318,6 +336,23 @@ Drei Leisten von 0 bis 100 % stehen immer oben im Bild:
 - **Anzeige oben:** 🪵 Holz und 🫐 Beeren wie bisher, dazu 🍎, 🍄 und 🥫, sobald man davon etwas hat.
 - **Mehrspieler und Speichern:** Hütte, Äpfel und Pilze sehen alle; Gäste essen ihre eigenen
   Vorräte. Inventar, Kiste, Äpfel und Pilze werden gespeichert.
+
+### Die versteckte Hügelhöhle (Feedback `fb_vjbrzb1v`)
+
+- Auf jeder Insel gibt es **genau eine** gut versteckte **Hügelhöhle**: eine runde, grüne Tür im
+  Hang mit einem kleinen Schornstein, aus dem es dampft. Davor steht ein kleiner **Hügel-Wichtel**
+  mit einer dampfenden Teetasse (eigene Figur).
+- **Ort:** auf einem Hügel (Höhe 2 oder 3) auf Wiese oder Waldboden, mindestens 40 Felder vom
+  Inselmittelpunkt, 25 Felder von der Hütte und 20 Felder vom Flugzeug entfernt, zu Fuß (ggf. mit
+  Brücken) erreichbar. Man kann nicht durch sie hindurchlaufen.
+- **Kein Hinweis:** nicht auf der Funk-Karte, nicht im Kompass, keine Meldung vorher – man muss sie
+  selbst finden.
+- **Gefunden:** Kommt man zum ersten Mal auf 3 Felder heran, erscheint „🍵 Du hast die versteckte
+  Hügelhöhle gefunden!“. Immer wenn man auf 3 Felder heran ist, sagt der Wichtel in einer
+  Sprechblase **„Guten Tag!“**.
+- Ob man sie schon gefunden hat, gehört zum Spielstand der Figur (wie die Hütte). Im Mehrspieler
+  findet jeder sie für sich.
+- Inseln, Hütte, Seen und Tiere bleiben, wie sie waren (die Höhle kommt mit eigenem Zufall dazu).
 
 ## Tag und Nacht
 
@@ -519,7 +554,7 @@ Figur steht.
   - Versteckte Tiere zählen nicht.
   - Das Tierbuch übersteht Neuladen und „Neue Welt“, kaputte Daten ergeben ein leeres Tierbuch.
 - **WL-AK-22** (E2E) In die Nähe eines Tieres gehen ergibt die Meldung „Neu entdeckt: …“. Das
-  Tierbuch zeigt dann „1 / 33 entdeckt“ (bzw. die passende Zahl) mit Name und Satz; unentdeckte
+  Tierbuch zeigt dann „1 / 34 entdeckt“ (bzw. die passende Zahl) mit Name und Satz; unentdeckte
   Arten zeigen „???“. Nach Neuladen ist der Eintrag noch da. Auf Mobile ist das Tierbuch
   bedienbar.
 
@@ -669,6 +704,18 @@ Figur steht.
 - **WL-AK-62** (E2E) Umbenennung (Feedback `fb_544ew28d`): Startbildschirm und Tab-Titel heißen
   „Die Gestrandeten“, die Adresse bleibt `/games/waldlager/`; der Speicher-Schlüssel ändert sich
   nicht (alte Spielstände bleiben).
+
+- **WL-AK-63** (Vitest) Schafherden (Feedback `fb_8p7mu8rb`): Für mehrere Seeds gibt es auf einer
+  256er-Insel 2 Herden mit je 7–13 Schafen, jede auf Wiese, mindestens 15 Felder von der Inselmitte,
+  alle Schafe höchstens 3 Felder von der Herdenmitte. Nach 5 Spieltagen Simulation ohne Spieler
+  ist jedes Schaf höchstens 6 Felder von seiner Herdenmitte entfernt, die Herdenmitte liegt auf
+  Wiese und hat sich bewegt; gleicher Seed ergibt dieselben Herden. (E2E) Das
+  Tierbuch zählt 34 Arten; ein Schaf ist nahe einer Herde zu entdecken.
+- **WL-AK-64** (Vitest) Hügelhöhle (Feedback `fb_vjbrzb1v`): Für mehrere Seeds gibt es genau eine
+  Höhle auf Höhe ≥ 2, auf Wiese oder Waldboden, mit den Mindestabständen, nicht begehbar, mit
+  einem erreichbaren freien Nachbarfeld. „Gefunden“ kommt genau einmal je Figur und wird gespeichert. (E2E) Teleport neben
+  die Höhle → Meldung „🍵 Du hast die versteckte Hügelhöhle gefunden!“ und Sprechblase
+  „Guten Tag!“; die Funk-Karte zeigt sie nicht.
 
 ## Nicht-Ziele (MVP)
 

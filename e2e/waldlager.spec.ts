@@ -51,6 +51,9 @@ interface WlState {
   smoke: number;
   ripples: number;
   hut: { x: number; y: number };
+  burrow: { x: number; y: number };
+  burrowTalk: boolean;
+  herds: { x: number; y: number; sheep: number }[];
 }
 interface Hooks {
   state(): WlState;
@@ -71,6 +74,7 @@ interface Hooks {
   markTrail(x: number, y: number): void;
   fallenTree(): [number, number] | null;
   hutSpot(): [number, number, number, number] | null;
+  burrowSpot(): [number, number, number, number] | null;
   appleSpot(): [number, number, number, number] | null;
 }
 
@@ -1018,4 +1022,55 @@ test("WL-AK-62: heißt jetzt „Die Gestrandeten“", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Die Gestrandeten" }).first()).toBeVisible();
   expect(page.url()).toContain("/games/waldlager/");
   await expectNoErrors(errors);
+});
+
+test("WL-AK-63/64: Schafherde entdecken und Hügelhöhle finden", async ({ page }) => {
+  test.setTimeout(120_000);
+  // Tierbuch voll bis auf das Schaf: sonst überdecken andere „Neu entdeckt“-Meldungen
+  await page.addInitScript(
+    ([key, seen]) => localStorage.setItem(key as string, JSON.stringify({ v: 1, seen })),
+    [BOOK_KEY, SPECIES.map((s) => s.id).filter((id) => id !== "schaf")] as const,
+  );
+  const errors = trackErrors(page);
+  await open(page);
+  const mobile = isMobile(page);
+  const tap = (name: string | RegExp) =>
+    mobile
+      ? page.getByRole("button", { name }).first().tap()
+      : page.getByRole("button", { name }).first().click();
+  await tap("Los geht's");
+  await landed(page);
+  await hooks(page, (h) => h.setTime(600 * 3 + 200));
+  const s0 = await state(page);
+  expect(s0.herds).toHaveLength(2);
+  for (const h of s0.herds) expect(h.sheep).toBeGreaterThanOrEqual(7);
+  expect(s0.burrowTalk).toBe(false);
+  // neben eine Herde stellen → Schaf entdeckt
+  const herd = s0.herds[0]!;
+  await page.evaluate(
+    ([hx, hy]) => {
+      const h = window.__dampf as Hooks;
+      for (let r = 2; r <= 5; r++)
+        for (let dx = -r; dx <= r; dx++)
+          for (let dy = -r; dy <= r; dy++) {
+            const x = Math.floor(hx! + dx);
+            const y = Math.floor(hy! + dy);
+            if (h.cell(x, y).free) return h.teleport(x + 0.5, y + 0.5);
+          }
+    },
+    [herd.x, herd.y],
+  );
+  await expect(page.getByText("Neu entdeckt: Hausschaf!")).toBeVisible();
+  await expect.poll(async () => (await state(page)).book).toContain("schaf");
+  // Hügelhöhle: Meldung und Sprechblase
+  const spot = (await hooks(page, (h) => h.burrowSpot()))!;
+  expect(spot).not.toBeNull();
+  await page.evaluate(
+    ([tx, ty, sx, sy]) =>
+      (window.__dampf as Hooks).teleport(sx! + 0.5, sy! + 0.5, tx! - sx!, ty! - sy!),
+    spot,
+  );
+  await expect(page.getByText("🍵 Du hast die versteckte Hügelhöhle gefunden!")).toBeVisible();
+  await expect.poll(async () => (await state(page)).burrowTalk).toBe(true);
+  expect(errors).toEqual([]);
 });
