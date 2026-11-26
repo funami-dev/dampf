@@ -337,6 +337,41 @@ Drei Leisten von 0 bis 100 % stehen immer oben im Bild:
 - **Mehrspieler und Speichern:** Hütte, Äpfel und Pilze sehen alle; Gäste essen ihre eigenen
   Vorräte. Inventar, Kiste, Äpfel und Pilze werden gespeichert.
 
+### Feuerwerk aus der Hütte
+
+- **Feuerwerkskiste:** In der Hütte steht neben der Truhe eine eigene **Feuerwerkskiste** mit
+  **99 Raketen** – für alle in der Welt zusammen. Sie zählt nicht zu den 40 Plätzen der Truhe.
+  Ist die letzte Rakete genommen, ist die Kiste leer; es kommen **keine** neuen nach.
+- **Nehmen:** Im Truhen-Fenster der Hütte steht eine eigene Zeile „🚀 Feuerwerk (n)“ mit
+  „Nehmen: 🚀“ (eine Rakete) und „5 nehmen“. In die Tasche passen höchstens **10 Raketen**.
+  Raketen kann man wieder in die Kiste zurücklegen („Zurücklegen: 🚀“). Oben in der Anzeige steht
+  🚀 mit der Zahl, sobald man welche dabeihat.
+- **Zünden:** Knopf „🚀 Zünden“ (Taste **R**), sobald man Raketen dabeihat.
+  - **Nur in der Dämmerung und nachts.** Tagsüber kommt „Feuerwerk sieht man nur, wenn es dunkel
+    ist – warte bis zum Abend!“, und die Rakete bleibt in der Tasche.
+  - Nicht im Schlaf, nicht während der Landung, nicht auf Wasser oder Brücken (dann: „Hier kannst
+    du keine Rakete aufstellen.“).
+  - Zwischen zwei eigenen Raketen liegen mindestens **2 Sekunden**.
+- **Ablauf am Himmel:** Die Rakete steigt etwa **1,5 Sekunden** vom eigenen Feld mit einem
+  Funkenschweif nach oben (etwa 120 Pixel), zerplatzt dann in **bunte Partikel** (60–140 Stück),
+  die sich ausbreiten, leicht nach unten sinken, glitzern und in etwa **2,5 Sekunden** verblassen.
+  Beim Zerplatzen leuchtet die Umgebung kurz auf (nachts sichtbar heller).
+- **8 Stile** – jede Rakete ist eine Überraschung (Stil zufällig, Farben passend zum Stil):
+  1. **Bälle** – eine runde Kugel aus Funken.
+  2. **Stern** – fünfzackiger Stern.
+  3. **Vogel** – ein Vogel mit ausgebreiteten Flügeln.
+  4. **Herz**.
+  5. **Ring** – ein flacher, leuchtender Kreis.
+  6. **Weide** – goldene Funken, die lang nach unten hängen.
+  7. **Spirale** – Funken drehen sich nach außen.
+  8. **Blume** – mehrere Blütenblätter mit andersfarbiger Mitte.
+- **Mehrspieler:** Alle Spieler der Welt sehen jedes Feuerwerk (Gastgeber bestimmt Stil und Ort,
+  alle sehen dasselbe). Die Kiste ist gemeinsam; Gäste nehmen über den Gastgeber.
+- **Speichern:** Raketen in der Kiste und in der eigenen Tasche werden gespeichert; Feuerwerk am
+  Himmel nicht.
+- **Leistung:** höchstens 6 Feuerwerke und 800 Partikel gleichzeitig; ältere verschwinden zuerst.
+- Feuerwerk verletzt niemanden und ändert nichts an der Welt; Tiere reagieren nicht darauf.
+
 ### Die versteckte Hügelhöhle (Feedback `fb_vjbrzb1v`)
 
 - Auf jeder Insel gibt es **genau eine** gut versteckte **Hügelhöhle**: eine runde, grüne Tür im
@@ -460,6 +495,7 @@ wird auch als Gast gespeichert. Kaputte Daten ergeben ein leeres Tierbuch.
 | Aktion (hacken, pflücken, schlafen, sitzen, Holz nachlegen) | E / Leertaste         | Button „Aktion“ (zeigt, was passiert) |
 | Essen                                                       | Q                     | Button „Essen“                        |
 | Bauen (Zelt / Feuer)                                        | B                     | Button „Bauen“                        |
+| Rakete zünden (nur dunkel, mit Raketen)                     | R                     | Button „🚀 Zünden“                    |
 | Menü                                                        | Esc                   | Button „Menü“                         |
 
 Alle Bedienelemente liegen im sicheren Bereich (MANIFEST-AK-08). Bei Fokusverlust pausiert das
@@ -716,6 +752,19 @@ Figur steht.
   einem erreichbaren freien Nachbarfeld. „Gefunden“ kommt genau einmal je Figur und wird gespeichert. (E2E) Teleport neben
   die Höhle → Meldung „🍵 Du hast die versteckte Hügelhöhle gefunden!“ und Sprechblase
   „Guten Tag!“; die Funk-Karte zeigt sie nicht.
+- **WL-AK-65** (Vitest) Feuerwerkskiste: Eine neue Welt hat 99 Raketen in der Hütte; Nehmen geht
+  nur an der Hütte, einzeln und zu fünft, bis 10 in der Tasche; Zurücklegen geht; leer bleibt leer
+  (auch nach mehreren Spieltagen); die 40 Truhen-Plätze bleiben frei. Kiste und Taschen-Raketen
+  überstehen Speichern/Laden und gehen im Schnappschuss an Gäste; ungültige Werte → 0.
+- **WL-AK-66** (Vitest) Zünden: tagsüber und am Morgen abgelehnt (Rakete bleibt), in Dämmerung
+  und Nacht klappt es (eine Rakete weniger, ein Feuerwerk mit Stil und Ort); schlafend, landend
+  oder ohne Rakete passiert nichts; innerhalb von 2 Sekunden kein zweites; höchstens 6
+  gleichzeitig. Jeder der 8 Stile erzeugt 60–140 Partikel, die Formen sind verschieden
+  (z. B. Stern hat 5 äußere Spitzen, Vogel ist links-rechts-symmetrisch, Ring hat alle Partikel
+  etwa gleich weit von der Mitte), und mit vielen Raketen kommen alle 8 Stile vor.
+- **WL-AK-67** (E2E Desktop + Mobile) Nachts an der Hütte „Nehmen: 🚀“ → 🚀 1 in der Anzeige →
+  „🚀 Zünden“ → ein Feuerwerk ist zu sehen (Test-Hook zählt Partikel > 0), die Kiste zeigt 98;
+  tagsüber zeigt „🚀 Zünden“ den Hinweis und zündet nichts.
 
 ## Nicht-Ziele (MVP)
 
