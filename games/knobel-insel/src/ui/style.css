@@ -266,3 +266,69 @@
   font-size: 13px;
   opacity: 0.75;
 }
+
+/* Infokasten und Zahlenfeld (Kapitel 11–14) */
+.ki-info[hidden] {
+  display: none;
+}
+.ki-info {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 98px;
+  max-width: 560px;
+  margin: 0 auto;
+  background: rgba(255, 248, 238, 0.95);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 15px;
+  line-height: 1.45;
+  box-shadow: 0 3px 10px rgba(43, 34, 51, 0.2);
+  pointer-events: auto;
+}
+.ki-info code {
+  font-size: 17px;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+.ki-info .now {
+  background: #f6d55c;
+  border-radius: 4px;
+}
+.ki-num {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff8ee;
+  border-radius: 12px;
+  padding: 4px 8px;
+  font:
+    700 14px system-ui,
+    sans-serif;
+  pointer-events: auto;
+}
+.ki-num input {
+  width: 74px;
+  font:
+    700 16px system-ui,
+    sans-serif;
+  padding: 4px;
+  border: 2px solid #e8a44a;
+  border-radius: 8px;
+}
+.ki-cardnums {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
+  gap: 4px;
+  margin: 6px 0 10px;
+}
+.ki-cardnums span {
+  background: #fff1c8;
+  border-radius: 6px;
+  text-align: center;
+  padding: 4px 0;
+  font-weight: 700;
+}
+.ki-cardnums span:first-child {
+  background: #f6d55c;
+}

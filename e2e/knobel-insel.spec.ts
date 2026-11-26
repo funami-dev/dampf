@@ -399,3 +399,85 @@ test("KI-AK-17: Pinguin-Parade – sortieren und Wettrennen", async ({ page }) =
   await expect(page.getByRole("alert")).toContainText("Mischen war nach");
   await expectNoErrors(errors);
 });
+
+// --- Version 1.3: Orakel-Uhu, Zaubertrick, Geheimschrift, Schildkröten-Programm (KI-AK-17) ---
+test("KI-AK-17: Orakel-Uhu – halbieren, dann rät der Uhu", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await press(page, "Orakel-Uhu Level 1: 1–10");
+  await press(page, "Los!", true);
+  for (let k = 0; k < 6 && !(await chap(page)).done; k++) {
+    const c = await chap(page);
+    const g = Math.floor(((c.lo as number) + (c.hi as number)) / 2);
+    await page.getByLabel("Deine Zahl").fill(String(g));
+    await press(page, "🦉 Fragen");
+  }
+  expect((await chap(page)).done).toBe(true);
+  expect((await chap(page)).q as number).toBeLessThanOrEqual(4);
+  await finishCard(page, /Binäre Suche/);
+  expect((await state(page)).stars.u1).toBe(3);
+  // umgekehrt: der Uhu errät die 7
+  await press(page, "Nochmal");
+  await press(page, "Los!", true);
+  await press(page, "🔄 Jetzt rät der Uhu");
+  for (let k = 0; k < 6; k++) {
+    const r = (await chap(page)).rev as { g: number; done: boolean };
+    if (r.done) break;
+    await press(page, r.g === 7 ? "✅ Richtig!" : r.g < 7 ? "⬆ Höher" : "⬇ Tiefer");
+  }
+  await expect(page.getByRole("status").filter({ hasText: "Hab ich in" })).toBeVisible();
+  await expectNoErrors(errors);
+});
+
+test("KI-AK-17: Zaubertrick – Karten verraten die Zahl, dann Lampen", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await press(page, "Zaubertrick Level 1: 3 Karten");
+  // gedachte Zahl 5 = 4 + 1: Karte 1 ja, Karte 2 nein, Karte 3 ja
+  for (const yes of [true, false, true]) await press(page, yes ? "Ja, drauf" : "Nein", true);
+  await expect(page.getByRole("dialog", { name: "Zaubertrick" })).toContainText("Deine Zahl ist 5");
+  await press(page, "Jetzt du!");
+  expect((await chap(page)).target).toBe(5);
+  await tapAt(page, await cp(page, "lampe:4"));
+  await tapAt(page, await cp(page, "lampe:1"));
+  expect((await chap(page)).value).toBe(5);
+  await press(page, "✨ Fertig");
+  await finishCard(page, /Binärzahlen/);
+  expect((await state(page)).stars.k1).toBe(3);
+  await expectNoErrors(errors);
+});
+
+test("KI-AK-17: Geheimschrift – Scheibe drehen und lesen", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await press(page, "Geheimschrift Level 1: mit Schlüssel");
+  await press(page, "Los!", true);
+  await expect(page.getByRole("status").filter({ hasText: "Geheimbrief" })).toContainText("KDOOR");
+  for (let i = 0; i < 3; i++) await press(page, "Scheibe ▶", true);
+  expect((await chap(page)).read).toBe("HALLO FREUND");
+  await press(page, "✨ Gelesen!");
+  await finishCard(page, /Cäsar-Code/);
+  expect((await state(page)).stars.c1).toBe(3);
+  await expectNoErrors(errors);
+});
+
+test("KI-AK-17: Schildkröten-Programm – mit Schleife zum Salat", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await press(page, "Schildkröten-Programm Level 1: Geradeaus");
+  await press(page, "Los!", true);
+  await press(page, "⬆ Vorwärts");
+  await press(page, "▶ Start");
+  await expect(page.getByRole("alert")).toContainText("Salat ist noch nicht erreicht", {
+    timeout: 10_000,
+  });
+  await press(page, "⌫", true);
+  await press(page, "🔁 3×");
+  await press(page, "⬆ Vorwärts");
+  await press(page, "⬆ Vorwärts");
+  expect((await chap(page)).prog).toEqual(["R3", "F", "F"]);
+  await press(page, "▶ Start");
+  await finishCard(page, /Schleife/);
+  expect((await state(page)).stars.t1).toBe(3);
+  await expectNoErrors(errors);
+});

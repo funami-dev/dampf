@@ -9,6 +9,10 @@ import { JUG_LEVELS } from "./jugs.ts";
 import { FROG_LEVELS } from "./frogs.ts";
 import { LIGHT_LEVELS } from "./lights.ts";
 import { PENGUIN_LEVELS } from "./penguins.ts";
+import { UHU_LEVELS } from "./uhu.ts";
+import { CARD_LEVELS } from "./karten.ts";
+import { CAESAR_LEVELS } from "./caesar.ts";
+import { TURTLE_LEVELS } from "./turtle.ts";
 
 export const KEY = "dampf.knobel-insel.v1";
 export interface Store {
@@ -38,6 +42,10 @@ export const CHAPTER_IDS: string[][] = [
   FROG_LEVELS.map((l) => l.id),
   LIGHT_LEVELS.map((l) => l.id),
   PENGUIN_LEVELS.map((l) => l.id),
+  UHU_LEVELS.map((l) => l.id),
+  CARD_LEVELS.map((l) => l.id),
+  CAESAR_LEVELS.map((l) => l.id),
+  TURTLE_LEVELS.map((l) => l.id),
 ];
 const ALL = CHAPTER_IDS.flat();
 

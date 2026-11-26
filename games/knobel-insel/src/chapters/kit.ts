@@ -17,6 +17,8 @@ export interface Tool {
   label: string;
   primary?: boolean;
   pressed?: boolean;
+  /** Zahlenfeld statt Knopf (der Wert geht mit jedem Knopfdruck mit) */
+  number?: { min: number; max: number; value: number };
 }
 export interface Pt {
   x: number;
@@ -29,7 +31,11 @@ export interface Kit {
   toast(text: string, secs?: number): void;
   /** Start-Fenster mit Erklärung und „Los!“ */
   intro(title: string, html: string): void;
-  setTop(title: string, tools: Tool[], on: (id: string) => void): void;
+  setTop(title: string, tools: Tool[], on: (id: string, value?: number) => void): void;
+  /** Infokasten unter der Leiste (null = ausblenden) */
+  info(html: string | null): void;
+  /** eigenes Fenster (Dialog) */
+  panel(html: string, label: string): HTMLElement;
   setCount(text: string): void;
   /** Ergebnis: Sterne merken, beim ersten Mal die Computer-Karte, dann Ergebnis-Fenster */
   finish(o: {
