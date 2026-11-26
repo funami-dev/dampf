@@ -1,6 +1,6 @@
 # Spiel: Knobel-Insel
 
-**Status:** Abgenommen
+**Status:** Abgenommen (1.0); Kapitel 3–17 im Entwurf
 **Slug:** `knobel-insel`
 
 ## Zweck
@@ -110,10 +110,141 @@ Weg (Breitensuche).“
   `logic/save.ts`.
 - Grafik und Eingabe in Phaser 4 (wie die anderen Spiele), Test-Schnittstelle mit `?e2e`.
 
+## Weitere Kapitel (Versionen 1.1 bis 1.4, Wunsch im Chat: „alle“)
+
+Für alle Kapitel gilt wie bisher: süße 16-Bit-Pixelgrafik per Code, kein Zeitlimit, kein
+Verlieren, Fehler werden freundlich gezeigt und lassen sich zurücknehmen; je Kapitel 3 Level
+(leicht → knifflig), Sterne nach der Profi-Zahl (3 = bestmöglich, 2 = bis zum Anderthalbfachen,
+sonst 1), „↺ Neu“, „💡 Tipp“ und am Ende eine Karte **„🤖 So denkt ein Computer“**. Level werden je
+Kapitel der Reihe nach frei; das erste Level jedes Kapitels ist sofort offen.
+
+**Insel-Karte mit Gegenden:** Die Insel wächst mit. Die Kapitel sind in vier Gegenden sortiert, je
+mit eigener Farbe und eigenem Ort auf der Karte: **🔍 Suchen & Sortieren** (Küchenhütte, Markt),
+**🧭 Wege & Netze** (Wald, Hügel), **🧩 Logik & Zustände** (Fluss, Teich) und **🔐 Codes & Muster**
+(Leuchtturm). Unter der Karte eine Liste der Gegenden zum Aufklappen; jede zeigt ihre Kapitel mit
+Leveln und Sternen. Pfannkuchen-Turm und Über den Fluss gehören zu „Logik & Zustände“.
+
+### Version 1.1
+
+**K3 · 🍪 Keks-Waage** (Suchen & Sortieren; Teile und herrsche)
+Die Koch-Maus hat Kekse gebacken, einer ist aus Versehen mit doppelt Schokolade – etwas
+schwerer. Kekse auf die linke oder rechte Waagschale ziehen (oder antippen und Schale antippen),
+„⚖️ Wiegen“ lässt die Balkenwaage langsam kippen. Am Ende tippt man auf den Keks, den man für den
+schweren hält. Level: 3 Kekse (1 Wiegung), 9 Kekse (2 Wiegungen), 12 Kekse, schwerer **oder**
+leichter (3 Wiegungen). Die Profi-Zahl ist die Zahl der Wiegungen; wer richtig rät, aber mehr
+wiegt, bekommt weniger Sterne; falsch geraten → „Fast! Wieg noch einmal.“ (kein Verlieren). Der
+schwere Keks wird zufällig gewählt, die Prüfung ist ehrlich: Das Spiel hält sich nicht fest,
+sondern antwortet so, dass immer noch alle Kekse möglich sind, die zu den bisherigen Wiegungen
+passen (gemein-ehrlicher „Gegenspieler“) – dann zählt nur gutes Denken. Tipp: „Teile in drei
+Gruppen!“ **Computer-Karte:** Teile und herrsche; jede Wiegung hat 3 Ausgänge, darum reichen 2
+Wiegungen für 9 Kekse (3 × 3).
+
+**K4 · 🐭 Käse-Labyrinth** (Wege & Netze; Breitensuche)
+Iso-Pixel-Heckenlabyrinth. Man malt mit dem Finger (oder Pfeiltasten) einen Weg für die Maus zum
+Käse; „🐭 Los!“ lässt sie laufen. Level: 7×7, 11×11 und 15×15 mit mehreren Wegen. Profi-Zahl = Länge
+des kürzesten Wegs. „🌊 Zeig, wie der Computer sucht“: Von der Maus breitet sich eine farbige
+Welle Feld für Feld aus (Schritt 1, 2, 3 … als Zahlen), bis sie den Käse erreicht, dann leuchtet der
+kürzeste Weg rückwärts auf. **Computer-Karte:** Breitensuche – wie Wasser, das sich in alle
+Richtungen gleichzeitig ausbreitet.
+
+**K5 · 🥞 Pfannkuchen wenden** (Suchen & Sortieren; Sortieren mit einer Bewegung)
+Ein unordentlicher Stapel des Koch-Bären soll nach Größe sortiert werden (groß unten). Einzige
+Bewegung: Pfannenwender unter einen Pfannkuchen schieben (antippen) – alles darüber wird
+umgedreht (schöne Wende-Animation). Level: 4, 6 und 8 Pfannkuchen, fester Startstapel je Level.
+Profi-Zahl = kürzeste Wendezahl (per Breitensuche berechnet). Tipp: „Hol den größten nach oben,
+dann wende ihn nach unten.“ **Computer-Karte:** Mit dieser Regel braucht man höchstens etwa
+2 Wendungen je Pfannkuchen; die beste Zahl zu finden ist sogar für Computer schwer.
+
+**K6 · 🔦 Brücke bei Nacht** (Logik & Zustände; Optimieren)
+Iso-Nachtszene mit Mond, Glühwürmchen und einer wackeligen Hängebrücke. Hase (1 Min.), Igel
+(2 Min.), Schildkröte (5 Min.) und Schnecke (10 Min.) müssen hinüber; höchstens zwei gleichzeitig,
+und nur mit der einen Laterne. Zu zweit geht man im Tempo des Langsameren. Uhr zählt die Minuten.
+Level: 3 Tiere (Ziel 8 Min.), 4 Tiere (Ziel 17 Min.), 5 Tiere mit Eule (Ziel 26 Min. – je nach
+Zeiten, per Suche berechnet). Bedienung wie beim Fluss (Tiere zur Laterne tippen, „🔦 Los!“,
+„↩ Zurück“). Über dem Ziel geht's weiter, nur weniger Sterne. **Computer-Karte:** Der
+naheliegende Weg (der Schnellste begleitet jeden) ist nicht der beste; Computer probieren
+geschickt alle Möglichkeiten.
+
+### Version 1.2
+
+**K7 · 💧 Wasserkrüge** (Logik & Zustände)
+Am Teich: zwei (später drei) Krüge ohne Striche. Aktionen: füllen am Teich, ausgießen,
+umschütten bis voll/leer. Ziel: genau x Liter für die Blumen. Level: 3 L + 5 L → 4 L; 4 L + 9 L →
+6 L; 3 L + 5 L + 8 L, 8 L voll → zweimal 4 L. Profi-Zahl per Breitensuche; Rätsel-Landkarte wie
+beim Fluss. **Computer-Karte:** Zustände durchsuchen.
+
+**K8 · 🐸 Frosch-Hüpfen** (Logik & Zustände; Muster)
+Seerosen in einer Reihe, links grüne, rechts braune Frösche, eine Seerose frei. Frösche hüpfen nur
+vorwärts: auf die freie Nachbar-Seerose oder über genau einen Frosch. Ziel: Seiten tauschen.
+Level: 1+1, 2+2, 3+3 (und 4+4 als Bonus). Profi-Zahl n² + 2n; steckt man fest, quakt ein Frosch
+„Huch, festgehüpft!“ und „↩ Zurück“ hilft. **Computer-Karte:** Das Muster der Züge (1, 2, 3 … mal
+abwechselnd) und warum es n² + 2n sind.
+
+**K9 · 💡 Lichter aus** (Logik & Zustände)
+Laternen im Iso-Dorf in einem Raster; Antippen schaltet die Laterne und ihre vier Nachbarn um.
+Alle sollen aus sein. Level: 3×3, 4×4, 5×5 mit festen, lösbaren Startbildern. Profi-Zahl =
+kleinste Zahl von Tipps (berechnet). **Computer-Karte:** Reihenfolge ist egal, zweimal tippen hebt
+sich auf; „Licht jagen“ Reihe für Reihe.
+
+**K10 · 🐧 Pinguin-Parade** (Suchen & Sortieren)
+Pinguine auf einer Eisscholle sollen sich nach Größe aufstellen; man darf nur zwei Nachbarn
+tauschen. Level: 5, 7, 9 Pinguine. Profi-Zahl = Zahl der Fehlstände (wenigste Nachbar-Tausche).
+Danach „Wettrennen“: Bubblesort gegen ein schnelleres Verfahren (Einsortieren bzw. Mischen) bei
+20 Pinguinen, als Animation mit Zähler. **Computer-Karte:** Verschiedene Sortierverfahren sind
+verschieden schnell.
+
+### Version 1.3
+
+**K11 · 🦉 Orakel-Uhu** (Suchen & Sortieren; binäre Suche)
+Der Uhu denkt sich eine Zahl (1–10, 1–100, 1–1000) und sagt „höher“ / „tiefer“. Eingabe per
+Zahlenstrahl mit Schieber und Tastatur. Profi-Zahl 4, 7, 10 Fragen. Umgekehrt: Der Uhu errät deine
+Zahl in höchstens 7 Fragen und denkt laut („Ich nehme die Mitte …“). **Computer-Karte:** Halbieren.
+
+**K12 · 🃏 Zaubertrick mit Karten** (Codes & Muster; Binärzahlen)
+Fünf Zauberkarten mit Zahlen 1–31. Man denkt sich eine Zahl und sagt bei jeder Karte „Ja, drauf“
+oder „Nein“; der Zauber-Waschbär nennt die Zahl. Danach darf man den Trick selbst entdecken: Die
+ersten Zahlen der Karten (1, 2, 4, 8, 16) werden addiert. Level: 3 Karten (1–7), 4 (1–15), 5
+(1–31). Mitmach-Teil: selbst eine Zahl als Lämpchen-Reihe (an/aus) zeigen. **Computer-Karte:**
+Binärzahlen – so speichert ein Computer alles.
+
+**K13 · 🦉 Geheimschrift der Eule** (Codes & Muster)
+Die Eule schickt kurze, freundliche Briefe in Geheimschrift (Verschiebung um k Buchstaben,
+Drehscheibe zum Drehen). Level: Schlüssel steht dabei; Schlüssel unbekannt, aber ein Wort ist
+verraten; Schlüssel finden mit Buchstaben-Häufigkeit (Balken, E ist am häufigsten). Man kann
+selbst eine Nachricht verschlüsseln. **Computer-Karte:** Cäsar-Code und warum er leicht zu knacken
+ist.
+
+**K14 · 🐢 Schildkröten-Programm** (Codes & Muster; Schleifen)
+Iso-Garten mit Raster. Aus Befehls-Kärtchen (⬆ vorwärts, ↻ rechts drehen, ↺ links drehen,
+„🔁 n-mal wiederholen“) baut man ein Programm per Antippen/Ziehen; „▶ Start“ lässt die
+Schildkröte laufen, der aktuelle Befehl leuchtet. Ziel: Salatblatt erreichen, ohne in Teiche zu
+laufen. Level: 6, 8, 10 Felder weit; Profi-Zahl = wenigste Kärtchen (Wiederholen spart Kärtchen).
+**Computer-Karte:** Programme sind Befehlsfolgen, Schleifen sparen Arbeit.
+
+### Version 1.4
+
+**K15 · 🌉 Brücken-Spaziergang** (Wege & Netze; Eulerwege)
+Inseln und Brücken auf der Iso-Karte; man zieht mit dem Finger einen Weg, jede Brücke darf nur
+einmal genutzt werden (benutzte Brücken werden bunt). Level: lösbar, lösbar nur mit dem richtigen
+Start, unmöglich – dann fragt das Spiel: „Geht das überhaupt?“ mit Antwort „Nein, weil …“.
+**Computer-Karte:** Zähle die Brücken je Insel: Mehr als zwei Inseln mit ungerader Zahl → unmöglich.
+
+**K16 · 🐝 Bienen-Lieferdienst** (Wege & Netze; Rundreise)
+Eine Biene startet am Stock, besucht alle Blumen und fliegt zurück. Man tippt die Blumen der Reihe
+nach an; die Flugstrecke wird gezählt. Level: 4, 6, 8 Blumen; Profi-Zahl = kürzeste Rundreise
+(alle Reihenfolgen durchprobiert). Danach Vergleich mit „immer zur nächsten Blume“ (gierig).
+**Computer-Karte:** Bei vielen Blumen gibt es riesig viele Reihenfolgen – auch Computer brauchen
+Tricks.
+
+**K17 · 🚇 Murmelbahn-Netz** (Wege & Netze; minimaler Spannbaum)
+Dörfer auf Hügeln; mögliche Murmelbahn-Stücke haben Holz-Kosten. Antippen baut ein Stück; alle
+Dörfer sollen verbunden sein, mit möglichst wenig Holz. Level: 5, 7, 9 Dörfer. Profi-Zahl =
+minimaler Spannbaum. „Zeig's mir“: immer das billigste Stück, das keinen Kreis schließt
+(Kruskal), Schritt für Schritt. **Computer-Karte:** Gierig sein ist hier einmal genau richtig.
+
 ## Später
 
-- Weitere Kapitel: Wiegen mit der Balkenwaage (falsche Münze finden), Wasserkrüge umfüllen,
-  Labyrinth mit Breitensuche, Sortieren mit Pfannkuchen-Wenden, Brücken-Spaziergang.
+- Weitere Ideen nach Wunsch (z. B. Sudoku für Kinder, Wegfindung mit Gewichten).
 
 ## Akzeptanzkriterien
 
@@ -139,5 +270,29 @@ Weg (Breitensuche).“
   allein) zeigt den Hinweis und wird zurückgenommen; danach erscheint die Rätsel-Landkarte.
 - **KI-AK-07** (E2E) Helfer-Modus in Level 2 (4 Pfannkuchen) bis zum Ziel; Tipp im Fluss-Level 2
   zeigt einen Schritt; keine Fehler in der Konsole; das Spiel erscheint im Portal mit Version 1.0.0.
+  **Weitere Kapitel (Vitest je Kapitel, E2E je Version)**
+
+- **KI-AK-09** Gemeinsam: Insel-Karte zeigt die vier Gegenden mit ihren Kapiteln; jedes Kapitel hat
+  3 Level, die der Reihe nach frei werden; Speichern/Laden der neuen Sterne; jede Computer-Karte
+  lässt sich nach dem ersten geschafften Level wieder öffnen.
+- **KI-AK-10** Keks-Waage: Ergebnis einer Wiegung richtig; der ehrliche Gegenspieler lässt nach
+  jeder Antwort nur Kekse übrig, die dazu passen; mit der besten Strategie reichen 1/2/3 Wiegungen,
+  mit weniger ist der Keks nicht sicher zu finden.
+- **KI-AK-11** Käse-Labyrinth: Labyrinthe haben einen Weg zum Käse; die Welle zeigt die richtigen
+  Abstände; gemalte Wege nur über freie Nachbarfelder; Profi-Zahl = kürzester Weg.
+- **KI-AK-12** Pfannkuchen wenden: Wenden dreht genau den oberen Teil; Startstapel sind lösbar;
+  Profi-Zahl per Breitensuche; die Tipp-Regel löst jeden Stapel.
+- **KI-AK-13** Brücke bei Nacht: Regeln (höchstens zwei, Laterne, Tempo des Langsameren);
+  kürzeste Zeiten 8/17 und das berechnete Ziel für Level 3.
+- **KI-AK-14** Wasserkrüge, Frosch-Hüpfen, Lichter aus, Pinguin-Parade: Regeln, lösbare Level,
+  Profi-Zahlen (Breitensuche, n² + 2n, Fehlstände), Sortier-Wettrennen zählt richtig.
+- **KI-AK-15** Orakel-Uhu, Zaubertrick, Geheimschrift, Schildkröten-Programm: Halbieren findet
+  jede Zahl in der Profi-Zahl; Karten ergeben jede Zahl eindeutig; Ver- und Entschlüsseln sind
+  umkehrbar, Häufigkeiten richtig; Programme laufen Schritt für Schritt, Schleifen werden richtig
+  ausgeführt, Teiche stoppen die Schildkröte.
+- **KI-AK-16** Brücken-Spaziergang, Bienen, Murmelbahn: Eulerweg-Prüfung (gerade/ungerade),
+  kürzeste Rundreise durch Durchprobieren, minimaler Spannbaum (Kruskal) und Verbundenheit.
+- **KI-AK-17** (E2E je Version) Jedes neue Kapitel: erstes Level durch Bedienen lösen (Desktop),
+  ein Kapitel davon auch auf dem Handy; Computer-Karte erscheint; keine Fehler; kein Querscrollen.
 - **KI-AK-08** Ruhig: keine Zeitlimits, nichts blinkt schneller als 2 Hz, Klang startet bei 30 %,
   Fokusverlust pausiert.
