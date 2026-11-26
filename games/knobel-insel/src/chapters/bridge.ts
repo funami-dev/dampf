@@ -34,6 +34,8 @@ export function bridgeChapter(kit: Kit): Chapter {
     tip: [] as string[],
     tipUntil: 0,
     done: false,
+    /** alle Tiere stehen an ihrem Platz (für Tests) */
+    settled: true,
   };
   let L = lay(320, 200);
   function lay(vw: number, vh: number) {
@@ -182,6 +184,7 @@ export function bridgeChapter(kit: Kit): Chapter {
         }
       }
       // Figuren gehen zu ihrem Platz
+      let settled = !S.walk;
       for (const wk of S.level.walkers) {
         let target: Pt;
         const ww = S.walk;
@@ -200,12 +203,14 @@ export function bridgeChapter(kit: Kit): Chapter {
         const dy = target.y - p.y;
         const d = Math.hypot(dx, dy);
         const step = 60 * dt * kit.speed();
+        if (d > 0.5) settled = false;
         if (d <= step) Object.assign(p, target);
         else {
           p.x += (dx / d) * step;
           p.y += (dy / d) * step;
         }
       }
+      S.settled = settled;
     },
     draw(g, vw, vh) {
       L = lay(vw, vh);
@@ -345,6 +350,7 @@ export function bridgeChapter(kit: Kit): Chapter {
       minutes: S.minutes,
       min: S.min,
       busy: !!S.walk,
+      settled: S.settled,
       done: S.done,
     }),
     point(what) {

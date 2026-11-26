@@ -219,6 +219,18 @@ export const SPRITES: Record<string, Sprite> = {
     ],
     pal: { b: "#8a6a4a", w: "#f7f7f2", k: "#2b2233", y: "#f39c12", l: "#c9a77c" },
   },
+  frosch: {
+    rows: [
+      "..ww....ww",
+      ".wkwg..wkw",
+      ".ggggggggg",
+      "gGgggggGgg",
+      "gggrrrrggg",
+      ".gGgggggG.",
+      "gg.gg.gg.g",
+    ],
+    pal: { w: "#f7f7f2", k: "#2b2233", g: "#4caf50", G: "#81c784", r: "#e57373" },
+  },
   keks: {
     rows: ["..bbb..", ".bbcbb.", "bcbbbcb", "bbbcbbb", "bcbbbbb", ".bbbcb.", "..bbb.."],
     pal: { b: "#d9a35b", c: "#5a3a22" },

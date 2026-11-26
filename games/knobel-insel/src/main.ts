@@ -47,6 +47,10 @@ import { waageChapter } from "./chapters/waage.ts";
 import { mazeChapter } from "./chapters/maze.ts";
 import { flipChapter } from "./chapters/flip.ts";
 import { bridgeChapter } from "./chapters/bridge.ts";
+import { jugsChapter } from "./chapters/jugs.ts";
+import { frogsChapter } from "./chapters/frogs.ts";
+import { lightsChapter } from "./chapters/lights.ts";
+import { penguinsChapter } from "./chapters/penguins.ts";
 import { SPRITES, drawSprite, spriteSize } from "./art/sprites.ts";
 import {
   RIVER_HALF,
@@ -317,12 +321,14 @@ const kit: Kit = {
         `<h2>Geschafft! ${stars(o.stars)}</h2><p>${o.text}</p>
          <div class="ki-row">
            ${o.next ? btn("Nächstes Level", "data-next", "ki-primary") : ""}
+           ${o.extra ? btn(o.extra.label, "data-extra") : ""}
            ${btn("Nochmal", "data-again")}
            ${btn("🏝️ Insel", "data-map")}
          </div>`,
         "Geschafft",
       );
       el.querySelector("[data-next]")?.addEventListener("click", () => o.next!());
+      el.querySelector("[data-extra]")?.addEventListener("click", () => o.extra!.fn());
       el.querySelector("[data-again]")!.addEventListener("click", o.again);
       el.querySelector("[data-map]")!.addEventListener("click", showMap);
     };
@@ -332,12 +338,18 @@ const kit: Kit = {
     }, 900 / speed);
   },
   map: () => showMap(),
+  stateMap: (gph, mine, best, card, after) => stateMap(gph, mine, best, card, after),
+  closePanel: () => closePanel(),
 };
 const CHAPTERS: Chapter[] = [
   waageChapter(kit),
   mazeChapter(kit),
   flipChapter(kit),
   bridgeChapter(kit),
+  penguinsChapter(kit),
+  jugsChapter(kit),
+  frogsChapter(kit),
+  lightsChapter(kit),
 ];
 let cur: Chapter | null = null;
 function startChapter(c: Chapter, i: number) {
@@ -974,11 +986,24 @@ function showGraph() {
     s = cross(F.level, s, ids)!;
     bestKeys.push(key(F.level, s));
   }
+  stateMap(gph, F.path, bestKeys, "river", () => {
+    if (!data.cards.includes("river")) showCard("river", showMap);
+    else showMap();
+  });
+}
+/** allgemeine Rätsel-Landkarte (Fluss, Wasserkrüge) */
+function stateMap(
+  gph: { nodes: { key: string; dist: number; goal: boolean }[]; edges: [string, string][] },
+  mine: string[],
+  bestKeys: string[],
+  card: string,
+  after: () => void,
+) {
   const el = panel(
     `<h2>🗺️ Rätsel-Landkarte</h2>
      <canvas class="ki-graph" width="640" height="380" role="img" aria-label="Rätsel-Landkarte mit ${gph.nodes.length} Lagen"></canvas>
      <p class="ki-legend"><span class="me">━ dein Weg</span> <span class="best">┅ kürzester Weg</span> <span class="st">● Start</span> <span class="go">● Ziel</span></p>
-     <p><small>Jeder Punkt ist eine erlaubte Lage (wer auf welcher Seite steht). Linien sind mögliche Fahrten. ${gph.nodes.length} Lagen gibt es hier.</small></p>
+     <p><small>Jeder Punkt ist eine mögliche Lage. Linien sind mögliche Schritte. ${gph.nodes.length} Lagen gibt es hier.</small></p>
      <div class="ki-row">${btn("🤖 So denkt ein Computer", "data-card")} ${btn("Weiter", "data-x", "ki-primary")}</div>`,
     "Rätsel-Landkarte",
   );
@@ -1014,14 +1039,15 @@ function showGraph() {
     g.setLineDash(dash);
     g.beginPath();
     keys.forEach((k, i) => {
-      const p = at.get(k)!;
+      const p = at.get(k);
+      if (!p) return;
       if (i) g.lineTo(p.x, p.y);
       else g.moveTo(p.x, p.y);
     });
     g.stroke();
     g.setLineDash([]);
   };
-  line(F.path, "#3a7bd5", 6, []);
+  line(mine, "#3a7bd5", 6, []);
   line(bestKeys, "#e67e22", 3, [8, 6]);
   for (const n of gph.nodes) {
     const p = at.get(n.key)!;
@@ -1030,11 +1056,10 @@ function showGraph() {
     g.arc(p.x, p.y, n.dist === 0 || n.goal ? 10 : 6, 0, Math.PI * 2);
     g.fill();
   }
-  el.querySelector("[data-card]")!.addEventListener("click", () => showCard("river", showGraph));
-  el.querySelector("[data-x]")!.addEventListener("click", () => {
-    if (!data.cards.includes("river")) showCard("river", showMap);
-    else showMap();
-  });
+  el.querySelector("[data-card]")!.addEventListener("click", () =>
+    showCard(card, () => stateMap(gph, mine, bestKeys, card, after)),
+  );
+  el.querySelector("[data-x]")!.addEventListener("click", after);
 }
 
 /** Stellplatz einer Figur am Ufer */

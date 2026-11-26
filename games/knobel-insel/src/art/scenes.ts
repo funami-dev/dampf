@@ -375,3 +375,13 @@ export function rhombus(g: G, cx: number, cy: number, w: number, color: string) 
     g.fillRect(Math.round(cx - hw), Math.round(cy - h / 2 + r), hw * 2, 1);
   }
 }
+
+/** ruhig funkelnde Sterne (Zyklus ≥ 4 s); hell, wenn `bright` */
+export function seededStars(g: G, vw: number, h: number, t: number, bright = false) {
+  const r = seeded(5);
+  for (let i = 0; i < 50; i++) {
+    const a = (Math.sin(t * (Math.PI / 2) + i) + 1) / 2;
+    g.fillStyle = bright || a > 0.5 ? "#ffffff" : "#8a96c8";
+    g.fillRect(Math.round(r() * vw), Math.round(r() * h), 1, 1);
+  }
+}

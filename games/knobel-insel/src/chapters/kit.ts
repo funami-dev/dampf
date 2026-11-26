@@ -39,8 +39,19 @@ export interface Kit {
     text: string;
     next: (() => void) | null;
     again: () => void;
+    /** zusätzlicher Knopf im Ergebnis (z. B. Rätsel-Landkarte, Wettrennen) */
+    extra?: { label: string; fn: () => void };
   }): void;
   map(): void;
+  /** Rätsel-Landkarte: Lagen, Schritte, eigener und kürzester Weg */
+  stateMap(
+    g: { nodes: { key: string; dist: number; goal: boolean }[]; edges: [string, string][] },
+    mine: string[],
+    best: string[],
+    card: string,
+    after: () => void,
+  ): void;
+  closePanel(): void;
 }
 export interface Chapter {
   id: string;
