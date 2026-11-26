@@ -95,6 +95,22 @@ nächsten Schritt (betroffene Figuren leuchten sanft, Hinweis-Satz).
 aus – zuerst alles, was 1 Fahrt weit weg ist, dann 2 Fahrten … So findet er sicher den kürzesten
 Weg (Breitensuche).“
 
+## Tippen auf dem Handy (Version 1.4.1, Feedback `fb_rdbvwezt`)
+
+Rückmeldung: Das Antippen ist auf dem Handy unzuverlässig, die Flächen sind zu klein.
+
+- **Große Tippflächen:** Jedes antippbare Ding (Pfannkuchen-Teller, Figuren, Kekse, Waagschalen,
+  Krüge, Teich, Frösche, Laternen, Pinguine, Lampen, Inseln, Blumen, Bahnstücke, Felder) reagiert in
+  einem Bereich von mindestens **44 × 44 Bildschirmpunkten** um seine Mitte – auch wenn das Bild
+  kleiner ist. Liegen zwei Dinge nah beieinander, gewinnt das, dessen Mitte am nächsten liegt.
+- **Kein Wackeln mehr durch den Browser:** Auf der Spielfläche scrollt und zoomt der Browser nicht
+  mit (`touch-action: none`), damit Ziehen (Labyrinth-Weg malen) und Tippen nicht abbrechen. Ein
+  abgebrochener Zeiger (`pointercancel`) setzt nichts kaputt.
+- **Kein Doppel-Tipp:** Ein Tipp löst genau eine Aktion aus (keine zusätzliche Maus-Nachahmung des
+  Browsers). Mehrere Finger gleichzeitig werden ignoriert, nur der erste zählt.
+- **Sichtbare Rückmeldung:** An der Stelle des Tipps erscheint kurz ein weicher Kreis (0,3 s), so
+  sieht man, dass der Tipp ankam.
+
 ## Bedienung allgemein
 
 - Maus, Touch und Tastatur (Pfeile/Tab zum Wählen, Enter zum Bewegen, Z = Zurück, H = Tipp).
@@ -294,5 +310,10 @@ minimaler Spannbaum. „Zeig's mir“: immer das billigste Stück, das keinen Kr
   kürzeste Rundreise durch Durchprobieren, minimaler Spannbaum (Kruskal) und Verbundenheit.
 - **KI-AK-17** (E2E je Version) Jedes neue Kapitel: erstes Level durch Bedienen lösen (Desktop),
   ein Kapitel davon auch auf dem Handy; Computer-Karte erscheint; keine Fehler; kein Querscrollen.
+- **KI-AK-18** (Vitest) Tippflächen: Die gemeinsame Treffer-Hilfe wählt bei mehreren Kandidaten
+  den nächstgelegenen und trifft noch in 22 Bildschirmpunkten Abstand zur Mitte (bei jedem
+  Maßstab), nicht aber weiter weg. (E2E Mobile) Die Spielfläche hat `touch-action: none`; ein Tipp
+  18 Bildschirmpunkte neben einem Keks bzw. einer Figur wählt sie trotzdem; Labyrinth-Weg malen mit
+  Touch-Zeigerereignissen funktioniert; ein Tipp löst genau eine Aktion aus.
 - **KI-AK-08** Ruhig: keine Zeitlimits, nichts blinkt schneller als 2 Hz, Klang startet bei 30 %,
   Fokusverlust pausiert.
