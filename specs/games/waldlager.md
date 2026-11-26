@@ -353,7 +353,7 @@ Drei Leisten von 0 bis 100 % stehen immer oben im Bild:
     du keine Rakete aufstellen.“).
   - Zwischen zwei eigenen Raketen liegen mindestens **2 Sekunden**.
 - **Ablauf am Himmel:** Die Rakete steigt etwa **1,5 Sekunden** vom eigenen Feld mit einem
-  Funkenschweif nach oben (etwa 120 Pixel), zerplatzt dann in **bunte Partikel** (60–140 Stück),
+  Funkenschweif nach oben (etwa 85 Pixel), zerplatzt dann in **bunte Partikel** (60–140 Stück),
   die sich ausbreiten, leicht nach unten sinken, glitzern und in etwa **2,5 Sekunden** verblassen.
   Beim Zerplatzen leuchtet die Umgebung kurz auf (nachts sichtbar heller).
 - **8 Stile** – jede Rakete ist eine Überraschung (Stil zufällig, Farben passend zum Stil):

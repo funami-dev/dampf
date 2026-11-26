@@ -42,7 +42,10 @@ import {
   type BuildKind,
   type Player,
   type State,
+  launchRocket,
+  rocketMove,
 } from "./logic/sim.ts";
+import { FIREWORK, particleAt, particlesFor, type Particle } from "./logic/fireworks.ts";
 import { browserStore, load, save } from "./logic/save.ts";
 import { applySnap, parseGuest, parseHost, toSnap, type GuestMsg } from "./logic/protocol.ts";
 import { HABITAT_TEXT, SPECIES, TIME_TEXT, UNICORN, speciesById } from "./logic/species.ts";
@@ -87,7 +90,7 @@ layer.innerHTML = `
       <div class="wl-bar" data-n="rest"><span>Müdigkeit</span><i><b></b></i></div>
       <div class="wl-bar" data-n="fitness"><span>Fitness</span><i><b></b></i></div>
       <div class="wl-bar" data-n="warmth" hidden><span>Wärme</span><i><b></b></i></div>
-      <div class="wl-inv"><span data-h="wood">🪵 0</span> <span data-h="berries">🫐 0</span> <span data-h="apples" hidden></span> <span data-h="mushrooms" hidden></span> <span data-h="cans" hidden></span> <span data-h="fish" hidden></span></div>
+      <div class="wl-inv"><span data-h="wood">🪵 0</span> <span data-h="berries">🫐 0</span> <span data-h="apples" hidden></span> <span data-h="mushrooms" hidden></span> <span data-h="cans" hidden></span> <span data-h="fish" hidden></span> <span data-h="rockets" hidden></span></div>
       <div class="wl-inv wl-tools" aria-label="Werkzeuge"><span data-h="axe" title="Axt">🪓</span> <span data-h="rod" title="Angel" hidden>🎣</span></div>
     </div>
     <div class="wl-side">
@@ -117,6 +120,7 @@ layer.innerHTML = `
       <button class="wl-btn" type="button" data-b="radio" hidden>📻 Funk</button>
       <button class="wl-btn" type="button" data-b="chest" hidden>📦 Truhe</button>
       <button class="wl-btn" type="button" data-b="give" hidden>🤝 Geben</button>
+      <button class="wl-btn" type="button" data-b="rocket" hidden>🚀 Zünden</button>
       <button class="wl-btn" type="button" data-b="build">Bauen</button>
       <button class="wl-btn" type="button" data-b="eat">Essen</button>
       <button class="wl-btn primary wl-act" type="button" data-b="act" aria-label="Aktion">Aktion</button>
@@ -340,6 +344,7 @@ function openChest() {
       <div><h3>Du hast</h3><div data-c="mine"></div></div>
       <div><h3>In der Truhe <small data-c="count"></small></h3><div data-c="box"></div></div>
     </div>
+    <div class="wl-rockets" data-c="rockets" hidden></div>
     <button class="wl-btn primary" type="button" data-a="back">Fertig</button>`);
   el.classList.add("wl-panel-scroll");
   const draw = () => {
@@ -365,9 +370,34 @@ function openChest() {
     };
     set("[data-c=mine]", ITEM_KINDS.map((k) => row(k, p[k], "put")).join(""));
     set("[data-c=box]", ITEM_KINDS.map((k) => row(k, c.chest[k] ?? 0, "take")).join(""));
+    // Feuerwerkskiste nur in der Hütte (WL-AK-65)
+    const rk = el.querySelector<HTMLElement>("[data-c=rockets]")!;
+    rk.hidden = c.where !== "hut";
+    if (c.where === "hut") {
+      const full = p.rockets >= FIREWORK.pocket;
+      const none = state.hutRockets <= 0;
+      set(
+        "[data-c=rockets]",
+        `<h3>🚀 Feuerwerk (${state.hutRockets})</h3>
+        <div class="wl-row">
+          <button class="wl-btn" type="button" data-rocket="take" data-n="1" ${none || full ? "disabled" : ""} aria-label="Nehmen: 🚀">🚀 ⬅</button>
+          <button class="wl-btn" type="button" data-rocket="take" data-n="5" ${none || full ? "disabled" : ""}>5 nehmen</button>
+          <button class="wl-btn" type="button" data-rocket="put" data-n="1" ${p.rockets > 0 ? "" : "disabled"} aria-label="Zurücklegen: 🚀">🚀 ${p.rockets} ➡</button>
+        </div>`,
+      );
+    }
   };
   // ein Klick-Handler für alle Knöpfe
   el.addEventListener("click", (e) => {
+    const r = (e.target as HTMLElement).closest<HTMLButtonElement>("[data-rocket]");
+    if (r && !r.disabled) {
+      const dir = r.dataset.rocket as "put" | "take";
+      const n = r.dataset.n === "5" ? 5 : 1;
+      if (mode === "guest") guestSend({ v: 1, k: "rocket", dir, n });
+      else toast(rocketMove(world, state, me(), dir, n), 1.2);
+      draw();
+      return;
+    }
     const b = (e.target as HTMLElement).closest<HTMLButtonElement>("[data-move]");
     if (!b || b.disabled) return;
     const kind = b.dataset.k as ItemKind;
@@ -380,6 +410,14 @@ function openChest() {
   if (chestTimer) clearInterval(chestTimer);
   chestTimer = setInterval(draw, 500);
   el.querySelector('[data-a="back"]')!.addEventListener("click", () => resume());
+}
+
+/** Rakete zünden (WL-AK-66) */
+function doRocket() {
+  if (!canPlay()) return;
+  if (mode === "guest") return guestSend({ v: 1, k: "launch" });
+  const r = launchRocket(world, state, me());
+  if (r.text) toast(r.text, 3);
 }
 
 function toggleBuild(on = !building) {
@@ -407,6 +445,7 @@ $('[data-b="eat"]').addEventListener("click", () => doEat());
 $('[data-b="radio"]').addEventListener("click", () => openRadio());
 $('[data-b="chest"]').addEventListener("click", () => openChest());
 $('[data-b="give"]').addEventListener("click", () => toggleGive(true));
+$('[data-b="rocket"]').addEventListener("click", () => doRocket());
 $('[data-b="build"]').addEventListener("click", () => toggleBuild());
 $('[data-b="tent"]').addEventListener("click", () => doBuild("tent"));
 $('[data-b="fire"]').addEventListener("click", () => doBuild("fire"));
@@ -437,6 +476,7 @@ window.addEventListener("keydown", (e) => {
   }
   if (e.code === "KeyB") toggleBuild();
   if (e.code === "KeyC") openChest();
+  if (e.code === "KeyR" && screen === "play" && me().rockets > 0) doRocket();
   if (e.code === "KeyG") toggleGive(eatBar.hidden === true);
   if (!eatBar.hidden && eatBar.dataset.mode === "eat" && /^Digit[1-5]$/.test(e.code)) {
     const k = foodsOf(me())[Number(e.code.slice(5)) - 1];
@@ -1065,6 +1105,12 @@ function onGuestMsg(id: string, d: unknown) {
     case "chest":
       say(chestMove(world, state, p, g.kind, g.dir));
       break;
+    case "rocket":
+      say(rocketMove(world, state, p, g.dir, g.n));
+      break;
+    case "launch":
+      say(launchRocket(world, state, p).text);
+      break;
     case "give": {
       const r = giveFood(state, p, g.food);
       say(r.text);
@@ -1564,14 +1610,17 @@ function drawNight(cam: Phaser.Cameras.Scene2D.Camera, time: number) {
   nightCtx.globalCompositeOperation = "source-over";
   nightCtx.clearRect(0, 0, w, h);
   lastDark = dark;
-  if (dark <= 0.01 && dusk <= 0.01) return;
+  const v = cam.worldView;
+  const scale = cam.zoom / 3;
+  if (dark <= 0.01 && dusk <= 0.01) {
+    drawFireworks(v, scale, time, () => {});
+    return;
+  }
   nightCtx.fillStyle = `rgba(255,110,40,${dusk * 0.22})`;
   nightCtx.fillRect(0, 0, w, h);
   nightCtx.fillStyle = `rgba(8,12,38,${dark})`;
   nightCtx.fillRect(0, 0, w, h);
   nightCtx.globalCompositeOperation = "destination-out";
-  const v = cam.worldView;
-  const scale = cam.zoom / 3;
   const light = (x: number, y: number, r: number) => {
     const sx = (isoX(x, y) - v.x) * scale;
     const sy = (isoY(x, y, hAt(x, y)) - 8 - v.y) * scale;
@@ -1614,9 +1663,93 @@ function drawNight(cam: Phaser.Cameras.Scene2D.Camera, time: number) {
       )
         light(tx + 0.5, ty + 0.5, 0.9);
     }
+  drawFireworks(v, scale, time, (x, y, r) => {
+    nightCtx.globalCompositeOperation = "destination-out";
+    light(x, y, r);
+  });
 }
 const TRAIL_VIEW = 24;
 let lastDark = 0;
+/** Partikel im letzten Bild (Test-Hook, WL-AK-67) */
+let fireworkParticles = 0;
+const fireworkCache = new Map<number, Particle[]>();
+
+/** Feuerwerk auf die Nacht-Ebene malen: leuchtet über der Dunkelheit (WL-AK-66) */
+function drawFireworks(
+  v: Phaser.Geom.Rectangle,
+  scale: number,
+  time: number,
+  light: (x: number, y: number, r: number) => void,
+) {
+  let shown = 0;
+  const alive = new Set<number>();
+  for (const f of state.fireworks) {
+    alive.add(f.id);
+    const t = state.total - f.at;
+    if (t < 0 || t >= FIREWORK.rise + FIREWORK.burst) continue;
+    const gx = (isoX(f.x, f.y) - v.x) * scale;
+    const gy = (isoY(f.x, f.y, hAt(f.x, f.y)) - 10 - v.y) * scale;
+    const top = gy - FIREWORK.height * scale;
+    nightCtx.globalCompositeOperation = "source-over";
+    if (t < FIREWORK.rise) {
+      // Rakete mit Funkenschweif steigt auf
+      const k = t / FIREWORK.rise;
+      const e = 1 - (1 - k) ** 2;
+      const y = gy + (top - gy) * e;
+      const wob = Math.sin(t * 9 + f.id) * 0.6;
+      for (let j = 0; j < 7; j++) {
+        nightCtx.fillStyle = j === 0 ? "#ffffff" : `rgba(255,${200 - j * 18},80,${0.9 - j * 0.12})`;
+        nightCtx.fillRect(Math.round(gx + wob * (j / 3)), Math.round(y + j * 1.6 * scale), 1, 1);
+      }
+      shown++;
+      continue;
+    }
+    const u = t - FIREWORK.rise;
+    if (u < 0.5) {
+      light(f.x, f.y, 6 * (1 - u / 0.5) + 1);
+      nightCtx.globalCompositeOperation = "source-over";
+      // kurzer Lichtschein am Himmel
+      const rr = FIREWORK.radius * 1.6 * scale;
+      const gl = nightCtx.createRadialGradient(gx, top, 0, gx, top, rr);
+      gl.addColorStop(0, `rgba(255,240,200,${0.35 * (1 - u / 0.5)})`);
+      gl.addColorStop(1, "rgba(255,240,200,0)");
+      nightCtx.fillStyle = gl;
+      nightCtx.fillRect(gx - rr, top - rr, rr * 2, rr * 2);
+    }
+    let parts = fireworkCache.get(f.id);
+    if (!parts) fireworkCache.set(f.id, (parts = particlesFor(f.style, f.seed)));
+    nightCtx.globalCompositeOperation = "source-over";
+    parts.forEach((p, i) => {
+      if (shown >= FIREWORK.maxParticles) return;
+      const q = particleAt(p, u);
+      const tw = 0.65 + 0.35 * Math.sin(time / 60 + i * 1.7);
+      const a = q.alpha * (u > 1 ? tw : 1);
+      if (a <= 0.02) return;
+      const px = Math.round(gx + q.x * scale);
+      const py = Math.round(top + q.y * scale);
+      nightCtx.fillStyle = p.color;
+      // Leuchtrand, dann heller Kern
+      nightCtx.globalAlpha = a * 0.3;
+      nightCtx.fillRect(px - 1, py - 1, 3, 3);
+      nightCtx.globalAlpha = a;
+      nightCtx.fillRect(px, py, u < 1.5 ? 2 : 1, u < 1.5 ? 2 : 1);
+      // kleiner Schweif nach innen
+      if (u < 1.2) {
+        nightCtx.globalAlpha = a * 0.45;
+        nightCtx.fillRect(
+          Math.round(gx + q.x * scale * 0.86),
+          Math.round(top + q.y * scale * 0.86),
+          1,
+          1,
+        );
+      }
+      shown++;
+    });
+    nightCtx.globalAlpha = 1;
+  }
+  for (const id of fireworkCache.keys()) if (!alive.has(id)) fireworkCache.delete(id);
+  fireworkParticles = shown;
+}
 
 // --- Spielschleife ---------------------------------------------------------
 function tick(dt: number) {
@@ -1702,6 +1835,9 @@ function updateHud() {
   hud("wood").textContent = `🪵 ${p.wood}`;
   hud("berries").textContent = `🫐 ${p.berries}`;
   hud("rod").hidden = !p.rod;
+  hud("rockets").hidden = p.rockets <= 0;
+  hud("rockets").textContent = `🚀 ${p.rockets}`;
+  $<HTMLButtonElement>('[data-b="rocket"]').hidden = p.rockets <= 0;
   for (const k of ["apples", "mushrooms", "cans", "fish"] as const) {
     const el = hud(k);
     el.hidden = p[k] <= 0;
@@ -1803,6 +1939,9 @@ if (debugEnabled) {
         hut: world.hut,
         burrow: world.burrow,
         burrowTalk,
+        hutRockets: state.hutRockets,
+        fireworks: state.fireworks.map((f) => f.style),
+        fireworkParticles,
         herds: state.herds.map((h, k) => ({
           x: h.x,
           y: h.y,
@@ -1832,6 +1971,7 @@ if (debugEnabled) {
           landing: p.landing,
           home: p.home,
           burrowSeen: p.burrowSeen,
+          rockets: p.rockets,
         },
         action: actionFor(world, state, p)?.kind ?? null,
         fires: state.fires.map((f) => ({
@@ -1890,7 +2030,7 @@ if (debugEnabled) {
       free: free(world, state, x, y),
       tree: inside(world, x, y) ? world.treeAt[idx(world, x, y)]! : 0,
     }),
-    give: (items: Partial<Record<"wood" | "berries" | "fish", number>>) => {
+    give: (items: Partial<Record<"wood" | "berries" | "fish" | "rockets", number>>) => {
       Object.assign(me(), items);
     },
     fishSpot: () => {
@@ -2025,6 +2165,18 @@ if (debugEnabled) {
       return t ? [t.x, t.y] : null;
     },
     hutSpot: () => standFor(world.hut.x, world.hut.y, ["hutsleep"]),
+    // Feuerwerk mit festem Stil (nur Test-Hilfe, z. B. für Vorschau-Bilder)
+    firework: (style, dx = 0, dy = 0, delay = 0) => {
+      const p = me();
+      state.fireworks.push({
+        id: state.nextFirework++,
+        x: p.x + dx,
+        y: p.y + dy,
+        style,
+        at: state.total + delay,
+        seed: Math.floor(Math.random() * 1e9),
+      });
+    },
     burrowSpot: () => {
       const { x, y } = world.burrow;
       for (const [dx, dy] of [

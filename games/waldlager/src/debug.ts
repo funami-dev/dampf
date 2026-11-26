@@ -1,3 +1,5 @@
+import type { FireworkStyle } from "./logic/fireworks.ts";
+
 export interface DebugHooks {
   state(): Record<string, unknown>;
   /** Figur versetzen (Kachel-Koordinaten) */
@@ -10,6 +12,8 @@ export interface DebugHooks {
   hutSpot(): [number, number, number, number] | null;
   /** freies Feld neben der Hügelhöhle: [x, y, Stehfeld x, y] (WL-AK-64) */
   burrowSpot(): [number, number, number, number] | null;
+  /** Feuerwerk mit festem Stil zünden (Test-Hilfe, WL-AK-67) */
+  firework(style: FireworkStyle, dx?: number, dy?: number, delay?: number): void;
   appleSpot(): [number, number, number, number] | null;
   /** Fallschirm-Landung sofort beenden (Test-Hilfe) */
   finishLanding(): void;
@@ -22,7 +26,7 @@ export interface DebugHooks {
   lakeSpot(): [number, number, number, number] | null;
   fishSpot(): [number, number, number, number] | null;
   /** Inventar setzen (Holz, Beeren, Fische) */
-  give(items: Partial<Record<"wood" | "berries" | "fish", number>>): void;
+  give(items: Partial<Record<"wood" | "berries" | "fish" | "rockets", number>>): void;
   /** nächstes sichtbares, noch nicht entdecktes Tier: [x, y, Art] */
   nearestAnimal(): [number, number, string] | null;
   /** Weltzeit setzen (Sekunden, 600 = ein Tag) */
