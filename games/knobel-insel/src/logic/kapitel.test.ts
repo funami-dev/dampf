@@ -223,3 +223,92 @@ describe("Pixelfiguren", () => {
     }
   });
 });
+
+describe("KI-AK-14: Wasserkrüge, Frosch-Hüpfen, Lichter aus, Pinguin-Parade", () => {
+  it("Wasserkrüge: Regeln, kürzeste Wege 6/8/7, Lösung erreicht das Ziel", async () => {
+    const { JUG_LEVELS, apply, jugGoal, jugShortest, jugSearch } = await import("./jugs.ts");
+    const [j1, , j3] = JUG_LEVELS as [(typeof JUG_LEVELS)[0], unknown, (typeof JUG_LEVELS)[0]];
+    expect(apply(j1, [0, 0], { kind: "fill", i: 1 })).toEqual([0, 5]);
+    expect(apply(j1, [0, 5], { kind: "pour", i: 1, j: 0 })).toEqual([3, 2]);
+    expect(apply(j1, [0, 0], { kind: "empty", i: 0 })).toBeNull();
+    expect(apply(j3, [0, 0, 8], { kind: "fill", i: 0 })).toBeNull(); // kein Teich
+    expect(JUG_LEVELS.map((l) => jugShortest(l)!.length)).toEqual([6, 8, 7]);
+    for (const l of JUG_LEVELS) {
+      let s = l.start;
+      for (const a of jugShortest(l)!) s = apply(l, s, a)!;
+      expect(jugGoal(l, s)).toBe(true);
+      const { states } = jugSearch(l);
+      for (const st of states.values())
+        expect(st.reduce((a, b) => a + b, 0)).toBeLessThanOrEqual(
+          l.caps.reduce((a, b) => a + b, 0),
+        );
+    }
+  });
+  it("Frösche: nur vorwärts, n² + 2n, festhüpfen erkannt", async () => {
+    const { FROG_LEVELS, frogBest, frogGoal, frogMin, frogMove, frogStart, frogStuck, frogTarget } =
+      await import("./frogs.ts");
+    const s = frogStart(2);
+    expect(s.join("")).toBe("GG.BB");
+    expect(frogTarget(s, 1)).toBe(2);
+    expect(frogTarget(s, 0)).toBe(2); // über einen Frosch springen
+    for (const l of FROG_LEVELS) expect(frogBest(frogStart(l.n)).min).toBe(frogMin(l.n));
+    // Sackgassen gibt es: alle erreichbaren Lagen durchsuchen
+    const seen = new Set<string>();
+    const stuck: string[] = [];
+    const walk = (x: ("G" | "B" | ".")[]) => {
+      const k = x.join("");
+      if (seen.has(k)) return;
+      seen.add(k);
+      if (frogStuck(x)) stuck.push(k);
+      x.forEach((_, i) => {
+        const n = frogMove(x, i);
+        if (n) walk(n);
+      });
+    };
+    walk(frogStart(2));
+    expect(stuck.length).toBeGreaterThan(0);
+    for (const k of stuck) {
+      const x = k.split("") as ("G" | "B" | ".")[];
+      expect(frogGoal(x)).toBe(false);
+      expect(x.every((_, i) => frogTarget(x, i) < 0)).toBe(true);
+    }
+    expect(frogGoal("BB.GG".split("") as ("G" | "B" | ".")[])).toBe(true);
+    // Tipp führt immer zum Ziel
+    let cur = frogStart(3);
+    for (let k = 0; k < 20 && !frogGoal(cur); k++) cur = frogMove(cur, frogBest(cur).first!)!;
+    expect(frogGoal(cur)).toBe(true);
+  });
+  it("Lichter aus: Umschalten, kleinste Tippzahl 2/4/6, Lösung macht alles aus", async () => {
+    const { LIGHT_LEVELS, allOff, lightSolve, lightStart, press } = await import("./lights.ts");
+    const g = press(lightStart(LIGHT_LEVELS[0]!), 1, 1);
+    expect(press(press(g, 0, 0), 0, 0)).toEqual(g); // zweimal hebt sich auf
+    expect(LIGHT_LEVELS.map((l) => lightSolve(lightStart(l))!.length)).toEqual([2, 4, 6]);
+    for (const l of LIGHT_LEVELS) {
+      let s = lightStart(l);
+      expect(allOff(s)).toBe(false);
+      for (const [x, y] of lightSolve(s)!) s = press(s, x, y);
+      expect(allOff(s)).toBe(true);
+    }
+  });
+  it("Pinguine: Fehlstände = wenigste Tausche; Wettrennen zählt richtig", async () => {
+    const { PENGUIN_LEVELS, bubbleFrames, inversions, isSorted, mergeFrames, swapAt } =
+      await import("./penguins.ts");
+    expect(PENGUIN_LEVELS.map((l) => inversions(l.start))).toEqual([4, 12, 18]);
+    let s = PENGUIN_LEVELS[0]!.start;
+    let swaps = 0;
+    while (!isSorted(s)) {
+      const i = s.findIndex((v, k) => k < s.length - 1 && v > s[k + 1]!);
+      s = swapAt(s, i);
+      swaps++;
+    }
+    expect(swaps).toBe(4);
+    const r = Array.from({ length: 20 }, (_, i) => (i * 7) % 20);
+    const b = bubbleFrames(r);
+    const m = mergeFrames(r);
+    expect(b).toHaveLength((20 * 19) / 2);
+    expect(m.length).toBeLessThanOrEqual(20 * 5);
+    expect(isSorted(b.at(-1)!)).toBe(true);
+    expect(isSorted(m.at(-1)!)).toBe(true);
+    expect([...m.at(-1)!].sort((a, c) => a - c)).toEqual([...r].sort((a, c) => a - c));
+  });
+});

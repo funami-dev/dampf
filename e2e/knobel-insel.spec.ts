@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { expectNoErrors, isMobile, trackErrors } from "./helpers.ts";
 import { hintFlip } from "../games/knobel-insel/src/logic/flip.ts";
+import { JUG_LEVELS, jugShortest } from "../games/knobel-insel/src/logic/jugs.ts";
+import { frogBest, type Pad } from "../games/knobel-insel/src/logic/frogs.ts";
 
 /** Spec: specs/games/knobel-insel.md (KI-AK-05..08) */
 interface KiState {
@@ -297,7 +299,7 @@ test("KI-AK-17: Brücke bei Nacht – alle in 8 Minuten hinüber", async ({ page
   await page.waitForTimeout(400);
   for (const group of [["hase", "igel"], ["hase"], ["hase", "kroete"]]) {
     await expect.poll(async () => (await chap(page)).busy).toBe(false);
-    await page.waitForTimeout(300);
+    await expect.poll(async () => (await chap(page)).settled).toBe(true);
     for (const id of group)
       await expect
         .poll(async () => {
@@ -313,5 +315,87 @@ test("KI-AK-17: Brücke bei Nacht – alle in 8 Minuten hinüber", async ({ page
   expect((await chap(page)).minutes).toBe(8);
   await finishCard(page, /19 Minuten/);
   expect((await state(page)).stars.b1).toBe(3);
+  await expectNoErrors(errors);
+});
+
+// --- Version 1.2: Wasserkrüge, Frosch-Hüpfen, Lichter aus, Pinguin-Parade (KI-AK-17) ---
+test("KI-AK-17: Wasserkrüge – genau 4 Liter, dann Rätsel-Landkarte", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await press(page, "Wasserkrüge Level 1: 3+5 L");
+  await press(page, "Los!", true);
+  for (const a of jugShortest(JUG_LEVELS[0]!)!) {
+    if (a.kind === "fill") {
+      await tapAt(page, await cp(page, "teich"));
+      await tapAt(page, await cp(page, String(a.i)));
+    } else if (a.kind === "empty") {
+      await tapAt(page, await cp(page, String(a.i)));
+      await tapAt(page, await cp(page, "teich"));
+    } else {
+      await tapAt(page, await cp(page, String(a.i)));
+      await tapAt(page, await cp(page, String(a.j)));
+    }
+  }
+  expect((await chap(page)).steps).toBe(6);
+  await finishCard(page, /Breitensuche/);
+  expect((await state(page)).stars.j1).toBe(3);
+  await press(page, "🗺️ Rätsel-Landkarte");
+  await expect(page.getByRole("img", { name: /Rätsel-Landkarte mit 16 Lagen/ })).toBeVisible();
+  await expectNoErrors(errors);
+});
+
+test("KI-AK-17: Frosch-Hüpfen – Seiten tauschen", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await press(page, "Frosch-Hüpfen Level 1: 1+1");
+  await press(page, "Los!", true);
+  for (let k = 0; k < 6 && !(await chap(page)).done; k++) {
+    const pads = ((await chap(page)).pads as string).split("") as Pad[];
+    const i = frogBest(pads).first;
+    if (i === null) break;
+    await tapAt(page, await cp(page, String(i)));
+    await expect.poll(async () => (await chap(page)).busy).toBe(false);
+  }
+  await expect.poll(async () => (await chap(page)).pads).toBe("B.G");
+  await finishCard(page, /n² \+ 2n/);
+  expect((await state(page)).stars.q1).toBe(3);
+  await expectNoErrors(errors);
+});
+
+test("KI-AK-17: Lichter aus – alle Laternen aus", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await press(page, "Lichter aus Level 1: 3×3");
+  await press(page, "Los!", true);
+  const sol = (await chap(page)).solution as [number, number][];
+  expect(sol).toHaveLength(2);
+  for (const [x, y] of sol) await tapAt(page, await cp(page, `${x},${y}`));
+  await expect.poll(async () => (await chap(page)).lit).toBe(0);
+  await finishCard(page, /Reihenfolge ist egal/);
+  expect((await state(page)).stars.x1).toBe(3);
+  await expectNoErrors(errors);
+});
+
+test("KI-AK-17: Pinguin-Parade – sortieren und Wettrennen", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await press(page, "Pinguin-Parade Level 1: 5 🐧");
+  await press(page, "Los!", true);
+  for (let k = 0; k < 10 && !(await chap(page)).done; k++) {
+    const o = (await chap(page)).order as number[];
+    const i = o.findIndex((v, j) => j < o.length - 1 && v > o[j + 1]!);
+    if (i < 0) break;
+    await tapAt(page, await cp(page, String(i)));
+    await tapAt(page, await cp(page, String(i + 1)));
+    await expect.poll(async () => (await chap(page)).busy).toBe(false);
+  }
+  expect((await chap(page)).swaps).toBe(4);
+  await finishCard(page, /Bubblesort/);
+  expect((await state(page)).stars.g1).toBe(3);
+  await press(page, "🏁 Wettrennen");
+  await expect
+    .poll(async () => ((await chap(page)).race as { done: boolean }).done, { timeout: 20_000 })
+    .toBe(true);
+  await expect(page.getByRole("alert")).toContainText("Mischen war nach");
   await expectNoErrors(errors);
 });

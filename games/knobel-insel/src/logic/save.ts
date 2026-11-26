@@ -5,6 +5,10 @@ import { WAAGE_LEVELS } from "./waage.ts";
 import { MAZE_LEVELS } from "./maze.ts";
 import { FLIP_LEVELS } from "./flip.ts";
 import { BRIDGE_LEVELS } from "./bridge.ts";
+import { JUG_LEVELS } from "./jugs.ts";
+import { FROG_LEVELS } from "./frogs.ts";
+import { LIGHT_LEVELS } from "./lights.ts";
+import { PENGUIN_LEVELS } from "./penguins.ts";
 
 export const KEY = "dampf.knobel-insel.v1";
 export interface Store {
@@ -30,6 +34,10 @@ export const CHAPTER_IDS: string[][] = [
   MAZE_LEVELS.map((l) => l.id),
   FLIP_LEVELS.map((l) => l.id),
   BRIDGE_LEVELS.map((l) => l.id),
+  JUG_LEVELS.map((l) => l.id),
+  FROG_LEVELS.map((l) => l.id),
+  LIGHT_LEVELS.map((l) => l.id),
+  PENGUIN_LEVELS.map((l) => l.id),
 ];
 const ALL = CHAPTER_IDS.flat();
 
