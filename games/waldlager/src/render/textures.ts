@@ -581,6 +581,54 @@ function addHutAndMushroom(tex: Phaser.Textures.TextureManager) {
   g.fillRect(22, 11, 4, 2);
   tex.addCanvas("hut", c);
 
+  // versteckte Hügelhöhle mit Hügel-Wichtel und Teetasse (WL-AK-64)
+  const [bc, bg] = canvas(36, 30);
+  // Hügel
+  bg.fillStyle = "#5f8f3a";
+  for (let r = 0; r < 14; r++) bg.fillRect(18 - (r + 5), 8 + r, (r + 5) * 2, 1);
+  bg.fillRect(2, 22, 32, 6);
+  bg.fillStyle = "#79a84a";
+  for (let r = 0; r < 6; r++) bg.fillRect(14 - r, 9 + r, 4 + r, 1);
+  // Schornstein mit Dampf
+  bg.fillStyle = "#8a7a6a";
+  bg.fillRect(24, 5, 3, 6);
+  bg.fillStyle = "rgba(255,255,255,0.75)";
+  bg.fillRect(24, 2, 2, 2);
+  bg.fillRect(26, 0, 2, 2);
+  // runde grüne Tür mit gelbem Knauf
+  bg.fillStyle = "#3d2a1a";
+  for (let r = 0; r < 4; r++) bg.fillRect(11 - r, 14 + r, 8 + 2 * r, 1);
+  bg.fillRect(7, 18, 16, 8);
+  bg.fillStyle = "#2f7d4a";
+  for (let r = 0; r < 3; r++) bg.fillRect(12 - r, 15 + r, 6 + 2 * r, 1);
+  bg.fillRect(9, 18, 12, 8);
+  bg.fillStyle = "#245f38";
+  bg.fillRect(14, 15, 1, 11);
+  bg.fillStyle = "#f1c40f";
+  bg.fillRect(15, 21, 2, 2);
+  // Wichtel: rote Zipfelmütze, Bart, Teetasse mit Dampf
+  bg.fillStyle = "#c0392b";
+  bg.fillRect(29, 14, 1, 1);
+  bg.fillRect(28, 15, 3, 1);
+  bg.fillRect(27, 16, 5, 2);
+  bg.fillStyle = "#f2c9a0";
+  bg.fillRect(28, 18, 3, 2);
+  bg.fillStyle = "#1d1d1d";
+  bg.fillRect(28, 18, 1, 1);
+  bg.fillRect(30, 18, 1, 1);
+  bg.fillStyle = "#f4f1ea";
+  bg.fillRect(27, 20, 5, 2);
+  bg.fillStyle = "#3b6ea5";
+  bg.fillRect(27, 22, 5, 4);
+  bg.fillStyle = "#5b3a1e";
+  bg.fillRect(27, 26, 2, 1);
+  bg.fillRect(30, 26, 2, 1);
+  bg.fillStyle = "#ffffff";
+  bg.fillRect(32, 22, 3, 2);
+  bg.fillStyle = "rgba(255,255,255,0.7)";
+  bg.fillRect(33, 19, 1, 2);
+  tex.addCanvas("burrow", bc);
+
   const [m, mg] = canvas(10, 9);
   mg.fillStyle = "#f2e8d5";
   mg.fillRect(4, 4, 2, 4);

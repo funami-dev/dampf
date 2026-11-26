@@ -67,10 +67,13 @@ export interface World {
   lakes: { x: number; y: number; cells: number }[];
   /** Fischstellen in Flüssen und Seen (WL-AK-52) */
   fish: { x: number; y: number }[];
+  /** versteckte Hügelhöhle mit Wichtel (WL-AK-64) */
+  burrow: { x: number; y: number };
 }
 
 /** Hütte und Apfelbäume (WL-AK-39/40) */
 export const HUT = { minStart: 40, minPlane: 15, see: 4 };
+export const BURROW = { minStart: 40, minHut: 25, minPlane: 20, minHeight: 2, see: 3 };
 export const APPLE_SHARE = 0.1;
 /** Absturz-Schneise (WL-AK-46) */
 export const SWATH = { min: 30, max: 40, halfWidth: 1.5 };
@@ -673,6 +676,44 @@ function placeFish(w: World, rand: Rand) {
   w.fish = spots;
 }
 
+/** Genau eine versteckte Hügelhöhle: auf einem Hügel, weit weg von allem, erreichbar (WL-AK-64) */
+function placeBurrow(w: World, rand: Rand): { x: number; y: number } {
+  const size = w.size;
+  const minStart = Math.min(BURROW.minStart, Math.floor(size * 0.16));
+  const reach = reachable(w, true);
+  const taken = new Set<number>();
+  for (const b of w.bushes) taken.add(idx(w, b.x, b.y));
+  for (const d of w.debris) taken.add(idx(w, d.x, d.y));
+  for (const [x, y] of w.plane.cells) taken.add(idx(w, x, y));
+  for (const [dx, dy] of [[0, 0], ...DIRS4] as const)
+    if (inside(w, w.hut.x + dx, w.hut.y + dy)) taken.add(idx(w, w.hut.x + dx, w.hut.y + dy));
+  const ok = (x: number, y: number, strict: boolean) => {
+    if (!inside(w, x, y)) return false;
+    const i = idx(w, x, y);
+    const t = w.terrain[i];
+    if ((t !== T.GRASS && t !== T.FOREST) || w.treeAt[i] || taken.has(i)) return false;
+    if (w.height[i]! < BURROW.minHeight) return false;
+    if (strict) {
+      if (Math.hypot(x - w.start.x, y - w.start.y) < minStart) return false;
+      if (Math.hypot(x - w.hut.x, y - w.hut.y) < BURROW.minHut) return false;
+      if (Math.hypot(x - w.plane.x, y - w.plane.y) < BURROW.minPlane) return false;
+    }
+    // mindestens ein Nachbar erreichbar und frei, damit man hinkommt
+    return DIRS4.some(([dx, dy]) => {
+      const j = idx(w, x + dx, y + dy);
+      return inside(w, x + dx, y + dy) && reach[j] === 1 && open(w, j) && !taken.has(j);
+    });
+  };
+  for (let k = 0; k < 20_000; k++) {
+    const x = Math.floor(rand() * size);
+    const y = Math.floor(rand() * size);
+    if (ok(x, y, true)) return { x, y };
+  }
+  for (let y = 0; y < size; y++)
+    for (let x = 0; x < size; x++) if (ok(x, y, false)) return { x, y };
+  return { x: -1, y: -1 };
+}
+
 /** Genau eine Hütte: frei, weit weg von Start und Flugzeug, erreichbar (WL-AK-39) */
 function placeHut(w: World, rand: Rand): { x: number; y: number } {
   const size = w.size;
@@ -723,6 +764,7 @@ export function generateWorld(seed: number, size = SIZE): World {
     scorch: [],
     lakes: [],
     fish: [],
+    burrow: { x: -1, y: -1 },
   };
   const coast = valueNoise(rand, size, size / 6);
   const coastFine = valueNoise(rand, size, size / 20);
@@ -851,5 +893,6 @@ export function generateWorld(seed: number, size = SIZE): World {
   addFords(w, rng(seed ^ 0x466f7264));
   placeLakes(w, rng(seed ^ 0x5365656e));
   placeFish(w, rng(seed ^ 0x46697368));
+  w.burrow = placeBurrow(w, rng(seed ^ 0x486f626c));
   return w;
 }

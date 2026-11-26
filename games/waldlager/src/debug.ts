@@ -8,6 +8,8 @@ export interface DebugHooks {
   /** ein umgeknickter Baum der Absturz-Schneise: [x, y] */
   fallenTree(): [number, number] | null;
   hutSpot(): [number, number, number, number] | null;
+  /** freies Feld neben der Hügelhöhle: [x, y, Stehfeld x, y] (WL-AK-64) */
+  burrowSpot(): [number, number, number, number] | null;
   appleSpot(): [number, number, number, number] | null;
   /** Fallschirm-Landung sofort beenden (Test-Hilfe) */
   finishLanding(): void;

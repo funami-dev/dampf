@@ -75,6 +75,18 @@ describe("Hook-Skript scripts/feedback-check.sh", () => {
     expect((await run(api)).out.trim()).toBe("Feedback-Check: Kein neues Feedback.");
   });
 
+  it("FEEDBACK-AK-35: nennt verdächtige nur als Zahl", async () => {
+    let body: unknown = { ...stats({ waldlager: 2 }), verdacht: { gesamt: 3 } };
+    const api = await mock(() => ({ status: 200, body }));
+    expect((await run(api)).out.trim()).toBe(
+      "Feedback-Check: Es gibt 2 neue Feedbacks: 2× Die Gestrandeten (dazu 3 verdächtige, ausgeblendet) – ansehen?",
+    );
+    body = { ...stats({}), verdacht: { gesamt: 1 } };
+    expect((await run(api)).out.trim()).toBe(
+      "Feedback-Check: Kein neues Feedback (dazu 1 verdächtiges, ausgeblendet).",
+    );
+  });
+
   it("FEEDBACK-AK-22/23: 401, kaputte Antwort und nicht erreichbar", async () => {
     const api = await mock((req) =>
       req.headers.authorization === `Bearer ${TOKEN}`

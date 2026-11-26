@@ -65,7 +65,8 @@ export class SqlRepo implements FeedbackRepo {
       where.push(cond);
       b.push(value);
     };
-    add("status = ?", f.status);
+    if (f.status) add("status = ?", f.status);
+    else where.push("status != 'verdacht'");
     add("game = ?", f.game);
     add("created_at >= ?", f.from);
     add("created_at < ?", f.to);

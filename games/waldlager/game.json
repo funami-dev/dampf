@@ -10,8 +10,17 @@
   "status": "published",
   "order": 80,
   "addedAt": "2026-11-08",
-  "version": "1.15.0",
+  "version": "1.16.0",
   "changelog": [
+    {
+      "version": "1.16.0",
+      "date": "2026-11-26",
+      "time": "22:30",
+      "items": [
+        "Schafherden mit 7 bis 13 Schafen ziehen gemeinsam über die Wiesen 🐑",
+        "Irgendwo in den Hügeln ist eine geheime Höhle versteckt – wer findet den freundlichen Wichtel mit der Teetasse?"
+      ]
+    },
     {
       "version": "1.15.0",
       "date": "2026-11-24",

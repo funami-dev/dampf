@@ -318,6 +318,7 @@ export function applySnap(s: State, snap: Snap, me: string, first: boolean) {
         fish: 0,
         rod: false,
         hutSeen: true,
+        burrowSeen: true,
         exhausted: false,
         running: false,
         chop: null,
