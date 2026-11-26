@@ -55,6 +55,9 @@ import { uhuChapter } from "./chapters/uhu.ts";
 import { kartenChapter } from "./chapters/karten.ts";
 import { caesarChapter } from "./chapters/caesar.ts";
 import { turtleChapter } from "./chapters/turtle.ts";
+import { eulerChapter } from "./chapters/euler.ts";
+import { beesChapter } from "./chapters/bees.ts";
+import { mstChapter } from "./chapters/mst.ts";
 import { SPRITES, drawSprite, spriteSize } from "./art/sprites.ts";
 import {
   RIVER_HALF,
@@ -372,6 +375,9 @@ const CHAPTERS: Chapter[] = [
   kartenChapter(kit),
   caesarChapter(kit),
   turtleChapter(kit),
+  eulerChapter(kit),
+  beesChapter(kit),
+  mstChapter(kit),
 ];
 let cur: Chapter | null = null;
 function startChapter(c: Chapter, i: number) {

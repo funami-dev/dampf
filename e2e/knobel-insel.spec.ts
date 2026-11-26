@@ -3,6 +3,7 @@ import { expectNoErrors, isMobile, trackErrors } from "./helpers.ts";
 import { hintFlip } from "../games/knobel-insel/src/logic/flip.ts";
 import { JUG_LEVELS, jugShortest } from "../games/knobel-insel/src/logic/jugs.ts";
 import { frogBest, type Pad } from "../games/knobel-insel/src/logic/frogs.ts";
+import { BEE_LEVELS, bestTour } from "../games/knobel-insel/src/logic/tsp.ts";
 
 /** Spec: specs/games/knobel-insel.md (KI-AK-05..08) */
 interface KiState {
@@ -479,5 +480,62 @@ test("KI-AK-17: Schildkröten-Programm – mit Schleife zum Salat", async ({ pag
   await press(page, "▶ Start");
   await finishCard(page, /Schleife/);
   expect((await state(page)).stars.t1).toBe(3);
+  await expectNoErrors(errors);
+});
+
+// --- Version 1.4: Brücken-Spaziergang, Bienen, Murmelbahn (KI-AK-17) ---
+test("KI-AK-17: Brücken-Spaziergang – Rundgang und „Geht nicht!“", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page, { e1: 3, e2: 3 });
+  await press(page, "Brücken-Spaziergang Level 1: Rundgang");
+  await press(page, "Los!", true);
+  for (const isl of ["A", "B", "C", "D", "A"]) {
+    await expect.poll(async () => (await chap(page)).busy).toBe(false);
+    await tapAt(page, await cp(page, isl));
+  }
+  await expect.poll(async () => (await chap(page)).used).toBe(4);
+  await finishCard(page, /Euler/);
+  expect((await state(page)).stars.e1).toBe(3);
+  await press(page, "🏝️ Insel");
+  await press(page, "Brücken-Spaziergang Level 3: Geht das?");
+  await press(page, "Los!", true);
+  await press(page, "🔢 Brücken zählen");
+  await press(page, "❌ Geht nicht!");
+  await expect(page.getByRole("dialog", { name: "Geschafft" })).toContainText(
+    "mehr als zwei Inseln",
+  );
+  expect((await state(page)).stars.e3).toBe(3);
+  await expectNoErrors(errors);
+});
+
+test("KI-AK-17: Bienen-Lieferdienst – kürzeste Runde", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await press(page, "Bienen-Lieferdienst Level 1: 4 🌼");
+  await press(page, "Los!", true);
+  for (const f of bestTour(BEE_LEVELS[0]!).order) {
+    await expect.poll(async () => (await chap(page)).busy).toBe(false);
+    await tapAt(page, await cp(page, String(f)));
+  }
+  await expect.poll(async () => (await chap(page)).done, { timeout: 10_000 }).toBe(true);
+  await finishCard(page, /Rundreise/);
+  expect((await state(page)).stars.n1).toBe(3);
+  await expectNoErrors(errors);
+});
+
+test("KI-AK-17: Murmelbahn-Netz – Zeig's mir, dann selbst bauen", async ({ page }) => {
+  const errors = trackErrors(page);
+  await open(page);
+  await press(page, "Murmelbahn-Netz Level 1: 5 Dörfer");
+  await press(page, "Los!", true);
+  await press(page, "▶ Zeig's mir");
+  await expect.poll(async () => (await chap(page)).showing, { timeout: 15_000 }).toBe(false);
+  expect((await chap(page)).cost).toBe((await chap(page)).min);
+  await press(page, "↺ Neu");
+  for (const e of (await chap(page)).mst as number[]) await tapAt(page, await cp(page, String(e)));
+  expect((await chap(page)).cost).toBe((await chap(page)).min);
+  await press(page, "✨ Fertig");
+  await finishCard(page, /Kruskal/);
+  expect((await state(page)).stars.m1).toBe(3);
   await expectNoErrors(errors);
 });

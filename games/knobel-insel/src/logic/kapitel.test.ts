@@ -410,3 +410,73 @@ describe("KI-AK-15: Orakel-Uhu, Zaubertrick, Geheimschrift, Schildkröten-Progra
     }
   });
 });
+
+describe("KI-AK-16: Brücken-Spaziergang, Bienen, Murmelbahn", () => {
+  it("Eulerweg: gerade/ungerade entscheidet; Tipp läuft jede Brücke einmal", async () => {
+    const { EULER_LEVELS, allUsed, eulerKind, newWalk, nextIsland, stuck, walkTo } =
+      await import("./euler.ts");
+    expect(EULER_LEVELS.map((l) => eulerKind(l).kind)).toEqual(["kreis", "weg", "unmoeglich"]);
+    expect(eulerKind(EULER_LEVELS[1]!).odd.sort()).toEqual(["A", "C"]);
+    for (const l of EULER_LEVELS.slice(0, 2)) {
+      let w = newWalk(l);
+      for (let k = 0; k <= l.bridges.length; k++) {
+        const to = nextIsland(l, w);
+        if (to === null) break;
+        w = walkTo(l, w, to)!;
+      }
+      expect(allUsed(w), l.id).toBe(true);
+    }
+    // falscher Start in Level 2 → steckt fest
+    const l2 = EULER_LEVELS[1]!;
+    let w = walkTo(l2, newWalk(l2), "B")!;
+    for (const to of ["A", "D", "C", "B"]) w = walkTo(l2, w, to) ?? w;
+    expect(stuck(l2, w) || !allUsed(w)).toBe(true);
+    expect(walkTo(l2, walkTo(l2, newWalk(l2), "B")!, "D")).toBeNull(); // keine Brücke B–D
+    expect(nextIsland(EULER_LEVELS[2]!, newWalk(EULER_LEVELS[2]!))).toBeNull();
+  });
+  it("Bienen: kürzeste Rundreise durch Durchprobieren, gierig ist nie besser", async () => {
+    const { BEE_LEVELS, bestTour, greedyTour, tourLength } = await import("./tsp.ts");
+    for (const l of BEE_LEVELS) {
+      const b = bestTour(l);
+      const g = greedyTour(l);
+      expect(b.order).toHaveLength(l.flowers.length);
+      expect(new Set(b.order).size).toBe(l.flowers.length);
+      expect(tourLength(l, b.order)).toBeCloseTo(b.len);
+      expect(g.len).toBeGreaterThanOrEqual(b.len - 1e-9);
+      // Rückwärts ist genauso lang
+      expect(tourLength(l, [...b.order].reverse())).toBeCloseTo(b.len);
+    }
+    // im größten Level ist „immer zur nächsten“ wirklich schlechter
+    const l3 = BEE_LEVELS[2]!;
+    expect(greedyTour(l3).len).toBeGreaterThan(bestTour(l3).len + 1);
+    // mit festem Anfang bleibt der Anfang
+    expect(bestTour(l3, [3]).order[0]).toBe(3);
+  });
+  it("Murmelbahn: Kruskal verbindet alles mit minimalem Holz", async () => {
+    const { MST_LEVELS, connected, cost, kruskal } = await import("./mst.ts");
+    for (const l of MST_LEVELS) {
+      const k = kruskal(l);
+      const es = k.picked.map((i) => l.edges[i]!);
+      expect(es).toHaveLength(l.villages.length - 1);
+      expect(connected(l.villages.length, es)).toBe(true);
+      expect(cost(es)).toBe(k.total);
+      expect(connected(l.villages.length, l.edges)).toBe(true);
+      // keine Auswahl von n−1 Stücken ist billiger und verbunden (kleine Level durchprobieren)
+      if (l.edges.length <= 14) {
+        const n = l.villages.length;
+        let best = Infinity;
+        const pick = (from: number, chosen: number[]) => {
+          if (chosen.length === n - 1) {
+            const sel = chosen.map((i) => l.edges[i]!);
+            if (connected(n, sel)) best = Math.min(best, cost(sel));
+            return;
+          }
+          for (let i = from; i < l.edges.length; i++) pick(i + 1, [...chosen, i]);
+        };
+        pick(0, []);
+        expect(k.total).toBe(best);
+      }
+      expect(k.steps.some((s) => !s.take) || l.edges.length === l.villages.length - 1).toBe(true);
+    }
+  });
+});

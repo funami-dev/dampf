@@ -13,6 +13,9 @@ import { UHU_LEVELS } from "./uhu.ts";
 import { CARD_LEVELS } from "./karten.ts";
 import { CAESAR_LEVELS } from "./caesar.ts";
 import { TURTLE_LEVELS } from "./turtle.ts";
+import { EULER_LEVELS } from "./euler.ts";
+import { BEE_LEVELS } from "./tsp.ts";
+import { MST_LEVELS } from "./mst.ts";
 
 export const KEY = "dampf.knobel-insel.v1";
 export interface Store {
@@ -46,6 +49,9 @@ export const CHAPTER_IDS: string[][] = [
   CARD_LEVELS.map((l) => l.id),
   CAESAR_LEVELS.map((l) => l.id),
   TURTLE_LEVELS.map((l) => l.id),
+  EULER_LEVELS.map((l) => l.id),
+  BEE_LEVELS.map((l) => l.id),
+  MST_LEVELS.map((l) => l.id),
 ];
 const ALL = CHAPTER_IDS.flat();
 
