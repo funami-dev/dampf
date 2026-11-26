@@ -51,6 +51,10 @@ import { jugsChapter } from "./chapters/jugs.ts";
 import { frogsChapter } from "./chapters/frogs.ts";
 import { lightsChapter } from "./chapters/lights.ts";
 import { penguinsChapter } from "./chapters/penguins.ts";
+import { uhuChapter } from "./chapters/uhu.ts";
+import { kartenChapter } from "./chapters/karten.ts";
+import { caesarChapter } from "./chapters/caesar.ts";
+import { turtleChapter } from "./chapters/turtle.ts";
 import { SPRITES, drawSprite, spriteSize } from "./art/sprites.ts";
 import {
   RIVER_HALF,
@@ -112,6 +116,7 @@ layer.innerHTML = `
   </div>
   <div class="ki-chapters" role="region" aria-label="Kapitel" hidden></div>
   <ol class="ki-steps" data-h="steps" aria-label="Aufgaben der Zeitlupe" hidden></ol>
+  <div class="ki-info" data-h="info" role="status" hidden></div>
   <div class="ki-toast" role="alert" hidden></div>
   <button class="ki-btn ki-menu" type="button" data-b="menu" aria-label="Menü">☰</button>`;
 stage.append(layer);
@@ -201,6 +206,7 @@ function showMap() {
   closePanel();
   $(".ki-top").hidden = true;
   h("steps").hidden = true;
+  h("info").hidden = true;
   const ch = $(".ki-chapters");
   ch.hidden = false;
   const lvl = (id: string, label: string, aria: string) => {
@@ -222,7 +228,7 @@ function showMap() {
                   ${data.cards.includes(e.id) ? btn("🤖 So denkt ein Computer", `data-card="${e.id}"`, "ki-small") : ""}</div>`,
                 )
                 .join("")
-            : `<p class="ki-soon">Bald: Orakel-Uhu, Zaubertrick, Geheimschrift und Schildkröten-Programm.</p>`
+            : `<p class="ki-soon">Bald gibt es hier neue Rätsel.</p>`
         }</section>`;
     })
     .join("");
@@ -294,11 +300,13 @@ const kit: Kit = {
       title,
       tools
         .map((t) =>
-          btn(
-            t.label,
-            `data-b="${t.id}"${t.pressed === undefined ? "" : ` aria-pressed="${t.pressed}"`}`,
-            t.primary ? "ki-primary" : "",
-          ),
+          t.number
+            ? `<label class="ki-num">${t.label} <input type="number" data-num min="${t.number.min}" max="${t.number.max}" value="${t.number.value}" aria-label="${t.label}"></label>`
+            : btn(
+                t.label,
+                `data-b="${t.id}"${t.pressed === undefined ? "" : ` aria-pressed="${t.pressed}"`}`,
+                t.primary ? "ki-primary" : "",
+              ),
         )
         .join(""),
     );
@@ -307,10 +315,20 @@ const kit: Kit = {
       .forEach((b) =>
         b.addEventListener("click", () => {
           sound.start();
-          on(b.dataset.b!);
+          const n = h("tools").querySelector<HTMLInputElement>("[data-num]");
+          on(b.dataset.b!, n ? Number(n.value) : undefined);
         }),
       );
   },
+  info(html) {
+    const el = h("info");
+    el.hidden = html === null;
+    el.innerHTML = html ?? "";
+    // direkt unter die Knopfleiste (sie kann auf dem Handy zwei Zeilen haben)
+    const top = $(".ki-top").getBoundingClientRect().bottom - layer.getBoundingClientRect().top;
+    el.style.top = `${Math.round(top + 6)}px`;
+  },
+  panel: (html, label) => panel(html, label),
   setCount: (t) => (h("count").textContent = t),
   finish(o) {
     record(data, o.level, o.stars);
@@ -350,11 +368,16 @@ const CHAPTERS: Chapter[] = [
   jugsChapter(kit),
   frogsChapter(kit),
   lightsChapter(kit),
+  uhuChapter(kit),
+  kartenChapter(kit),
+  caesarChapter(kit),
+  turtleChapter(kit),
 ];
 let cur: Chapter | null = null;
 function startChapter(c: Chapter, i: number) {
   view = "chapter";
   cur = c;
+  h("info").hidden = true;
   stopZeitlupe();
   c.start(i);
 }

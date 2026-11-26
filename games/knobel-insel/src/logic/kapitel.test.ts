@@ -312,3 +312,101 @@ describe("KI-AK-14: Wasserkrüge, Frosch-Hüpfen, Lichter aus, Pinguin-Parade", 
     expect([...m.at(-1)!].sort((a, c) => a - c)).toEqual([...r].sort((a, c) => a - c));
   });
 });
+
+describe("KI-AK-15: Orakel-Uhu, Zaubertrick, Geheimschrift, Schildkröten-Programm", () => {
+  it("Uhu: Halbieren findet jede Zahl in der Profi-Zahl; ehrlicher Gegenspieler", async () => {
+    const { UHU_LEVELS, uhuAnswer, uhuGuess, uhuMin } = await import("./uhu.ts");
+    expect(UHU_LEVELS.map((l) => uhuMin(l.max))).toEqual([4, 7, 10]);
+    for (const l of UHU_LEVELS) {
+      // Kind halbiert gegen den Gegenspieler
+      let lo = 1;
+      let hi = l.max;
+      let q = 0;
+      for (;;) {
+        q++;
+        const r = uhuAnswer(lo, hi, uhuGuess(lo, hi));
+        if (r.answer === "richtig") break;
+        lo = r.lo;
+        hi = r.hi;
+      }
+      expect(q).toBeLessThanOrEqual(uhuMin(l.max));
+      // Uhu errät jede deine Zahl in höchstens uhuMin Fragen
+      for (let secret = 1; secret <= l.max; secret += Math.max(1, Math.floor(l.max / 37))) {
+        let a = 1;
+        let b = l.max;
+        let k = 0;
+        for (;;) {
+          k++;
+          const g = uhuGuess(a, b);
+          if (g === secret) break;
+          if (g < secret) a = g + 1;
+          else b = g - 1;
+        }
+        expect(k).toBeLessThanOrEqual(uhuMin(l.max));
+      }
+    }
+    expect(uhuAnswer(1, 10, 0).answer).toBe("höher");
+    expect(uhuAnswer(4, 4, 4).answer).toBe("richtig");
+  });
+  it("Zaubertrick: jede Zahl eindeutig aus den Karten", async () => {
+    const { CARD_LEVELS, bitsOf, cardNumbers, trickSum, valueOf } = await import("./karten.ts");
+    for (const l of CARD_LEVELS) {
+      const k = l.cards;
+      for (let n = 1; n < 2 ** k; n++) {
+        const yes = Array.from({ length: k }, (_, i) => cardNumbers(k, i).includes(n));
+        expect(trickSum(yes)).toBe(n);
+        expect(valueOf(bitsOf(n, k))).toBe(n);
+      }
+      expect(cardNumbers(k, 0)[0]).toBe(1);
+      expect(l.target).toBeLessThan(2 ** k);
+    }
+  });
+  it("Geheimschrift: ver- und entschlüsseln umkehrbar, Häufigkeit findet den Schlüssel", async () => {
+    const { CAESAR_LEVELS, counts, decode, encode, guessKey, turnsFor } =
+      await import("./caesar.ts");
+    expect(encode("ABC XYZ", 3)).toBe("DEF ABC");
+    for (const l of CAESAR_LEVELS) expect(decode(encode(l.plain, l.key), l.key)).toBe(l.plain);
+    expect(counts("Eule")).toEqual({ E: 2, U: 1, L: 1 });
+    const c3 = CAESAR_LEVELS[2]!;
+    expect(guessKey(encode(c3.plain, c3.key))).toBe(c3.key);
+    expect(turnsFor(3)).toBe(3);
+    expect(turnsFor(23)).toBe(3);
+  });
+  it("Schildkröte: Schritt für Schritt, Schleifen, Teiche; Profi-Zahlen stimmen", async () => {
+    const { TURTLE_LEVELS, run } = await import("./turtle.ts");
+    type C = Parameters<typeof run>[1][number];
+    const [t1, t2, t3] = TURTLE_LEVELS as [
+      (typeof TURTLE_LEVELS)[0],
+      (typeof TURTLE_LEVELS)[0],
+      (typeof TURTLE_LEVELS)[0],
+    ];
+    expect(run(t1, ["F", "F"]).end).toBe("unterwegs");
+    expect(run(t1, ["R3", "F", "F"]).end).toBe("ziel");
+    expect(run(t1, ["R4", "F", "F"]).end).toBe("rand");
+    expect(run(t2, ["R", "F"]).end).toBe("teich");
+    expect(run(t2, ["R2", "R3", "F", "END", "R"]).end).toBe("ziel");
+    expect(run(t3, ["R4", "F", "R", "F", "L"]).end).toBe("ziel");
+    // Schritte: Schleife wird wirklich wiederholt
+    expect(run(t1, ["R3", "F", "F"]).steps.filter((s) => s.card === 1)).toHaveLength(3);
+    // keine kürzeren Programme als die Profi-Zahl
+    const T: C[] = ["F", "R", "L", "R2", "R3", "R4", "END"];
+    for (const l of TURTLE_LEVELS) {
+      for (let len = 1; len < l.min; len++) {
+        const idx = Array<number>(len).fill(0);
+        for (;;) {
+          expect(
+            run(
+              l,
+              idx.map((i) => T[i]!),
+            ).end,
+            `${l.id}`,
+          ).not.toBe("ziel");
+          let k = len - 1;
+          while (k >= 0 && idx[k] === T.length - 1) idx[k--] = 0;
+          if (k < 0) break;
+          idx[k]!++;
+        }
+      }
+    }
+  });
+});
