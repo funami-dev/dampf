@@ -4,6 +4,7 @@ import {
   formatDate,
   newsDateTime,
   listedGames,
+  newGames,
   newsEntries,
   parseManifest,
   type GameManifest,
@@ -60,7 +61,7 @@ describe("Liste der Startseite", () => {
     expect(listedGames(games).map((g) => g.slug)).toEqual(["a"]);
   });
 
-  it("PORTAL-AK-04: Sortierung nach order, dann title", () => {
+  it("PORTAL-AK-04: bei gleichem Datum nach order, dann title", () => {
     const games = [
       game({ slug: "c", title: "Zebra" }),
       game({ slug: "b", title: "Ameise" }),
@@ -68,6 +69,21 @@ describe("Liste der Startseite", () => {
       game({ slug: "d", title: "Ähre", order: 5 }),
     ];
     expect(listedGames(games).map((g) => g.title)).toEqual(["Mond", "Ähre", "Ameise", "Zebra"]);
+  });
+
+  it("PORTAL-AK-04: das neueste Spiel zuerst; „Neu“ für die 3 neuesten bis 30 Tage", () => {
+    const games = [
+      game({ slug: "alt", title: "Alt", addedAt: "2026-10-01", order: 1 }),
+      game({ slug: "mitte", title: "Mitte", addedAt: "2026-11-10" }),
+      game({ slug: "neu", title: "Neu", addedAt: "2026-11-26", order: 99 }),
+      game({ slug: "neu2", title: "Neu zwei", addedAt: "2026-11-20" }),
+    ];
+    const list = listedGames(games);
+    expect(list.map((g) => g.slug)).toEqual(["neu", "neu2", "mitte", "alt"]);
+    expect([...newGames(list, "2026-11-27")]).toEqual(["neu", "neu2", "mitte"]);
+    // nach 30 Tagen nicht mehr neu
+    expect([...newGames(list, "2026-12-15")]).toEqual(["neu", "neu2"]);
+    expect([...newGames(list, "2027-02-01")]).toEqual([]);
   });
 });
 

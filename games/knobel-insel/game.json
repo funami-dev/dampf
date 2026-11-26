@@ -10,8 +10,17 @@
   "status": "published",
   "order": 120,
   "addedAt": "2026-11-26",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "changelog": [
+    {
+      "version": "1.4.1",
+      "date": "2026-11-26",
+      "time": "19:19",
+      "items": [
+        "Antippen auf dem Handy klappt jetzt zuverlässig: größere Tippflächen und ein kleiner Kreis zeigt, wo du getippt hast",
+        "Labyrinth-Weg malen mit dem Finger bricht nicht mehr ab"
+      ]
+    },
     {
       "version": "1.4.0",
       "date": "2026-11-26",

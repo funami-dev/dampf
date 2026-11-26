@@ -1,7 +1,7 @@
 /** Kapitel 17 · Murmelbahn-Netz (Spec K17, KI-AK-16) */
 import { drawNumber, ellipse } from "../art/scenes.ts";
 import { MST_LEVELS, connected, cost, kruskal, type MstLevel } from "../logic/mst.ts";
-import { starsOf, type Chapter, type Kit, type Pt } from "./kit.ts";
+import { pickNearest, starsOf, type Chapter, type Kit, type Pt } from "./kit.ts";
 
 export function mstChapter(kit: Kit): Chapter {
   const S = {
@@ -171,16 +171,11 @@ export function mstChapter(kit: Kit): Chapter {
     },
     down(p) {
       if (S.done || S.show) return;
-      let best = -1;
-      let bd = Infinity;
-      S.level.edges.forEach((_, k) => {
-        const m = mid(k);
-        const d = Math.hypot(p.x - m.x, p.y - m.y);
-        if (d < 10 && d < bd) {
-          bd = d;
-          best = k;
-        }
-      });
+      const best = pickNearest(
+        S.level.edges.map((_, k) => ({ ...mid(k), r: 8 })),
+        p,
+        kit.hitR(),
+      );
       if (best < 0) return;
       S.built = S.built.includes(best) ? S.built.filter((x) => x !== best) : [...S.built, best];
       kit.sound.click();

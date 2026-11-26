@@ -10,7 +10,7 @@ import {
   type JugAction,
   type JugLevel,
 } from "../logic/jugs.ts";
-import { starsOf, type Chapter, type Kit, type Pt } from "./kit.ts";
+import { pickNearest, starsOf, type Chapter, type Kit, type Pt } from "./kit.ts";
 
 export function jugsChapter(kit: Kit): Chapter {
   const S = {
@@ -252,9 +252,18 @@ export function jugsChapter(kit: Kit): Chapter {
     },
     down(p) {
       if (S.done) return;
-      const i = jugAt(p);
+      let i = jugAt(p);
+      if (i < 0)
+        i = pickNearest(
+          S.level.caps.map((c, k) => ({ x: L.jugs[k]!.x, y: L.jugs[k]!.y - jugH(c) / 2 })),
+          p,
+          kit.hitR(),
+        );
       const onPond =
-        S.level.pond && Math.abs(p.x - L.pond.x) < L.vw * 0.12 && Math.abs(p.y - L.pond.y) < 12;
+        i < 0 &&
+        S.level.pond &&
+        Math.abs(p.x - L.pond.x) < Math.max(L.vw * 0.12, kit.hitR()) &&
+        Math.abs(p.y - L.pond.y) < Math.max(12, kit.hitR());
       if (S.sel === -1) {
         if (i >= 0) S.sel = i;
         else if (onPond) S.sel = "teich";

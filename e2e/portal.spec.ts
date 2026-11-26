@@ -24,6 +24,12 @@ test.describe("Startseite", () => {
 
     const cards = page.locator("[data-testid=games] > li");
     await expect(cards).toHaveCount(games.length);
+    // das neueste Spiel steht vorn (Feedback fb_oh8ca2xi)
+    const newest = games
+      .map((g) => g.addedAt)
+      .sort()
+      .at(-1);
+    expect(games[0]!.addedAt).toBe(newest);
     for (const [i, game] of games.entries()) {
       const card = cards.nth(i);
       await expect(card.getByRole("heading")).toHaveText(game.title);

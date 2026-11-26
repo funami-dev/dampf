@@ -1,7 +1,7 @@
 /** Kapitel 16 · Bienen-Lieferdienst (Spec K16, KI-AK-16) */
 import { ellipse } from "../art/scenes.ts";
 import { BEE_LEVELS, bestTour, greedyTour, tourLength, type BeeLevel } from "../logic/tsp.ts";
-import { starsOf, type Chapter, type Kit, type Pt } from "./kit.ts";
+import { pickNearest, starsOf, type Chapter, type Kit, type Pt } from "./kit.ts";
 
 const meters = (d: number) => Math.round(d);
 
@@ -217,16 +217,11 @@ export function beesChapter(kit: Kit): Chapter {
       g.globalAlpha = 1;
     },
     down(p) {
-      let best = -1;
-      let bd = Infinity;
-      S.level.flowers.forEach((f, i) => {
-        const q = P(f);
-        const d = Math.hypot(p.x - q.x, p.y - q.y);
-        if (d < 12 && d < bd) {
-          bd = d;
-          best = i;
-        }
-      });
+      const best = pickNearest(
+        S.level.flowers.map((f) => ({ ...P(f), r: 10 })),
+        p,
+        kit.hitR(),
+      );
       if (best >= 0) visit(best);
     },
     debug: () => ({

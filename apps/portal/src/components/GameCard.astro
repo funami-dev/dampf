@@ -3,8 +3,9 @@ import { gameUrl, type GameManifest } from "@dampf/game-kit";
 
 interface Props {
   game: GameManifest;
+  isNew?: boolean;
 }
-const { game } = Astro.props;
+const { game, isNew = false } = Astro.props;
 const controls = [game.controls.keyboard && "Tastatur", game.controls.touch && "Touch"].filter(
   Boolean,
 );
@@ -23,6 +24,7 @@ const controls = [game.controls.keyboard && "Tastatur", game.controls.touch && "
     <div class="body">
       <div class="head">
         <h2>{game.title}</h2>
+        {isNew && <span class="new">✨ Neu</span>}
         <span class="version" aria-label={`Version ${game.version}`}>
           v{game.version}
         </span>
@@ -85,6 +87,14 @@ const controls = [game.controls.keyboard && "Tastatur", game.controls.touch && "
     align-items: baseline;
     justify-content: space-between;
     gap: 0.5rem;
+  }
+  .new {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #1d2b3a;
+    background: var(--accent);
+    padding: 0.05rem 0.4rem;
+    white-space: nowrap;
   }
   .version {
     font-size: 0.8rem;

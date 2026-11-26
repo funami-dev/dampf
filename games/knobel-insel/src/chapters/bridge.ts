@@ -12,7 +12,7 @@ import {
   type BState,
   type BridgeLevel,
 } from "../logic/bridge.ts";
-import { starsOf, type Chapter, type Kit, type Pt } from "./kit.ts";
+import { pickNearest, starsOf, type Chapter, type Kit, type Pt } from "./kit.ts";
 
 export function bridgeChapter(kit: Kit): Chapter {
   const S = {
@@ -313,22 +313,18 @@ export function bridgeChapter(kit: Kit): Chapter {
     down(p) {
       if (S.walk || S.done) return;
       // das nächstgelegene getroffene Tier
-      let hit: string | null = null;
-      let best = Infinity;
-      for (const wk of S.level.walkers) {
-        const q = S.pos[wk.id];
-        if (!q) continue;
-        const { w, h } = spriteSize(SPRITES[wk.kind]!);
-        const cy = q.y - h / 2;
-        if (Math.abs(p.x - q.x) <= w / 2 + 3 && Math.abs(p.y - cy) <= h / 2 + 4) {
-          const d = Math.hypot(p.x - q.x, p.y - cy);
-          if (d < best) {
-            best = d;
-            hit = wk.id;
-          }
-        }
-      }
-      if (!hit) return;
+      const ws = S.level.walkers.filter((wk) => S.pos[wk.id]);
+      const k = pickNearest(
+        ws.map((wk) => {
+          const q = S.pos[wk.id]!;
+          const { h } = spriteSize(SPRITES[wk.kind]!);
+          return { x: q.x, y: q.y - h / 2, r: h / 2 + 2 };
+        }),
+        p,
+        kit.hitR(),
+      );
+      if (k < 0) return;
+      const hit = ws[k]!.id;
       if (S.sel.includes(hit)) S.sel = S.sel.filter((x) => x !== hit);
       else if (S.st.side[hit] !== S.st.lamp) kit.toast("Die Laterne ist auf der anderen Seite.", 3);
       else if (S.sel.length >= 2) kit.toast("Die Brücke trägt höchstens zwei!", 3);

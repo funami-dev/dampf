@@ -88,15 +88,30 @@ export function parseManifest(data: unknown, file: string): GameManifest {
 
 const collator = new Intl.Collator("de");
 
-/** Spiele für die Startseite: nur veröffentlichte, sortiert nach order, dann title. */
+/**
+ * Spiele für die Startseite: nur veröffentlichte, das neueste zuerst (addedAt absteigend), bei
+ * gleichem Datum nach order, dann title (PORTAL-AK-04, Feedback fb_oh8ca2xi).
+ */
 export function listedGames(games: readonly GameManifest[]): GameManifest[] {
   return games
     .filter((g) => g.status === "published")
     .sort(
       (a, b) =>
+        (a.addedAt < b.addedAt ? 1 : a.addedAt > b.addedAt ? -1 : 0) ||
         (a.order ?? Number.POSITIVE_INFINITY) - (b.order ?? Number.POSITIVE_INFINITY) ||
         collator.compare(a.title, b.title),
     );
+}
+
+/** „✨ Neu“: die 3 neuesten Spiele, wenn sie höchstens 30 Tage alt sind (Build-Tag `today`) */
+export function newGames(listed: readonly GameManifest[], today: string): Set<string> {
+  const day = (d: string) => Date.parse(`${d}T00:00:00Z`) / 86_400_000;
+  return new Set(
+    listed
+      .slice(0, 3)
+      .filter((g) => day(today) - day(g.addedAt) <= 30)
+      .map((g) => g.slug),
+  );
 }
 
 export const gameUrl = (slug: string) => `/games/${slug}/`;

@@ -1,7 +1,7 @@
 /** Kapitel 12 · Zaubertrick mit Karten (Spec K12, KI-AK-15) */
 import { drawNumber, ellipse } from "../art/scenes.ts";
 import { CARD_LEVELS, bitsOf, cardNumbers, popcount, trickSum, valueOf } from "../logic/karten.ts";
-import { starsOf, type Chapter, type Kit, type Pt } from "./kit.ts";
+import { pickNearest, starsOf, type Chapter, type Kit, type Pt } from "./kit.ts";
 
 export function kartenChapter(kit: Kit): Chapter {
   const S = {
@@ -187,15 +187,17 @@ export function kartenChapter(kit: Kit): Chapter {
     },
     down(p: Pt) {
       if (S.phase !== "lampen" || S.done) return;
-      L.xs.forEach((x, i) => {
-        if (Math.abs(p.x - x) <= L.r + 4 && Math.abs(p.y - L.y) <= L.r + 6) {
-          const bit = S.k - 1 - i;
-          S.lamps[bit] = !S.lamps[bit];
-          S.taps++;
-          kit.sound.click();
-          count();
-        }
-      });
+      const i = pickNearest(
+        L.xs.map((x) => ({ x, y: L.y, r: L.r + 4 })),
+        p,
+        kit.hitR(),
+      );
+      if (i < 0) return;
+      const bit = S.k - 1 - i;
+      S.lamps[bit] = !S.lamps[bit];
+      S.taps++;
+      kit.sound.click();
+      count();
     },
     debug: () => ({
       level: CARD_LEVELS[S.li]!.id,

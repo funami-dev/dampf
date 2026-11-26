@@ -42,7 +42,14 @@ import {
   type State,
 } from "./logic/river.ts";
 import { load, record, save, unlocked, type Saved, type Store } from "./logic/save.ts";
-import { REGIONS, type Chapter, type Kit, type Region } from "./chapters/kit.ts";
+import {
+  REGIONS,
+  TAP_CSS,
+  pickNearest,
+  type Chapter,
+  type Kit,
+  type Region,
+} from "./chapters/kit.ts";
 import { waageChapter } from "./chapters/waage.ts";
 import { mazeChapter } from "./chapters/maze.ts";
 import { flipChapter } from "./chapters/flip.ts";
@@ -291,6 +298,7 @@ function setTop(title: string, tools: string) {
 // --- weitere Kapitel (Module mit gemeinsamem Kit) ----------------------------------------------
 const kit: Kit = {
   clock: () => clock,
+  hitR: () => TAP_CSS / scale,
   speed: () => speed,
   sound,
   toast,
@@ -1232,23 +1240,18 @@ function drawRiver(g: CanvasRenderingContext2D, vw: number, vh: number) {
   }
 }
 function riverActorAt(x: number, y: number): string | null {
-  let best: string | null = null;
-  let bd = Infinity;
-  for (const act of F.level.actors) {
-    const p = F.pos[act.id];
-    if (!p) continue;
-    const { w, h: hh } = spriteSize(SPRITES[act.kind]!);
-    const cx = p.x;
-    const cy = p.y - hh / 2;
-    if (Math.abs(x - cx) <= w / 2 + 3 && Math.abs(y - cy) <= hh / 2 + 3) {
-      const d = Math.hypot(x - cx, y - cy);
-      if (d < bd) {
-        bd = d;
-        best = act.id;
-      }
-    }
-  }
-  return best;
+  // nächstgelegene Figur, Tippfläche mindestens 44 × 44 Bildschirmpunkte (KI-AK-18)
+  const acts = F.level.actors.filter((a) => F.pos[a.id]);
+  const i = pickNearest(
+    acts.map((a) => {
+      const p = F.pos[a.id]!;
+      const { h: hh } = spriteSize(SPRITES[a.kind]!);
+      return { x: p.x, y: p.y - hh / 2, r: hh / 2 + 3 };
+    }),
+    { x, y },
+    TAP_CSS / scale,
+  );
+  return i < 0 ? null : acts[i]!.id;
 }
 
 // --- Pixel-Fläche mit Phaser ----------------------------------------------------------------
@@ -1257,6 +1260,7 @@ let vw = 320;
 let vh = 200;
 let keyboardUsed = false;
 let pointerIsDown = false;
+let ripple: { x: number; y: number; t: number } | null = null;
 const screen = document.createElement("canvas");
 const ctx = screen.getContext("2d")!;
 function fitSize(W: number, H2: number) {
@@ -1284,14 +1288,20 @@ class Board extends Phaser.Scene {
     fitSize(this.scale.width, this.scale.height);
     this.makeTexture();
     const cv = this.game.canvas;
+    // Browser soll auf der Spielfläche nicht scrollen oder zoomen (KI-AK-18)
+    cv.style.touchAction = "none";
+    stage.style.touchAction = "none";
     const toV = (e: PointerEvent) => {
       const r = cv.getBoundingClientRect();
       return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale };
     };
     cv.addEventListener("pointerdown", (e) => {
       sound.start();
-      if (overlay || paused) return;
+      // nur der erste Finger zählt
+      if (!e.isPrimary || overlay || paused) return;
+      e.preventDefault();
       const p = toV(e);
+      ripple = { x: p.x, y: p.y, t: clock };
       pointerIsDown = true;
       if (view === "hanoi") hanoiDown(p.x);
       else if (view === "river") {
@@ -1300,10 +1310,15 @@ class Board extends Phaser.Scene {
       } else if (view === "chapter") cur?.down(p);
     });
     window.addEventListener("pointermove", (e) => {
-      if (!pointerIsDown || overlay || paused || view !== "chapter") return;
+      if (!e.isPrimary || !pointerIsDown || overlay || paused || view !== "chapter") return;
       cur?.move?.(toV(e));
     });
+    window.addEventListener("pointercancel", () => {
+      pointerIsDown = false;
+      if (view === "chapter") cur?.up?.({ x: -1, y: -1 });
+    });
     window.addEventListener("pointerup", (e) => {
+      if (!e.isPrimary) return;
       const was = pointerIsDown;
       pointerIsDown = false;
       if (overlay || paused || !was) return;
@@ -1331,6 +1346,18 @@ class Board extends Phaser.Scene {
     else if (view === "river") drawRiver(ctx, vw, vh);
     else if (view === "chapter" && cur) cur.draw(ctx, vw, vh);
     else drawIsland(ctx, vw, vh, clock);
+    // kurzer weicher Kreis, wo getippt wurde (0,3 s)
+    if (ripple && clock - ripple.t < 0.3) {
+      const u = (clock - ripple.t) / 0.3;
+      ctx.globalAlpha = 0.45 * (1 - u);
+      ctx.fillStyle = "#ffffff";
+      const r = 3 + u * (TAP_CSS / scale);
+      for (let y = -r; y <= r; y++) {
+        const w = Math.round(Math.sqrt(Math.max(0, r * r - y * y)));
+        ctx.fillRect(Math.round(ripple.x - w), Math.round(ripple.y + y), w * 2, 1);
+      }
+      ctx.globalAlpha = 1;
+    }
     this.tex.refresh();
     this.img.setScale(scale);
   }
