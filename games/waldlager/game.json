@@ -10,8 +10,17 @@
   "status": "published",
   "order": 80,
   "addedAt": "2026-11-08",
-  "version": "1.16.0",
+  "version": "1.17.0",
   "changelog": [
+    {
+      "version": "1.17.0",
+      "date": "2026-11-26",
+      "time": "23:35",
+      "items": [
+        "In der Hütte steht eine Kiste mit 99 Feuerwerksraketen 🚀",
+        "Zünde sie nachts: Herz, Stern, Vogel, Blume und noch mehr – jede Rakete ist eine Überraschung!"
+      ]
+    },
     {
       "version": "1.16.0",
       "date": "2026-11-26",

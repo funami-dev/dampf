@@ -10,6 +10,7 @@ interface WlState {
   phase: string;
   dark: number;
   me: {
+    rockets: number;
     name: string;
     color: string;
     x: number;
@@ -53,6 +54,9 @@ interface WlState {
   hut: { x: number; y: number };
   burrow: { x: number; y: number };
   burrowTalk: boolean;
+  hutRockets: number;
+  fireworks: string[];
+  fireworkParticles: number;
   herds: { x: number; y: number; sheep: number }[];
 }
 interface Hooks {
@@ -68,7 +72,7 @@ interface Hooks {
   riverSpot(): [number, number, number, number] | null;
   lakeSpot(): [number, number, number, number] | null;
   fishSpot(): [number, number, number, number] | null;
-  give(items: Partial<Record<"wood" | "berries" | "fish", number>>): void;
+  give(items: Partial<Record<"wood" | "berries" | "fish" | "rockets", number>>): void;
   cell(x: number, y: number): { terrain: number; free: boolean; tree: number };
   finishLanding(): void;
   markTrail(x: number, y: number): void;
@@ -1072,5 +1076,51 @@ test("WL-AK-63/64: Schafherde entdecken und Hügelhöhle finden", async ({ page 
   );
   await expect(page.getByText("🍵 Du hast die versteckte Hügelhöhle gefunden!")).toBeVisible();
   await expect.poll(async () => (await state(page)).burrowTalk).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test("WL-AK-67: Feuerwerk aus der Hütte zünden", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.addInitScript(
+    ([key, seen]) => localStorage.setItem(key as string, JSON.stringify({ v: 1, seen })),
+    [BOOK_KEY, SPECIES.map((s) => s.id)] as const,
+  );
+  const errors = trackErrors(page);
+  await open(page);
+  const mobile = isMobile(page);
+  const tap = (name: string | RegExp) =>
+    mobile
+      ? page.getByRole("button", { name }).first().tap()
+      : page.getByRole("button", { name }).first().click();
+  await tap("Los geht's");
+  await landed(page);
+  const [tx, ty, sx, sy] = (await hooks(page, (h) => h.hutSpot()))!;
+  await page.evaluate(
+    ([tx, ty, sx, sy]) =>
+      (window.__dampf as Hooks).teleport(sx! + 0.5, sy! + 0.5, tx! - sx!, ty! - sy!),
+    [tx, ty, sx, sy],
+  );
+  // tagsüber: Hinweis, nichts wird gezündet
+  await hooks(page, (h) => h.setTime(600 * 2 + 100));
+  if ((await state(page)).screen === "paused") await tap("Weiterspielen");
+  await tap("📦 Truhe");
+  await expect(page.getByText("🚀 Feuerwerk (99)")).toBeVisible();
+  await page.getByRole("button", { name: "Nehmen: 🚀" }).click();
+  await expect(page.getByText("🚀 Feuerwerk (98)")).toBeVisible();
+  await page.getByRole("button", { name: "Fertig" }).click();
+  await expect(page.locator('[data-h="rockets"]')).toHaveText("🚀 1");
+  await tap("🚀 Zünden");
+  await expect(page.getByText(/^Feuerwerk sieht man nur, wenn es dunkel ist/)).toBeVisible();
+  expect((await state(page)).me.rockets).toBe(1);
+  // nachts: Rakete steigt, zerplatzt in Partikel
+  await hooks(page, (h) => h.setTime(600 * 2 + 470));
+  if ((await state(page)).screen === "paused") await tap("Weiterspielen");
+  await tap("🚀 Zünden");
+  await expect.poll(async () => (await state(page)).fireworks.length).toBe(1);
+  expect((await state(page)).me.rockets).toBe(0);
+  await expect
+    .poll(async () => (await state(page)).fireworkParticles, { timeout: 15_000 })
+    .toBeGreaterThan(20);
+  expect((await state(page)).hutRockets).toBe(98);
   expect(errors).toEqual([]);
 });

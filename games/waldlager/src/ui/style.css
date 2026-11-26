@@ -507,6 +507,24 @@
   padding: 6px 8px;
   font-size: 14px;
 }
+.wl-rockets {
+  margin-top: 10px;
+  text-align: center;
+}
+.wl-rockets h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+.wl-rockets .wl-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.wl-rockets .wl-btn {
+  padding: 6px 8px;
+  font-size: 14px;
+}
 .wl-give-to {
   align-self: center;
   font-weight: 700;

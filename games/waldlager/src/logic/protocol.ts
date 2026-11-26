@@ -1,4 +1,5 @@
 import type { World } from "./world.ts";
+import { FIREWORK, STYLES, type Firework } from "./fireworks.ts";
 import {
   ANIMALS,
   FOOD_KINDS,
@@ -32,7 +33,9 @@ export type GuestMsg =
   | { v: 1; k: "eat"; food?: FoodKind }
   | { v: 1; k: "build"; kind: "tent" | "fire" | "bridge" | "rod" }
   | { v: 1; k: "chest"; kind: ItemKind; dir: "put" | "take" }
-  | { v: 1; k: "give"; food: FoodKind };
+  | { v: 1; k: "give"; food: FoodKind }
+  | { v: 1; k: "rocket"; dir: "put" | "take"; n: 1 | 5 }
+  | { v: 1; k: "launch" };
 
 export interface PlayerSnap {
   id: string;
@@ -56,6 +59,8 @@ export interface PlayerSnap {
   /** Angeln (WL-AK-54; fehlen bei älteren Gastgebern) */
   fish?: number;
   rod?: boolean;
+  /** Feuerwerksraketen (WL-AK-65; fehlen bei älteren Gastgebern) */
+  rockets?: number;
   radio: boolean;
   landing: number;
 }
@@ -88,6 +93,9 @@ export interface Snap {
   tentChests?: Record<string, Chest>;
   /** ruhende Fischstellen [Index, bis] (WL-AK-54) */
   fishRest?: [number, number][];
+  /** Feuerwerk (WL-AK-65/66; fehlen bei älteren Gastgebern) */
+  hutRockets?: number;
+  fireworks?: Firework[];
 }
 
 export type HostMsg =
@@ -135,6 +143,12 @@ export function parseGuest(d: unknown): GuestMsg | null {
         (d.dir === "put" || d.dir === "take")
         ? { v: 1, k: "chest", kind: d.kind as ItemKind, dir: d.dir }
         : null;
+    case "rocket":
+      return (d.dir === "put" || d.dir === "take") && (d.n === 1 || d.n === 5)
+        ? { v: 1, k: "rocket", dir: d.dir, n: d.n }
+        : null;
+    case "launch":
+      return { v: 1, k: "launch" };
     case "give":
       return (FOOD_KINDS as unknown[]).includes(d.food)
         ? { v: 1, k: "give", food: d.food as FoodKind }
@@ -168,6 +182,7 @@ function playerSnap(p: unknown): p is PlayerSnap {
       (k) => p[k] === undefined || num(p[k]),
     ) &&
     (p.rod === undefined || bool(p.rod)) &&
+    (p.rockets === undefined || num(p.rockets)) &&
     bool(p.radio) &&
     num(p.landing)
   );
@@ -200,6 +215,20 @@ export function parseHost(d: unknown): HostMsg | null {
     (d.fishRest !== undefined &&
       (!Array.isArray(d.fishRest) ||
         !d.fishRest.every((t) => Array.isArray(t) && t.length === 2 && t.every(num)))) ||
+    (d.hutRockets !== undefined && !num(d.hutRockets)) ||
+    (d.fireworks !== undefined &&
+      (!Array.isArray(d.fireworks) ||
+        d.fireworks.length > FIREWORK.max ||
+        !d.fireworks.every(
+          (f) =>
+            obj(f) &&
+            num(f.id) &&
+            num(f.x) &&
+            num(f.y) &&
+            num(f.at) &&
+            num(f.seed) &&
+            (STYLES as readonly unknown[]).includes(f.style),
+        ))) ||
     !Array.isArray(d.fires) ||
     !d.fires.every((f) => obj(f) && num(f.id) && num(f.x) && num(f.y) && num(f.until)) ||
     !Array.isArray(d.animals) ||
@@ -256,6 +285,9 @@ export function toSnap(w: World, s: State, focus: { x: number; y: number }[]): S
         const f = w.fish[k];
         return until > s.total && !!f && near(f.x, f.y);
       }),
+    hutRockets: s.hutRockets,
+    // Feuerwerk sieht man von weit her: alle schicken
+    fireworks: s.fireworks.map((f) => ({ ...f })),
     animals: s.animals
       .filter((a) => near(a.x, a.y))
       .map((a) => [ANIMALS.indexOf(a.kind), +a.x.toFixed(2), +a.y.toFixed(2)]),
@@ -278,6 +310,7 @@ export function toSnap(w: World, s: State, focus: { x: number; y: number }[]): S
       cans: p.cans,
       fish: p.fish,
       rod: p.rod,
+      rockets: p.rockets,
       radio: p.radio,
       landing: +p.landing.toFixed(2),
     })),
@@ -298,6 +331,8 @@ export function applySnap(s: State, snap: Snap, me: string, first: boolean) {
   else if (snap.hutCans !== undefined) s.hutChest = { cans: snap.hutCans };
   if (snap.tentChests) s.tentChests = snap.tentChests;
   s.fishRest = Object.fromEntries(snap.fishRest ?? []);
+  if (snap.hutRockets !== undefined) s.hutRockets = Math.max(0, Math.floor(snap.hutRockets));
+  s.fireworks = snap.fireworks ?? [];
   s.animals = snap.animals.map(([k, x, y], i): Animal => {
     const prev = s.animals[i];
     return prev && prev.kind === ANIMALS[k]
@@ -319,6 +354,7 @@ export function applySnap(s: State, snap: Snap, me: string, first: boolean) {
         rod: false,
         hutSeen: true,
         burrowSeen: true,
+        rockets: 0,
         exhausted: false,
         running: false,
         chop: null,
@@ -337,6 +373,7 @@ export function applySnap(s: State, snap: Snap, me: string, first: boolean) {
       cans: q.cans ?? 0,
       fish: q.fish ?? 0,
       rod: q.rod === true,
+      rockets: q.rockets ?? 0,
       radio: q.radio,
       landing: q.landing,
       sleeping: local ? p.sleeping && q.sleeping : q.sleeping,

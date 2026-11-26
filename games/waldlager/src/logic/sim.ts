@@ -1,6 +1,7 @@
 import { DAY, START_TIME, isNight, phaseOf } from "./daytime.ts";
 import { SHEEP, SPECIES, UNICORN, speciesById } from "./species.ts";
 import { rng } from "./rng.ts";
+import { FIREWORK, STYLES, type Firework } from "./fireworks.ts";
 import {
   FULL,
   RATES,
@@ -90,6 +91,10 @@ export interface Player {
   hutSeen: boolean;
   /** versteckte Hügelhöhle schon gefunden (WL-AK-64) */
   burrowSeen: boolean;
+  /** Feuerwerksraketen in der Tasche (WL-AK-65) */
+  rockets: number;
+  /** Spielzeit der letzten eigenen Rakete (nicht gespeichert) */
+  lastRocket?: number;
   tent: { x: number; y: number } | null;
   sleeping: boolean;
   exhausted: boolean;
@@ -156,6 +161,11 @@ export interface State {
   fishRest: Record<number, number>;
   /** Mitte je Schafherde (WL-AK-63); wird nicht gespeichert, nur beim Gastgeber gebraucht */
   herds: { x: number; y: number }[];
+  /** Raketen in der Feuerwerkskiste der Hütte (WL-AK-65) */
+  hutRockets: number;
+  /** Feuerwerke am Himmel (nicht gespeichert) */
+  fireworks: Firework[];
+  nextFirework: number;
 }
 
 export interface Input {
@@ -275,6 +285,9 @@ export function createState(w: World): State {
     tentChests: {},
     fishRest: {},
     herds: [],
+    hutRockets: FIREWORK.hutStart,
+    fireworks: [],
+    nextFirework: 1,
   };
   const awayFromStart = (x: number, y: number) => Math.hypot(x - w.start.x, y - w.start.y) >= 6;
   const scale = Math.max(1, Math.min(4, Math.round(w.size / 128)));
@@ -434,6 +447,7 @@ export function addPlayer(
     rod: false,
     hutSeen: false,
     burrowSeen: false,
+    rockets: 0,
     tent: null,
     sleeping: false,
     exhausted: false,
@@ -565,6 +579,7 @@ export function stepWorld(w: World, s: State, dt: number): GameEvent[] {
   const allAsleep = players.length > 0 && players.every((p) => p.sleeping);
   s.total += dt * (allAsleep && night ? 4 : 1);
   if (Math.floor(s.total / DAY) !== s.day) newDay(w, s);
+  s.fireworks = s.fireworks.filter((f) => s.total - f.at < FIREWORK.rise + FIREWORK.burst);
   for (const [k, at] of Object.entries(s.stumps)) if (at <= s.total) delete s.stumps[Number(k)];
   for (const [k, at] of Object.entries(s.refill))
     if (at <= s.total) {
@@ -1051,6 +1066,62 @@ export function chestNear(
     cap: CHEST.tent,
     label: owner.id === p.id ? "Truhe in deinem Zelt" : `Truhe in ${owner.name}s Zelt`,
   };
+}
+
+/** Raketen an der Hütte nehmen oder zurücklegen (WL-AK-65) */
+export function rocketMove(
+  w: World,
+  s: State,
+  p: Player,
+  dir: "put" | "take",
+  n: 1 | 5 = 1,
+): string {
+  if (chestNear(w, s, p)?.where !== "hut") return "Die Feuerwerkskiste steht in der Hütte.";
+  if (dir === "put") {
+    if (p.rockets <= 0) return "Du hast keine Raketen dabei.";
+    const k = Math.min(n, p.rockets);
+    p.rockets -= k;
+    s.hutRockets += k;
+    return `🚀 ${k === 1 ? "Rakete" : `${k} Raketen`} zurückgelegt`;
+  }
+  if (s.hutRockets <= 0) return "Die Feuerwerkskiste ist leer.";
+  if (p.rockets >= FIREWORK.pocket) return "Mehr Raketen passen nicht in deine Taschen.";
+  const k = Math.min(n, s.hutRockets, FIREWORK.pocket - p.rockets);
+  p.rockets += k;
+  s.hutRockets -= k;
+  return `🚀 ${k === 1 ? "Rakete" : `${k} Raketen`} genommen`;
+}
+
+export const ROCKET_DAY = "Feuerwerk sieht man nur, wenn es dunkel ist – warte bis zum Abend!";
+
+/** Rakete zünden (WL-AK-66): nur in Dämmerung und Nacht, Stil ist eine Überraschung */
+export function launchRocket(
+  w: World,
+  s: State,
+  p: Player,
+): { text: string | null; firework?: Firework } {
+  if (p.rockets <= 0 || p.sleeping || p.landing > 0) return { text: null };
+  const ph = phaseOf(s.total);
+  if (ph !== "daemmerung" && ph !== "nacht") return { text: ROCKET_DAY };
+  const tx = Math.floor(p.x);
+  const ty = Math.floor(p.y);
+  const t = inside(w, tx, ty) ? w.terrain[idx(w, tx, ty)]! : T.SEA;
+  if (!terrainWalkable(t)) return { text: "Hier kannst du keine Rakete aufstellen." };
+  if (p.lastRocket !== undefined && s.total - p.lastRocket < FIREWORK.cooldown)
+    return { text: null };
+  p.rockets--;
+  p.lastRocket = s.total;
+  const f: Firework = {
+    id: s.nextFirework++,
+    x: p.x,
+    y: p.y,
+    style: STYLES[Math.floor(nextRand(s) * STYLES.length)]!,
+    at: s.total,
+    seed: Math.floor(nextRand(s) * 0x7fffffff),
+  };
+  s.fireworks.push(f);
+  while (s.fireworks.length > FIREWORK.max) s.fireworks.shift();
+  return { text: null, firework: f };
 }
 
 /** Ein Stück hineinlegen oder herausnehmen; jeder darf alles nehmen (Feedback fb_7fx13soz) */

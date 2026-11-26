@@ -1,6 +1,7 @@
 import { COLORS, addPlayer, free, isColor, createState, type Player, type State } from "./sim.ts";
 import { SIZE, T, generateWorld, idx, inside, type World } from "./world.ts";
 import { isChest } from "./protocol.ts";
+import { FIREWORK } from "./fireworks.ts";
 
 /** Speicherstand (WL-AK-10), localStorage-Schlüssel dampf.waldlager.v1 */
 export const KEY = "dampf.waldlager.v1";
@@ -130,6 +131,13 @@ export function load(store: Store): { world: World; state: State; me: string } |
         s.tentChests && isChest(s.tentChests[me.id]) ? { [me.id]: s.tentChests[me.id]! } : {},
       hutRefill: num(s.hutRefill) ? s.hutRefill : null,
       fishRest: numRecord(s.fishRest) ?? {},
+      // Feuerwerkskiste (WL-AK-65); ältere Spielstände: volle Kiste
+      hutRockets:
+        s.hutRockets === undefined
+          ? fresh.hutRockets
+          : num(s.hutRockets)
+            ? Math.max(0, Math.min(FIREWORK.hutStart, Math.floor(s.hutRockets)))
+            : 0,
       players: {},
     };
     const home = { x: Math.floor(me.x), y: Math.floor(me.y) };
@@ -160,6 +168,7 @@ export function load(store: Store): { world: World; state: State; me: string } |
       rod: me.rod === true,
       hutSeen: me.hutSeen === true,
       burrowSeen: me.burrowSeen === true,
+      rockets: num(me.rockets) ? Math.max(0, Math.min(FIREWORK.pocket, Math.floor(me.rockets))) : 0,
       landing: 0,
     });
     // ältere Spielstände: Wer jetzt in einem neuen See steht, kommt ans Ufer (WL-AK-52)
